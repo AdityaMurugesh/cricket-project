@@ -1,0 +1,11 @@
+# Python virtual environments
+cricket/
+loco-venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db

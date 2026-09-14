@@ -1,0 +1,50 @@
+<mujoco model="throw_arm">
+  <compiler angle="degree"/>
+  <option gravity="0 0 -9.81" timestep="0.002"/>
+
+  <default>
+    <joint damping="0.3" armature="0.01"/>
+    <geom contype="1" conaffinity="1" friction="0.9 0.005 0.0001"/>
+  </default>
+
+  <worldbody>
+    <light diffuse="0.6 0.6 0.6" pos="0 0 4" dir="0 0 -1"/>
+    <light diffuse="0.3 0.3 0.3" pos="3 -3 3" dir="-1 1 -1"/>
+
+    <geom name="ground" type="plane" size="20 5 0.1" rgba="0.3 0.5 0.3 1"/>
+
+    <!-- target landing zone marker, visual only -->
+    <geom name="target_zone" type="box" pos="7.0 0 0.002" size="1.0 0.6 0.002"
+          rgba="0.9 0.2 0.2 0.4" contype="0" conaffinity="0"/>
+
+    <body name="shoulder_mount" pos="0 0 1.2">
+      <geom type="sphere" size="0.05" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0"/>
+      <body name="upper_arm" pos="0 0 0">
+        <joint name="shoulder" type="hinge" axis="0 1 0" range="60 380" pos="0 0 0"/>
+        <geom type="capsule" fromto="0 0 0 0.35 0 0" size="0.04" rgba="0.6 0.6 0.9 1"/>
+        <body name="forearm" pos="0.35 0 0">
+          <joint name="elbow" type="hinge" axis="0 1 0" range="0 160" pos="0 0 0"/>
+          <geom type="capsule" fromto="0 0 0 0.3 0 0" size="0.035" rgba="0.5 0.5 0.8 1"/>
+          <site name="hand" pos="0.3 0 0" size="0.02"/>
+        </body>
+      </body>
+    </body>
+
+    <body name="ball" pos="0.65 0 1.2">
+      <freejoint name="ball_free"/>
+      <geom name="ball_geom" type="sphere" size="0.036" mass="0.16" rgba="0.9 0.9 0.9 1"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <!-- relpose/anchor omitted on purpose: mujoco derives them from the
+         compiled qpos0 configuration, where the ball sphere is coincident
+         with the hand site. This is the "ball welded to end effector". -->
+    <weld name="grip" body1="ball" body2="forearm" solref="0.002 1" solimp="0.95 0.99 0.001 0.5 2"/>
+  </equality>
+
+  <actuator>
+    <motor name="shoulder_motor" joint="shoulder" gear="40" ctrlrange="-1 1"/>
+    <motor name="elbow_motor" joint="elbow" gear="30" ctrlrange="-1 1"/>
+  </actuator>
+</mujoco>
