@@ -14,7 +14,7 @@ ASSET_PATH = Path(__file__).resolve().parent.parent / "assets" / "throw_arm.xml"
 
 class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=900,
-                 start_pose_deg=(100.0, 0.0)):
+                 start_pose_deg=(100.0, 0.0), speed_weight=0.1):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
         self.data = mujoco.MjData(self.model)
 
@@ -26,6 +26,7 @@ class ThrowEnv:
 
         self.target_min, self.target_max = target_range
         self.max_steps = max_steps
+        self.speed_weight = speed_weight
         # cocked/loaded starting angle for the arm (shoulder, elbow), degrees.
         # 100 deg shoulder = arm hanging down and slightly behind the body,
         # like the bottom of a bowler's backswing -- not pointing at the
@@ -115,10 +116,14 @@ class ThrowEnv:
         return False
 
     def _reward(self):
+        # speed only counts once the accuracy constraint is met -- this is
+        # the "subject to" in the research question (max speed subject to
+        # landing accuracy), not a free-standing speed bonus, so a fast
+        # miss can never outscore an accurate throw of any speed.
         if not self.landed:
             return 0.0
         x = self.landing_pos[0]
         if self.target_min <= x <= self.target_max:
-            return 1.0
+            return 1.0 + self.speed_weight * self.release_speed
         dist = min(abs(x - self.target_min), abs(x - self.target_max))
         return -dist
