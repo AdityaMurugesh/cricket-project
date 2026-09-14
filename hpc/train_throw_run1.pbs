@@ -1,0 +1,21 @@
+#!/bin/bash
+# First real (non-smoke) training run for throw_env.py.
+# Reward now includes the speed term gated on landing accuracy -- see
+# envs/throw_env.py and the elbow-legality-design-decision /
+# workflow-constraints memory for why this exists.
+# Submit from the project root: qsub hpc/train_throw_run1.pbs
+#PBS -N cricket_throw_ppo_run1
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+python scripts/train_throw.py \
+    --timesteps 2000000 \
+    --n-envs 8 \
+    --log-dir logs/throw_ppo_run1 \
+    --model-path checkpoints/throw_ppo_run1 \
+    --seed 0
