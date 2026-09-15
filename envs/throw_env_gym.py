@@ -17,10 +17,12 @@ number at the end of up to 900 individual per-step decisions) being too
 hard to credit-assign over that many decisions. frame_skip=5 cuts the
 decision count roughly 5x (900 -> ~180) without changing episode duration
 in physics time, which is the standard fix for this failure mode.
-elbow/shoulder history is still recorded every physics substep (not every
-decision), so the elbow-legality metric's precision doesn't depend on
-frame_skip -- see elbow-legality-design-decision memory on why that must
-stay exact.
+ThrowEnv itself now tracks shoulder/elbow angle history and computes
+elbow_extension_deg at every physics substep (not just every decision),
+so the elbow-legality metric's precision doesn't depend on frame_skip --
+see elbow-legality-design-decision memory on why that must stay exact.
+This wrapper just forwards it through info rather than duplicating the
+tracking.
 
 Reward shaping (added after frame_skip alone still wasn't enough -- run3
 plateaued around reward -6, never reliably reaching the target zone; see
@@ -35,25 +37,34 @@ PPO can find it, so it's safe to add without silently redefining the
 research question's actual objective (max speed subject to legality +
 landing accuracy).
 
-Phi(s) here is "how close would the ball land (assuming free-fall
-ballistic flight from its current position/velocity) to the target
-zone" -- valid pre-release too, since the grip weld keeps the ball's
-qvel equal to the hand's, so it's a live "if I released right now"
-prediction that only sharpens as the swing builds real speed and
-direction. This single distance-based signal naturally captures BOTH
+Phi(s) has two terms. The first is "how close would the ball land
+(assuming free-fall ballistic flight from its current position/
+velocity) to the target zone" -- valid pre-release too, since the grip
+weld keeps the ball's qvel equal to the hand's, so it's a live "if I
+released right now" prediction that only sharpens as the swing builds
+real speed and direction. That distance signal naturally captures BOTH
 aim and speed (a stationary ball's predicted landing is right at the
 start pose, far from the zone; building speed toward the target moves
-the predicted landing closer), so a separate speed term in Phi isn't
-needed. The *actual* task reward used for episode_reward/CSV logging
-(the real research metric) is never touched -- only the per-step signal
-PPO trains on is shaped.
+the predicted landing closer), so a separate speed term isn't needed.
+
+The second (swing_weight) is monotonic progress of the shoulder around
+the swing arc toward the release orientation, which the distance term
+alone does not ask for -- see _potential() for the geometry and for the
+attractor bug that the first version of this term introduced. It spans
+0 -> swing_weight across the full swing, so swing_weight is set to be
+roughly commensurate with the distance term's metre-scale range.
+
+Both terms are functions of the current state only, and Phi is forced
+to 0 at terminal states, so the Ng/Harada/Russell policy-invariance
+guarantee still holds for the pair. The *actual* task reward used for
+episode_reward/CSV logging (the real research metric) is never touched
+-- only the per-step signal PPO trains on is shaped.
 """
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
 from envs.throw_env import ThrowEnv
-from envs.legality import elbow_extension_deg
 
 _OBS_BOUND = np.array([4 * np.pi, 4 * np.pi, 50.0, 50.0], dtype=np.float32)
 
@@ -61,7 +72,8 @@ _OBS_BOUND = np.array([4 * np.pi, 4 * np.pi, 50.0, 50.0], dtype=np.float32)
 class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.99, **throw_env_kwargs):
+    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.99,
+                 swing_weight=5.0, **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
         self.frame_skip = frame_skip
@@ -69,11 +81,9 @@ class ThrowEnvGym(gym.Env):
         # must match the PPO model's own gamma for the shaping math to be
         # the correct potential-based form -- SB3 PPO defaults to 0.99 too.
         self.shaping_gamma = shaping_gamma
+        self.swing_weight = swing_weight
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
-        self._shoulder_hist = []
-        self._elbow_hist = []
-        self._release_idx = None
         self._episode_reward = 0.0
         self._episode_len = 0
 
@@ -98,15 +108,48 @@ class ThrowEnvGym(gym.Env):
         x_pred = self._predicted_landing_x()
         env = self._env
         if env.target_min <= x_pred <= env.target_max:
-            return 0.0
-        return -min(abs(x_pred - env.target_min), abs(x_pred - env.target_max))
+            dist_term = 0.0
+        else:
+            dist_term = -min(abs(x_pred - env.target_min), abs(x_pred - env.target_max))
+        # The true reward also requires legality (see throw_env.py's
+        # _reward()), but the distance term alone has no reason to prefer
+        # a real swing over an elbow-only flick -- that mismatch is what
+        # let run4 converge on a fast, accurate, but illegal technique.
+        #
+        # Swing geometry (verified against the compiled model): the
+        # shoulder angle points straight DOWN at 90, horizontal BACKWARD
+        # (away from the target) at 180, straight UP at 270, and
+        # horizontal FORWARD at 360. Release velocity is tangential, so
+        # the ball leaves perpendicular to the arm, not along it: at 270
+        # (arm vertical) it leaves horizontally toward the target from
+        # maximum height, which is the real overarm release point, while
+        # at 360 the arm is sweeping DOWN through horizontal and drives
+        # the ball into the ground a metre away. A scripted open-loop
+        # swing confirms 270 is the optimum: 41.5 km/h, extension
+        # -0.03 deg (legal), landing 7.82 m, reward +2.15.
+        #
+        # An earlier version of this term used
+        # -swing_weight * min(|angle-180|, |angle-360|), i.e. "distance
+        # to the nearest horizontal". That is wrong in a way that caused
+        # the exact failure it was meant to fix: it peaks at 180 -- arm
+        # pointing away from the target -- and bottoms out at 270, the
+        # true release point, scoring it WORSE than never moving at all.
+        # It pinned the arm backward and penalized the climb to release.
+        #
+        # Replaced with monotonic progress from the start pose to 270, so
+        # every degree of the climb is rewarded, the maximum sits exactly
+        # at the release orientation, and there is no interior attractor
+        # to get stuck in. Flat past 270 so the follow-through is neither
+        # required nor penalized.
+        angle = env.data.qpos[0] * 180.0 / np.pi
+        start_deg = float(np.degrees(env.start_pose[0]))
+        progress = (angle - start_deg) / (270.0 - start_deg)
+        swing_term = self.swing_weight * float(np.clip(progress, 0.0, 1.0))
+        return dist_term + swing_term
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         obs = self._env.reset(seed=seed)
-        self._shoulder_hist = [np.degrees(self._env.data.qpos[0])]
-        self._elbow_hist = [np.degrees(self._env.data.qpos[1])]
-        self._release_idx = None
         self._episode_reward = 0.0
         self._episode_len = 0
         return obs.astype(np.float32), {}
@@ -119,15 +162,9 @@ class ThrowEnvGym(gym.Env):
         truncated = False
         info = {}
         for _ in range(self.frame_skip):
-            was_released = self._env.released
             obs, reward, done, info = self._env.step(action)
             total_reward += reward
             self._episode_len += 1
-
-            self._shoulder_hist.append(np.degrees(self._env.data.qpos[0]))
-            self._elbow_hist.append(np.degrees(self._env.data.qpos[1]))
-            if info["released"] and not was_released:
-                self._release_idx = len(self._shoulder_hist) - 1
 
             terminated = bool(self._env.landed)
             truncated = bool(info["timeout"] and not self._env.landed)
@@ -146,9 +183,5 @@ class ThrowEnvGym(gym.Env):
             info = dict(info)
             info["episode_reward"] = self._episode_reward
             info["episode_len"] = self._episode_len
-            info["elbow_extension_deg"] = None
-            if self._release_idx is not None:
-                info["elbow_extension_deg"] = elbow_extension_deg(
-                    self._shoulder_hist, self._elbow_hist, self._release_idx)
 
         return obs.astype(np.float32), shaped_reward, terminated, truncated, info

@@ -2,19 +2,35 @@
 
 Validates three things before any humanoid/legality work starts:
 ball physics, the weld-release mechanism, and target-zone scoring.
-No humanoid, no legality constraint, no run-up -- see context.md.
+No humanoid, no run-up -- see context.md.
+
+Elbow legality (ICC: extension <= 15 deg between arm-horizontal and
+release) is now folded into the real reward, not just logged -- see
+elbow-legality-design-decision and workflow-constraints memory. Once
+run4's throws were fast and accurate, watching the trained policy live
+showed why: the shoulder barely moved (100 -> 55 deg) and all the speed
+came from an elbow flick, since nothing in the reward asked for
+anything resembling a real bowling swing. Gating the accuracy/speed
+bonus on legality (same "subject to" pattern speed already uses for
+accuracy) forces a technique that actually swings the arm through
+horizontal, since that's the only way to have a measurable, legal
+extension at all.
 """
 from pathlib import Path
 
 import mujoco
 import numpy as np
 
+from envs.legality import elbow_extension_deg
+
 ASSET_PATH = Path(__file__).resolve().parent.parent / "assets" / "throw_arm.xml"
 
 
 class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=900,
-                 start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=100):
+                 start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=100,
+                 max_legal_extension_deg=15.0, horizontal_selector="last_before_release",
+                 extension_mode="endpoint"):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
         self.data = mujoco.MjData(self.model)
 
@@ -47,11 +63,22 @@ class ThrowEnv:
         # phase before it can swing forward.
         self.start_pose = np.radians(start_pose_deg)
 
+        # ICC legality threshold + the two operational-definition choices
+        # still pending Dr. Felton's reply (see elbow-legality-design-
+        # decision memory) -- kept as config, not hardcoded, until resolved.
+        self.max_legal_extension_deg = max_legal_extension_deg
+        self.horizontal_selector = horizontal_selector
+        self.extension_mode = extension_mode
+
         self.released = False
         self.landed = False
         self.step_count = 0
         self.release_speed = None
         self.landing_pos = None
+        self.elbow_extension_deg = None
+        self._shoulder_hist = []
+        self._elbow_hist = []
+        self._release_idx = None
 
         self.reset()
 
@@ -76,6 +103,10 @@ class ThrowEnv:
         self.step_count = 0
         self.release_speed = None
         self.landing_pos = None
+        self.elbow_extension_deg = None
+        self._shoulder_hist = [np.degrees(self.data.qpos[0])]
+        self._elbow_hist = [np.degrees(self.data.qpos[1])]
+        self._release_idx = None
         mujoco.mj_forward(self.model, self.data)
         return self._obs()
 
@@ -85,13 +116,23 @@ class ThrowEnv:
         action = np.asarray(action, dtype=np.float64)
         self.data.ctrl[:2] = np.clip(action[:2], -1.0, 1.0)
 
+        just_released = False
         if not self.released and self.step_count >= self.min_release_step and action[2] > 0.0:
             self.release_speed = self._ball_linear_speed()
             self.data.eq_active[self.grip_eq_id] = 0
             self.released = True
+            just_released = True
 
         mujoco.mj_step(self.model, self.data)
         self.step_count += 1
+
+        self._shoulder_hist.append(np.degrees(self.data.qpos[0]))
+        self._elbow_hist.append(np.degrees(self.data.qpos[1]))
+        if just_released:
+            self._release_idx = len(self._shoulder_hist) - 1
+            self.elbow_extension_deg = elbow_extension_deg(
+                self._shoulder_hist, self._elbow_hist, self._release_idx,
+                horizontal_selector=self.horizontal_selector, mode=self.extension_mode)
 
         if self.released and not self.landed and self._ball_touched_ground():
             self.landed = True
@@ -106,6 +147,9 @@ class ThrowEnv:
             "release_speed": self.release_speed,
             "landing_pos": self.landing_pos,
             "timeout": timeout,
+            "elbow_extension_deg": self.elbow_extension_deg,
+            "legal": (self.elbow_extension_deg is not None
+                      and self.elbow_extension_deg <= self.max_legal_extension_deg),
         }
         return self._obs(), reward, done, info
 
@@ -129,10 +173,14 @@ class ThrowEnv:
         return False
 
     def _reward(self):
-        # speed only counts once the accuracy constraint is met -- this is
+        # speed only counts once accuracy AND legality are met -- this is
         # the "subject to" in the research question (max speed subject to
-        # landing accuracy), not a free-standing speed bonus, so a fast
-        # miss can never outscore an accurate throw of any speed.
+        # (1) legality, (2) landing accuracy), not a free-standing speed
+        # bonus, so a fast/accurate-but-illegal throw scores the same as a
+        # miss, never better. elbow_extension_deg is None if the arm never
+        # swung through a horizontal reference before release (e.g. an
+        # elbow-only flick, no real swing) -- treated as illegal too, since
+        # that's not a bowling action the ICC rule could even evaluate.
         if not self.landed:
             if self.step_count < self.max_steps:
                 return 0.0
@@ -147,7 +195,9 @@ class ThrowEnv:
         else:
             x = self.landing_pos[0]
 
-        if self.target_min <= x <= self.target_max:
+        legal = (self.elbow_extension_deg is not None
+                 and self.elbow_extension_deg <= self.max_legal_extension_deg)
+        if self.target_min <= x <= self.target_max and legal:
             speed = self.release_speed if self.release_speed is not None else 0.0
             return 1.0 + self.speed_weight * speed
         dist = min(abs(x - self.target_min), abs(x - self.target_max))

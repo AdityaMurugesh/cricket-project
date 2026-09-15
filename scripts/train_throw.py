@@ -4,10 +4,12 @@ Logs release speed, landing position, and elbow extension for every
 episode from the start (see workflow-constraints memory) -- this becomes
 the results section later, so it isn't deferred as a later addition.
 
-Reward stays exactly ThrowEnv._reward() (landing-zone only, see
-throw_env.py) -- v1 scope is pure task-reward, no legality/style term
-folded into the reward itself yet. Elbow extension is recorded for
-analysis, not currently penalized.
+Reward is exactly ThrowEnv._reward(), which now gates the accuracy/speed
+bonus on ICC legality as well as landing accuracy -- both "subject to"
+clauses of the research question, so this is still pure task-reward and
+v1's "no imitation/style term" scope is unchanged. Elbow extension is
+still logged per episode either way, since the legal/illegal split is
+itself a result.
 """
 import argparse
 import csv
@@ -69,12 +71,15 @@ class EpisodeLogger(BaseCallback):
             self._file.close()
 
 
-def make_env():
-    return ThrowEnvGym()
+def make_env(swing_weight):
+    def _init():
+        return ThrowEnvGym(swing_weight=swing_weight)
+    return _init
 
 
-def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from):
-    vec_env = DummyVecEnv([make_env for _ in range(n_envs)])
+def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
+        swing_weight):
+    vec_env = DummyVecEnv([make_env(swing_weight) for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
         # policy -- reset_num_timesteps=False keeps model.num_timesteps
@@ -112,7 +117,15 @@ if __name__ == "__main__":
     parser.add_argument("--resume-from", default=None,
                          help="path to an existing .zip checkpoint to warm-start from instead of a "
                               "fresh random policy -- --timesteps is additional steps beyond wherever "
-                              "the checkpoint left off, not a new total.")
+                              "the checkpoint left off, not a new total. NOTE: do not use this to "
+                              "introduce a changed reward/shaping. A policy that already converged "
+                              "under the old reward keeps its collapsed exploration and stays in the "
+                              "old local optimum -- that is what made the first legality run go from "
+                              "16 horizontal crossings to zero after resuming.")
+    parser.add_argument("--swing-weight", type=float, default=5.0,
+                         help="scale of the shaping term rewarding progress of the shoulder around "
+                              "the swing arc toward the release orientation. 0 disables it, leaving "
+                              "the landing-distance potential alone. See ThrowEnvGym._potential().")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
-        args.resume_from)
+        args.resume_from, args.swing_weight)
