@@ -45,6 +45,7 @@ class EpisodeLogger(BaseCallback):
         self._writer.writerow([
             "episode", "timesteps", "reward", "release_speed_m_s",
             "landing_x", "landing_y", "elbow_extension_deg", "timeout",
+            "max_shoulder_deg", "shoulder_at_release_deg",
         ])
 
     def _on_step(self):
@@ -62,6 +63,8 @@ class EpisodeLogger(BaseCallback):
                 landing[1] if landing else None,
                 info.get("elbow_extension_deg"),
                 info.get("timeout"),
+                info.get("max_shoulder_deg"),
+                info.get("shoulder_at_release_deg"),
             ])
             self._file.flush()
         return True
@@ -122,10 +125,12 @@ if __name__ == "__main__":
                               "under the old reward keeps its collapsed exploration and stays in the "
                               "old local optimum -- that is what made the first legality run go from "
                               "16 horizontal crossings to zero after resuming.")
-    parser.add_argument("--swing-weight", type=float, default=5.0,
+    parser.add_argument("--swing-weight", type=float, default=30.0,
                          help="scale of the shaping term rewarding progress of the shoulder around "
                               "the swing arc toward the release orientation. 0 disables it, leaving "
-                              "the landing-distance potential alone. See ThrowEnvGym._potential().")
+                              "the landing-distance potential alone. Needs to be >~17 to overcome the "
+                              "distance term's penalty on the backswing -- at 5.0 the policy collapses "
+                              "to standing still and dropping the ball. See ThrowEnvGym._potential().")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight)

@@ -79,6 +79,7 @@ class ThrowEnv:
         self._shoulder_hist = []
         self._elbow_hist = []
         self._release_idx = None
+        self._max_shoulder_deg = None
 
         self.reset()
 
@@ -107,6 +108,7 @@ class ThrowEnv:
         self._shoulder_hist = [np.degrees(self.data.qpos[0])]
         self._elbow_hist = [np.degrees(self.data.qpos[1])]
         self._release_idx = None
+        self._max_shoulder_deg = self._shoulder_hist[0]
         mujoco.mj_forward(self.model, self.data)
         return self._obs()
 
@@ -128,6 +130,7 @@ class ThrowEnv:
 
         self._shoulder_hist.append(np.degrees(self.data.qpos[0]))
         self._elbow_hist.append(np.degrees(self.data.qpos[1]))
+        self._max_shoulder_deg = max(self._max_shoulder_deg, self._shoulder_hist[-1])
         if just_released:
             self._release_idx = len(self._shoulder_hist) - 1
             self.elbow_extension_deg = elbow_extension_deg(
@@ -150,6 +153,14 @@ class ThrowEnv:
             "elbow_extension_deg": self.elbow_extension_deg,
             "legal": (self.elbow_extension_deg is not None
                       and self.elbow_extension_deg <= self.max_legal_extension_deg),
+            # how far round the swing the arm actually got. elbow extension
+            # only exists once a horizontal crossing does, so when it logs
+            # blank there is no way to tell "never moved" from "swung but
+            # stopped just short" -- which is the difference between a
+            # policy that is failing and one that is nearly there.
+            "max_shoulder_deg": self._max_shoulder_deg,
+            "shoulder_at_release_deg": (None if self._release_idx is None
+                                        else self._shoulder_hist[self._release_idx]),
         }
         return self._obs(), reward, done, info
 

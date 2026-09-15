@@ -73,7 +73,7 @@ class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.99,
-                 swing_weight=5.0, **throw_env_kwargs):
+                 swing_weight=30.0, **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
         self.frame_skip = frame_skip
@@ -141,6 +141,20 @@ class ThrowEnvGym(gym.Env):
         # at the release orientation, and there is no interior attractor
         # to get stuck in. Flat past 270 so the follow-through is neither
         # required nor penalized.
+        #
+        # swing_weight has to be large because the distance term actively
+        # fights the backswing: while the arm climbs from 100 to ~180 the
+        # ball is being carried backward, so the "if I released right now"
+        # prediction gets worse, bottoming out at -10.89 against -6.11 at
+        # the start -- a -4.78 penalty for doing the one thing a bowling
+        # action requires. Measured along the scripted optimal swing, the
+        # weight needed just to break even at that worst point is ~16.6.
+        # At the old 5.0 the climb was net -3.40 and Phi fell on 87 of 152
+        # climb steps, so the policy correctly learned to stand still and
+        # drop the ball; at 30.0 the residual dip is -0.13 over 17 steps,
+        # which PPO crosses easily. Policy invariance holds at any weight
+        # (this is still PBRS), so this is a gradient-shaping knob only --
+        # it cannot bias the reported research metric.
         angle = env.data.qpos[0] * 180.0 / np.pi
         start_deg = float(np.degrees(env.start_pose[0]))
         progress = (angle - start_deg) / (270.0 - start_deg)
