@@ -14,7 +14,7 @@ ASSET_PATH = Path(__file__).resolve().parent.parent / "assets" / "throw_arm.xml"
 
 class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=900,
-                 start_pose_deg=(100.0, 0.0), speed_weight=0.1):
+                 start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=100):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
         self.data = mujoco.MjData(self.model)
 
@@ -27,6 +27,19 @@ class ThrowEnv:
         self.target_min, self.target_max = target_range
         self.max_steps = max_steps
         self.speed_weight = speed_weight
+        # a random/untrained policy's release action is ~50% likely to fire
+        # on almost any given step, so with no gate release happens at step
+        # 0-1 nearly every episode -- before the arm has swung at all. That
+        # collapses every episode into "drop the ball from the start pose",
+        # which all score ~identically regardless of the policy's actions,
+        # giving PPO no gradient to learn from (see workflow-constraints
+        # memory: this is what happened in the first real training run).
+        # Gating release below this step count forces a swing phase where
+        # actions actually matter. 100 steps = 0.2s at this model's 0.002s
+        # timestep; demo_scripted.py's hand-tuned manual release timing is
+        # step 155, so 100 leaves room for the policy to find its own
+        # timing without reproducing the degenerate instant-drop case.
+        self.min_release_step = min_release_step
         # cocked/loaded starting angle for the arm (shoulder, elbow), degrees.
         # 100 deg shoulder = arm hanging down and slightly behind the body,
         # like the bottom of a bowler's backswing -- not pointing at the
@@ -72,7 +85,7 @@ class ThrowEnv:
         action = np.asarray(action, dtype=np.float64)
         self.data.ctrl[:2] = np.clip(action[:2], -1.0, 1.0)
 
-        if not self.released and action[2] > 0.0:
+        if not self.released and self.step_count >= self.min_release_step and action[2] > 0.0:
             self.release_speed = self._ball_linear_speed()
             self.data.eq_active[self.grip_eq_id] = 0
             self.released = True
