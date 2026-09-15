@@ -1,0 +1,22 @@
+#!/bin/bash
+# Second real training run for throw_env.py -- rerun of run1 with the
+# release-gate fix (envs/throw_env.py min_release_step). Run1's reward was
+# flat for the full 2M steps because an untrained policy released the ball
+# on step 0-1 nearly every episode, before the arm ever swung. See the
+# commit that added min_release_step for the diagnosis.
+# Submit from the project root: qsub hpc/train_throw_run2.pbs
+#PBS -N cricket_throw_ppo_run2
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+python scripts/train_throw.py \
+    --timesteps 2000000 \
+    --n-envs 8 \
+    --log-dir logs/throw_ppo_run2 \
+    --model-path checkpoints/throw_ppo_run2 \
+    --seed 0
