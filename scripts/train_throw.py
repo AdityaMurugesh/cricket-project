@@ -73,13 +73,23 @@ def make_env():
     return ThrowEnvGym()
 
 
-def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef):
+def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from):
     vec_env = DummyVecEnv([make_env for _ in range(n_envs)])
-    model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef)
+    if resume_from:
+        # warm-start from an existing checkpoint instead of a fresh random
+        # policy -- reset_num_timesteps=False keeps model.num_timesteps
+        # (and its learning-rate/clip-range schedules) continuing on from
+        # wherever the checkpoint left off, rather than restarting at 0.
+        model = PPO.load(resume_from, env=vec_env)
+        model.ent_coef = ent_coef
+        print(f"resumed from {resume_from} at num_timesteps={model.num_timesteps}")
+    else:
+        model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef)
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = EpisodeLogger(csv_path)
-    model.learn(total_timesteps=total_timesteps, callback=callback)
+    model.learn(total_timesteps=total_timesteps, callback=callback,
+                reset_num_timesteps=(resume_from is None))
 
     Path(model_path).parent.mkdir(parents=True, exist_ok=True)
     model.save(model_path)
@@ -99,5 +109,10 @@ if __name__ == "__main__":
                               "policy collapse onto a low-effort near-zero-release strategy instead "
                               "of continuing to explore toward the target zone -- see the commit that "
                               "added this flag.")
+    parser.add_argument("--resume-from", default=None,
+                         help="path to an existing .zip checkpoint to warm-start from instead of a "
+                              "fresh random policy -- --timesteps is additional steps beyond wherever "
+                              "the checkpoint left off, not a new total.")
     args = parser.parse_args()
-    run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef)
+    run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
+        args.resume_from)
