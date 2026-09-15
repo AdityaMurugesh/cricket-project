@@ -1,0 +1,29 @@
+#!/bin/bash
+# Third real training run for throw_env.py -- run1 was flat the whole way
+# (untrained policy released instantly every episode); run2's release-gate
+# fix helped early but PPO collapsed onto a near-zero-effort policy after
+# ~40% of training (single terminal reward over up to 900 per-step
+# decisions was too hard to credit-assign). This run adds frame_skip=5
+# (envs/throw_env_gym.py) so the policy makes ~5x fewer, more consequential
+# decisions per episode, plus a small entropy bonus and a fix for a reward
+# loophole (a ball timing out mid-air used to score 0.0, better than most
+# real misses). Local validation at ~4M physics steps (800k timesteps with
+# frame_skip=5) showed sustained, non-collapsing improvement -- see the
+# commit that added frame_skip for the full diagnosis.
+# Submit from the project root: qsub hpc/train_throw_run3.pbs
+#PBS -N cricket_throw_ppo_run3
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=00:45:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+python scripts/train_throw.py \
+    --timesteps 4000000 \
+    --n-envs 8 \
+    --log-dir logs/throw_ppo_run3 \
+    --model-path checkpoints/throw_ppo_run3 \
+    --seed 0 \
+    --ent-coef 0.01
