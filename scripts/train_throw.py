@@ -73,9 +73,9 @@ def make_env():
     return ThrowEnvGym()
 
 
-def run(total_timesteps, n_envs, log_dir, model_path, seed):
+def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef):
     vec_env = DummyVecEnv([make_env for _ in range(n_envs)])
-    model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed)
+    model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef)
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = EpisodeLogger(csv_path)
@@ -94,5 +94,10 @@ if __name__ == "__main__":
     parser.add_argument("--log-dir", default=str(ROOT / "logs" / "throw_ppo"))
     parser.add_argument("--model-path", default=str(ROOT / "checkpoints" / "throw_ppo"))
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--ent-coef", type=float, default=0.01,
+                         help="PPO entropy bonus coefficient. SB3 default is 0.0, which let run2's "
+                              "policy collapse onto a low-effort near-zero-release strategy instead "
+                              "of continuing to explore toward the target zone -- see the commit that "
+                              "added this flag.")
     args = parser.parse_args()
-    run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed)
+    run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef)

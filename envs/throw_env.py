@@ -134,9 +134,21 @@ class ThrowEnv:
         # landing accuracy), not a free-standing speed bonus, so a fast
         # miss can never outscore an accurate throw of any speed.
         if not self.landed:
-            return 0.0
-        x = self.landing_pos[0]
+            if self.step_count < self.max_steps:
+                return 0.0
+            # timed out with the ball still airborne (e.g. released too
+            # vertically to come down within max_steps) -- score it same as
+            # a landed miss, using the ball's current position, rather than
+            # returning a flat 0.0. A flat 0.0 scores better than almost any
+            # real miss and would give PPO an incentive to loft the ball
+            # into never landing at all instead of aiming for the zone (see
+            # workflow-constraints memory, run3 local validation).
+            x = self._ball_pos()[0]
+        else:
+            x = self.landing_pos[0]
+
         if self.target_min <= x <= self.target_max:
-            return 1.0 + self.speed_weight * self.release_speed
+            speed = self.release_speed if self.release_speed is not None else 0.0
+            return 1.0 + self.speed_weight * speed
         dist = min(abs(x - self.target_min), abs(x - self.target_max))
         return -dist
