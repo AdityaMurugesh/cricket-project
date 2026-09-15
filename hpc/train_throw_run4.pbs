@@ -1,0 +1,28 @@
+#!/bin/bash
+# Fourth real training run for throw_env.py. run3 (frame_skip + entropy
+# bonus alone) plateaued around reward -6 without reliably reaching the
+# target zone. This run adds potential-based reward shaping in
+# envs/throw_env_gym.py -- a dense "predicted landing distance" signal on
+# top of the same sparse true reward, provably policy-invariant (Ng/Harada/
+# Russell 1999), so it speeds up learning without changing the actual
+# research objective. Local validation at 1.2M timesteps (~6M physics
+# steps) showed reward climbing every interval with no plateau and real
+# (non-artifact) landings in the target zone -- see the commit that added
+# shaping for the full diagnosis and numbers.
+# Submit from the project root: qsub hpc/train_throw_run4.pbs
+#PBS -N cricket_throw_ppo_run4
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+python scripts/train_throw.py \
+    --timesteps 8000000 \
+    --n-envs 8 \
+    --log-dir logs/throw_ppo_run4 \
+    --model-path checkpoints/throw_ppo_run4 \
+    --seed 0 \
+    --ent-coef 0.01
