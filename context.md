@@ -180,6 +180,40 @@ window. A flat profile means timing is not being controlled, whatever
 the success rate says. Run it on every checkpoint before believing a
 result.
 
+**Measured 2026-09-16, same 900k-step budget, ent_coef=0.01 both:**
+
+| | speed_weight=0.1 | speed_weight=0.3 |
+|---|---|---|
+| in target zone | 33% | **62%** |
+| mean reward | -0.11 | **+1.63** |
+| ICC legal | 100% | 92-98% |
+| deterministic eval | **never releases** | 28.6 km/h, lands 7.48 m, legal, +1.79 |
+| release profile across window | flat (spread 0.064) | committed (spread 0.733) |
+
+So raising speed_weight fixes the *commitment* problem: the release mean
+goes positive and deterministic evaluation becomes meaningful. It does
+NOT fix the *timing* problem -- release still fires at 230 deg, the
+window's opening edge, because the mean is already positive on entry.
+
+Why timing is hard here, measured by overriding the release instant on a
+trained policy while leaving its torques alone:
+
+    force@   km/h   land_x   reward
+       230   29.4     7.92    +3.45   <- what it does
+       240   30.8     8.34    -0.34   <- 0.34 m past the zone, falls off a cliff
+       250   33.7     7.78    +3.81
+       260   35.2     6.82    +3.93   <- best available with this swing
+       270   36.8     5.62    -0.38
+       290   40.2     3.41    -2.59
+
+Landing sweeps 7.92 m -> 3.41 m across 60 deg of release angle, so the
+2 m target zone is a needle and neighbouring release angles fall off a
+cliff. The policy plays safe at the window's opening edge. That is not a
+bug -- a sharp speed/accuracy tradeoff IS the curve the research question
+exists to map -- but it means the remaining ~6 km/h (and the 42.6 km/h
+available with a harder swing at 270) sits behind a jagged landscape,
+not a smooth gradient.
+
 Two candidate fixes, NOT yet decided:
   1. Raise speed_weight so release timing actually pays. This is a
      research-objective call -- it is the speed/accuracy tradeoff the

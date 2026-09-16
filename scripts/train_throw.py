@@ -146,7 +146,14 @@ if __name__ == "__main__":
                          help="coefficient on release speed in ThrowEnv's reward, applied only "
                               "once the throw is both accurate and legal. This is the research "
                               "question's objective, so it is a reported config value, not a "
-                              "tuning knob to be changed casually between runs.")
+                              "tuning knob to be changed casually between runs. "
+                              "WARNING: 0.1 is measured to be too weak -- at 0.1 the policy never "
+                              "commits to releasing, relies on exploration noise to fire the ball, "
+                              "and fails deterministic evaluation entirely (0 releases). At 0.3 it "
+                              "commits, and the same 900k-step budget reaches 62% of throws in the "
+                              "zone at mean reward +1.63 instead of 33% at -0.11. Raising it is a "
+                              "research-objective decision, so the default is left alone pending "
+                              "that call -- see context.md, 'Open problem: release timing'.")
     parser.add_argument("--swing-weight", type=float, default=30.0,
                          help="scale of the shaping term rewarding progress of the shoulder around "
                               "the swing arc toward the release orientation. 0 disables it, leaving "
