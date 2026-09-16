@@ -43,6 +43,22 @@
 # Speed was FLAT at ~27 km/h across all three, versus 42.6 km/h scripted,
 # so raising the speed coefficient was not what capped speed.
 #
+# LOCAL VALIDATION of both fixes, 600k steps, speed_weight=0.5.
+# Release-channel std, measured from the saved policies:
+#     run7 threshold     [1.21, 1.44, 18.99]
+#     run8 target_angle  [0.93, 1.15,  1.43]
+# The release dimension is back in line with the torques, so sampled
+# release timing is a decision again rather than noise.
+#
+# Deterministic policy after 600k local steps vs run7's best after 8M:
+#                       run7 (8M)     local (600k)
+#     release angle       230.6 deg      256.6 deg  (asked for 255.3)
+#     speed                26.4 km/h      30.3 km/h
+#     elbow extension     -16.75 deg      +0.00 deg
+#     reward                  +4.66          +5.21
+# Releasing nearer vertical is where the speed comes from, and it is
+# exactly what the old threshold action could not express.
+#
 # Submit one job per weight from the project root:
 #   qsub -v SW=0.1,TAG=sw01 hpc/train_throw_run8.pbs
 #   qsub -v SW=0.3,TAG=sw03 hpc/train_throw_run8.pbs
