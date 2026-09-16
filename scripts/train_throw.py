@@ -27,6 +27,37 @@ from envs.throw_env_gym import ThrowEnvGym
 ROOT = Path(__file__).resolve().parent.parent
 
 
+class ActionStdLogger(BaseCallback):
+    """Log the policy's per-dimension action standard deviation.
+
+    SB3's own `train/std` is the mean across dimensions, which hides exactly
+    the failure that mattered here: the release dimension's std reached 15.09
+    while the torque dimensions sat near 1.2, and the averaged figure looked
+    unremarkable. A dimension whose reward is insensitive to its mean
+    collects the entropy bonus for free, and its samples stop meaning
+    anything -- so it needs to be visible per dimension, in the job output,
+    not recoverable only by probing the saved checkpoint afterwards.
+
+    For the release channel the useful unit is degrees of shoulder angle
+    rather than raw action units, since that is what the number does.
+    """
+
+    def _on_step(self):
+        return True
+
+    def _on_rollout_end(self):
+        import numpy as np
+        std = np.exp(self.model.policy.log_std.detach().cpu().numpy())
+        for i, name in enumerate(["shoulder", "elbow", "release"]):
+            self.logger.record(f"action_std/{name}", float(std[i]))
+        env = self.training_env.envs[0]._env
+        span = ((env.release_window_max - env.RELEASE_TARGET_INSET_DEG)
+                - env.release_window_min)
+        # half the action range spans the whole window, so this is the
+        # +/- spread of commanded release angles the policy is sampling
+        self.logger.record("action_std/release_deg", float(std[2] * span / 2.0))
+
+
 class EpisodeLogger(BaseCallback):
     """Writes one CSV row per finished episode: release speed, landing
     position, elbow extension, reward, episode length."""
@@ -83,7 +114,7 @@ class EpisodeLogger(BaseCallback):
 
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-             speed_weight, gamma, illegal_penalty, release_mode):
+             speed_weight, gamma, illegal_penalty, release_mode, release_latch):
     def _init():
         # shaping_gamma must match PPO's gamma for the shaping to be the
         # correct potential-based form -- see ThrowEnvGym.__init__.
@@ -94,16 +125,17 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
                            speed_weight=speed_weight,
                            illegal_penalty=illegal_penalty,
                            release_mode=release_mode,
+                           release_latch=release_latch,
                            shaping_gamma=gamma)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
-        speed_weight, gamma, illegal_penalty, release_mode):
+        speed_weight, gamma, illegal_penalty, release_mode, release_latch):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-                 speed_weight, gamma, illegal_penalty, release_mode)
+                 speed_weight, gamma, illegal_penalty, release_mode, release_latch)
         for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
@@ -118,7 +150,7 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
                     gamma=gamma)
 
     csv_path = Path(log_dir) / "episodes.csv"
-    callback = EpisodeLogger(csv_path)
+    callback = [EpisodeLogger(csv_path), ActionStdLogger()]
     model.learn(total_timesteps=total_timesteps, callback=callback,
                 reset_num_timesteps=(resume_from is None))
 
@@ -216,8 +248,15 @@ if __name__ == "__main__":
                               "clear zero once in ~12 decisions, so the dimension gets almost no "
                               "gradient and the entropy bonus inflated its std to 9-19 while the "
                               "torque dims stayed near 1.5, making release timing random.")
+    parser.add_argument("--no-release-latch", action="store_true",
+                         help="re-decide the release target every policy step instead of latching "
+                              "it once at window entry. This is what run8 did, and it does not "
+                              "work: only one of the ~12 decisions inside the window has to say "
+                              "go, so the ball leaves on the MINIMUM of the sampled targets. A "
+                              "policy intending 265 deg released at 236.5 deg on average. Kept "
+                              "only to reproduce run8.")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
-        args.release_mode)
+        args.release_mode, not args.no_release_latch)

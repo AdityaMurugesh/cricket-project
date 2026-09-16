@@ -63,7 +63,7 @@ class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=1200,
                  start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=0,
                  release_window_deg=(230.0, 310.0), max_release_elbow_deg=40.0,
-                 release_mode="target_angle",
+                 release_mode="target_angle", release_latch=True,
                  max_legal_extension_deg=15.0, illegal_penalty=2.0,
                  horizontal_selector="last_before_release", extension_mode="endpoint"):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
@@ -151,6 +151,37 @@ class ThrowEnv:
         # also makes deterministic evaluation meaningful, and makes release
         # timing a reported variable, which the tradeoff curve needs anyway.
         self.release_mode = release_mode
+
+        # Sample the release target ONCE per delivery, at the moment the arm
+        # enters the overarm window, and hold it.
+        #
+        # Without this, the release decision is re-made every policy step and
+        # only ONE of the ~12 decisions inside the window has to say "go" --
+        # so the ball leaves on the MINIMUM of the sampled targets, not the
+        # mean. Measured on run8's speed_weight=0.5 policy, the targets drawn
+        # across one swing were [242, 230, 244, 300, 279, 258, 300, 230], and
+        # the 230 fired. Raising the mean therefore bought almost nothing,
+        # the gradient on it stayed flat, and the entropy bonus inflated that
+        # dimension's std to 15.09 -- which spans +/- 528 deg over a 70 deg
+        # window, i.e. every sample lands on one clip bound or the other.
+        # The result was a policy whose deterministic action asked for
+        # 296.7 deg and landed 3.02 m, while its stochastic rollouts fired at
+        # 238 deg and reached the target zone 55% of the time. The two
+        # disagree completely, and only the deterministic one gets reported.
+        #
+        # This is the same failure as the original "threshold" release in a
+        # new costume, and it is inherent to ANY per-step release decision:
+        # re-sampling a one-shot event many times selects an extreme of the
+        # noise rather than the policy's intent. Latching removes the
+        # re-sampling instead of trying to out-tune it, so a wild sample now
+        # produces a wild release angle and costs real reward -- which is
+        # what finally puts pressure on the std.
+        #
+        # Latching at window entry rather than at episode start is
+        # deliberate: the policy sees the arm's actual speed at that instant
+        # and can pick a target to suit it, which is the adaptation a fixed
+        # episode-start decision would throw away.
+        self.release_latch = release_latch
         # cocked/loaded starting angle for the arm (shoulder, elbow), degrees.
         # 100 deg shoulder = arm hanging down and slightly behind the body,
         # like the bottom of a bowler's backswing -- not pointing at the
@@ -177,6 +208,7 @@ class ThrowEnv:
         self.release_shoulder_deg = None
         self.release_elbow_deg = None
         self.release_target_commanded = None
+        self.release_target_latched = None
         self.landing_pos = None
         self.elbow_extension_deg = None
         self._shoulder_hist = []
@@ -211,6 +243,7 @@ class ThrowEnv:
         self.release_shoulder_deg = None
         self.release_elbow_deg = None
         self.release_target_commanded = None
+        self.release_target_latched = None
         self.landing_pos = None
         self.elbow_extension_deg = None
         self._shoulder_hist = [np.degrees(self.data.qpos[0])]
@@ -233,7 +266,9 @@ class ThrowEnv:
             self.release_shoulder_deg = float(np.degrees(self.data.qpos[0]))
             self.release_elbow_deg = float(np.degrees(self.data.qpos[1]))
             self.release_target_commanded = (
-                self.release_target_deg(action[2]) if self.release_mode == "target_angle" else None)
+                self.release_target_latched if self.release_latch
+                else self.release_target_deg(action[2])
+            ) if self.release_mode == "target_angle" else None
             self.data.eq_active[self.grip_eq_id] = 0
             self.released = True
             just_released = True
@@ -337,9 +372,19 @@ class ThrowEnv:
         gate -- this is the policy's own decision."""
         if self.release_mode == "threshold":
             return release_action > 0.0
-        if self.release_mode == "target_angle":
-            return np.degrees(self.data.qpos[0]) >= self.release_target_deg(release_action)
-        raise ValueError(f"unknown release_mode: {self.release_mode!r}")
+        if self.release_mode != "target_angle":
+            raise ValueError(f"unknown release_mode: {self.release_mode!r}")
+
+        shoulder_deg = np.degrees(self.data.qpos[0])
+        if self.release_latch:
+            if self.release_target_latched is None:
+                if shoulder_deg < self.release_window_min:
+                    return False   # not in the window yet, nothing to latch
+                self.release_target_latched = self.release_target_deg(release_action)
+            target = self.release_target_latched
+        else:
+            target = self.release_target_deg(release_action)
+        return shoulder_deg >= target
 
     def _release_permitted(self):
         """Whether the ball is allowed to leave the hand right now: the arm
