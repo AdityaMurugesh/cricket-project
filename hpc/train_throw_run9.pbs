@@ -1,0 +1,91 @@
+#!/bin/bash
+# Run 9: diagnostic matrix, not a results run.
+#
+# WHAT WE KNOW. The physics and the task definition are now correct:
+# release is gated to an overarm window with a near-straight arm, the
+# elbow can no longer hyperextend past its own stop (which was inflating
+# the ICC metric by up to 15.8 deg), gamma is 0.9999, and illegal throws
+# score monotonically. run8 confirmed the task side is healthy -- 99-100%
+# ICC legal across all three speed weights, elbow extension ~0.00 deg,
+# and the speed_weight=0.3 chuck from run7 gone once the joint-limit
+# artifact was removed.
+#
+# WHAT IS BROKEN IS THE RL SETUP, and it has now shown up three ways:
+#   1. "threshold" release: only had to clear zero once in ~12 decisions,
+#      so the dimension got no gradient and its std reached 18.99.
+#   2. per-step "target_angle" release: the ball leaves on the MINIMUM of
+#      the sampled targets, so raising the mean bought nothing and std
+#      reached 15.09 (+/- 528 deg across a 70 deg window). run8's
+#      deterministic policies asked for ~300 deg and landed 2.7-3.0 m
+#      while their stochastic rollouts fired at ~238 deg and hit the zone
+#      up to 55% of the time -- the two disagree completely.
+#   3. latched release (one decision per delivery, verified to preserve
+#      the policy's intent: intending 265 deg gives 265.6 deg actual,
+#      versus 236.5 deg when re-sampled): a 1.5M local run COLLAPSED to
+#      standing still by ~200k steps, with all three action stds grown to
+#      [1.95, 2.81, 3.10] and value_loss down at 0.2 because every
+#      episode had become identical.
+#
+# The collapse in (3) is NOT a reward-landscape problem. Measured
+# discounted returns under that exact config: standing still -1.79,
+# swinging with a RANDOM release target +4.06, swinging with a good
+# target +4.85. Swinging dominates by a wide margin and the policy
+# abandoned it anyway, which points at exploration/optimisation rather
+# than at the objective.
+#
+# So this matrix varies only the two knobs that plausibly drive that,
+# holding the environment fixed. ent_coef=0.01 has been carried since
+# run2, when it was added to stop a different collapse; it has never been
+# re-examined since the reward was rebuilt underneath it, and it is the
+# term directly inflating the stds. Two seeds, because a single collapsed
+# run is not evidence that a config collapses.
+#
+#   qsub -v ENT=0.01,SEED=0,TAG=e01s0 hpc/train_throw_run9.pbs
+#   qsub -v ENT=0.01,SEED=1,TAG=e01s1 hpc/train_throw_run9.pbs
+#   qsub -v ENT=0.003,SEED=0,TAG=e003s0 hpc/train_throw_run9.pbs
+#   qsub -v ENT=0.003,SEED=1,TAG=e003s1 hpc/train_throw_run9.pbs
+#
+# 3M steps rather than 8M: this is asking "does it collapse", and every
+# collapse so far happened inside the first 25% of a run.
+#
+# Read the result off action_std/release_deg in the output below, which
+# is the release spread in DEGREES of shoulder angle. 35 at init means
+# the policy is sampling its release across half the window. If it climbs
+# the policy is not committing; if it falls the entropy problem is
+# actually solved rather than deferred.
+#PBS -N cricket_throw_run9
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=04:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+
+: "${ENT:?pass ent_coef, e.g. qsub -v ENT=0.01,SEED=0,TAG=e01s0 ...}"
+: "${SEED:?pass a seed}"
+: "${TAG:?pass a run tag}"
+
+RUN="throw_ppo_run9_${TAG}"
+echo "=== run9 ${RUN}: ent_coef=${ENT} seed=${SEED} speed_weight=0.5 latched ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+
+python scripts/train_throw.py \
+    --timesteps 3000000 \
+    --n-envs 8 \
+    --log-dir "logs/${RUN}" \
+    --model-path "checkpoints/${RUN}" \
+    --seed "${SEED}" \
+    --ent-coef "${ENT}" \
+    --speed-weight 0.5 || {
+        echo "TRAINING FAILED (exit $?) -- skipping the post-training steps,"
+        echo "whose own failures would otherwise bury the real error above."
+        exit 1
+    }
+
+echo "=== summary ==="
+python scripts/summarize_run.py "logs/${RUN}/episodes.csv" --buckets 10
+
+echo "=== policy inspection (deterministic vs stochastic) ==="
+python scripts/inspect_policy.py --model-path "checkpoints/${RUN}" --episodes 100 --speed-weight 0.5
