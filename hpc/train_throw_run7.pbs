@@ -1,0 +1,87 @@
+#!/bin/bash
+# Run 7: first real run on the fixed environment, and the first slice of
+# the actual deliverable (speed/legality/accuracy tradeoff, context.md).
+#
+# Everything before this ran against an environment that could not produce
+# a bowling action. run6's policy released at shoulder 207 deg with the
+# elbow bent 113 deg -- a shot-put from behind the body -- and scored well
+# doing it, because a rigidly flexed arm has zero elbow EXTENSION and is
+# legal by construction. Fixed since (commits b606b6b..496c2d0):
+#   - release gated on arm geometry: overarm window 230-310 deg, elbow
+#     <= 40 deg at release. A gate on the action space, not a reward
+#     penalty, so it cannot be traded away against speed.
+#   - gamma 0.99 -> 0.9999. The whole reward lands at episode end, so PPO
+#     weights it gamma^T, and T is something the policy controls. At 0.99
+#     stalling to timeout beat throwing; at 0.999 a good throw ranked top
+#     but swinging-without-releasing still sat below standing still, so
+#     the path out of the do-nothing policy ran downhill first. Two local
+#     runs collapsed on exactly that.
+#   - ball/forearm contact excluded (they were 0.071 m interpenetrated,
+#     kicking throws up to 1.5 m off-line at release).
+#   - illegal throws now score monotonically in accuracy.
+#
+# Local validation, 900k steps: 100% release, 92-98% ICC legal, 62% of
+# throws in the target zone, mean reward +1.63, release geometry a real
+# bowling action throughout (shoulder ~235 deg, elbow ~0 deg, height
+# 1.71 m, zero lateral drift).
+#
+# WHY THIS IS A SWEEP, NOT ONE RUN. speed_weight is the "maximize speed"
+# coefficient -- the research question's objective, not a tuning knob.
+# Local measurement at 900k steps, ent_coef=0.01 both:
+#     speed_weight=0.1 -> 33% in zone, mean reward -0.11, and the policy
+#                         never commits to releasing: it relies on
+#                         exploration noise to fire the ball and fails
+#                         deterministic evaluation entirely (0 releases).
+#     speed_weight=0.3 -> 62% in zone, mean reward +1.63, commits to the
+#                         release, deterministic eval gives 28.6 km/h
+#                         landing 7.48 m, legal.
+# Rather than pick a default blind, run the sweep: it settles the default
+# AND is a genuine slice of the tradeoff curve the project has to report.
+#
+# Submit one job per weight from the project root, e.g.
+#   qsub -v SW=0.1,TAG=sw01 hpc/train_throw_run7.pbs
+#   qsub -v SW=0.3,TAG=sw03 hpc/train_throw_run7.pbs
+#   qsub -v SW=0.5,TAG=sw05 hpc/train_throw_run7.pbs
+#
+# ncpus=4 on purpose: train_throw.py uses DummyVecEnv, which steps its
+# envs sequentially in ONE process, so --n-envs does not spread across
+# cores. Only torch's own threading benefits from more. (SubprocVecEnv
+# would actually parallelise -- worth trying if throughput ever matters,
+# but not worth changing on the run that validates the new environment.)
+#PBS -N cricket_throw_run7
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+
+: "${SW:?pass the speed weight, e.g. qsub -v SW=0.3,TAG=sw03 ...}"
+: "${TAG:?pass a run tag, e.g. qsub -v SW=0.3,TAG=sw03 ...}"
+
+RUN="throw_ppo_run7_${TAG}"
+echo "=== run7 ${RUN}: speed_weight=${SW} ==="
+python -c "import sys; print('python', sys.version)"
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD 2>/dev/null \
+    && echo "(commit above is the code this run used)"
+
+python scripts/train_throw.py \
+    --timesteps 8000000 \
+    --n-envs 8 \
+    --log-dir "logs/${RUN}" \
+    --model-path "checkpoints/${RUN}" \
+    --seed 0 \
+    --ent-coef 0.01 \
+    --speed-weight "${SW}"
+
+echo "=== summary ==="
+python scripts/summarize_run.py "logs/${RUN}/episodes.csv" --buckets 10
+
+# The training log cannot tell a learned policy from one that is firing
+# the release on exploration noise -- see scripts/inspect_policy.py's
+# docstring, and the 900k run that scored 100% release / 100% legal while
+# deterministic evaluation never released the ball at all.
+echo "=== policy inspection (deterministic vs stochastic) ==="
+python scripts/inspect_policy.py --model-path "checkpoints/${RUN}" --episodes 100 --speed-weight "${SW}"

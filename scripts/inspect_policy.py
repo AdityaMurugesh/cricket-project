@@ -84,8 +84,10 @@ def release_profile(env, model):
     return std, rows
 
 
-def run(model_path, episodes, seed):
-    env = ThrowEnvGym()
+def run(model_path, episodes, seed, speed_weight):
+    # must match what the checkpoint was TRAINED with, or the rewards here
+    # are computed under a different objective than the policy optimised.
+    env = ThrowEnvGym(speed_weight=speed_weight)
     model = PPO.load(model_path)
     lo, hi = env._env.release_window_min, env._env.release_window_max
 
@@ -136,5 +138,9 @@ if __name__ == "__main__":
     parser.add_argument("--episodes", type=int, default=100,
                         help="stochastic episodes to sample for the statistics")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--speed-weight", type=float, default=0.1,
+                        help="must match what the checkpoint was trained with, or the "
+                             "printed rewards use a different objective than the policy "
+                             "optimised.")
     args = parser.parse_args()
-    run(args.model_path, args.episodes, args.seed)
+    run(args.model_path, args.episodes, args.seed, args.speed_weight)
