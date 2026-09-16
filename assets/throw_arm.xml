@@ -3,7 +3,29 @@
   <option gravity="0 0 -9.81" timestep="0.002"/>
 
   <default>
-    <joint damping="0.3" armature="0.01"/>
+    <!-- Stiffened joint limits, and a 2 deg margin so the limit constraint
+         engages just BEFORE the stop rather than at it.
+
+         MuJoCo joint limits are soft constraints. With the defaults, a
+         max-torque extensor drives the elbow to -15.8 deg, i.e. 15.8 deg
+         PAST its own 0 deg "fully straight" stop. That is not a cosmetic
+         glitch: ICC elbow extension is measured as
+         elbow[horizontal] - elbow[release], so every degree of penetration
+         is counted as free extension against a 15 deg threshold. The
+         artifact was large enough on its own to manufacture an illegal
+         delivery, and run7's speed_weight=0.3 policy (extension +42.7 deg,
+         0% legal) was reading -7 to -9 deg of elbow at release.
+
+         Measured worst-case penetration over the three extreme torque
+         combinations: default -15.787, solreflimit 0.004 -3.072,
+         margin+stiff -0.368 deg. The last is 2.5% of the threshold, so
+         the legality metric is now measuring the policy's technique
+         rather than the solver's compliance.
+
+         A soft end-range cushion is also the more realistic elbow: the
+         stop is ligament and soft tissue, not a hard mechanical block. -->
+    <joint damping="0.3" armature="0.01" margin="0.035"
+           solreflimit="0.002 1" solimplimit="0.99 0.9999 0.0001 0.5 2"/>
     <geom contype="1" conaffinity="1" friction="0.9 0.005 0.0001"/>
   </default>
 

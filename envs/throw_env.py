@@ -63,6 +63,7 @@ class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=1200,
                  start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=0,
                  release_window_deg=(230.0, 310.0), max_release_elbow_deg=40.0,
+                 release_mode="target_angle",
                  max_legal_extension_deg=15.0, illegal_penalty=2.0,
                  horizontal_selector="last_before_release", extension_mode="endpoint"):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
@@ -120,6 +121,36 @@ class ThrowEnv:
         # deliberately NOT part of the legality metric -- see the module
         # docstring and the elbow-legality-design-decision memory.
         self.max_release_elbow_deg = max_release_elbow_deg
+
+        # How action[2] is interpreted.
+        #
+        # "threshold" (the original): release fires on any step inside the
+        # window where action[2] > 0. This turned out to be badly posed. The
+        # arm spends ~12 policy decisions in the window, so a policy only has
+        # to clear the threshold ONCE, and PPO gets almost no gradient on the
+        # release mean as a result. Left unconstrained, the entropy bonus
+        # then inflates that dimension's standard deviation without penalty,
+        # because sampled actions are clipped to [-1, 1] anyway. Measured at
+        # the end of run7, std per dimension was:
+        #     speed_weight=0.1 -> [1.42, 1.69, 14.30]
+        #     speed_weight=0.3 -> [1.31, 1.76,  9.04]
+        #     speed_weight=0.5 -> [1.21, 1.44, 18.99]
+        # Torques stayed sane; release blew up 10-19x. Release timing was
+        # therefore effectively random in every stochastic rollout, which is
+        # what the training statistics are computed from.
+        #
+        # "target_angle" (default): action[2] names the shoulder angle at
+        # which to let go, mapped linearly onto the release window, and the
+        # ball leaves when the arm reaches it. One continuous, well-
+        # conditioned decision instead of ~12 noisy binary ones.
+        #
+        # This closes the entropy loophole at the root rather than capping
+        # the std by hand: a large std now produces a randomly-placed release
+        # angle, which lands the ball somewhere random, which costs real
+        # reward -- so there is finally gradient pressure to be precise. It
+        # also makes deterministic evaluation meaningful, and makes release
+        # timing a reported variable, which the tradeoff curve needs anyway.
+        self.release_mode = release_mode
         # cocked/loaded starting angle for the arm (shoulder, elbow), degrees.
         # 100 deg shoulder = arm hanging down and slightly behind the body,
         # like the bottom of a bowler's backswing -- not pointing at the
@@ -145,6 +176,7 @@ class ThrowEnv:
         self.release_height = None
         self.release_shoulder_deg = None
         self.release_elbow_deg = None
+        self.release_target_commanded = None
         self.landing_pos = None
         self.elbow_extension_deg = None
         self._shoulder_hist = []
@@ -178,6 +210,7 @@ class ThrowEnv:
         self.release_height = None
         self.release_shoulder_deg = None
         self.release_elbow_deg = None
+        self.release_target_commanded = None
         self.landing_pos = None
         self.elbow_extension_deg = None
         self._shoulder_hist = [np.degrees(self.data.qpos[0])]
@@ -194,11 +227,13 @@ class ThrowEnv:
         self.data.ctrl[:2] = np.clip(action[:2], -1.0, 1.0)
 
         just_released = False
-        if not self.released and action[2] > 0.0 and self._release_permitted():
+        if not self.released and self._release_permitted() and self._release_commanded(action[2]):
             self.release_speed = self._ball_linear_speed()
             self.release_height = float(self._ball_pos()[2])
             self.release_shoulder_deg = float(np.degrees(self.data.qpos[0]))
             self.release_elbow_deg = float(np.degrees(self.data.qpos[1]))
+            self.release_target_commanded = (
+                self.release_target_deg(action[2]) if self.release_mode == "target_angle" else None)
             self.data.eq_active[self.grip_eq_id] = 0
             self.released = True
             just_released = True
@@ -254,8 +289,57 @@ class ThrowEnv:
             # where in the arc the ball left, and how straight the arm was.
             "elbow_at_release_deg": self.release_elbow_deg,
             "release_height_m": self.release_height,
+            # what the policy ASKED for, as opposed to where the ball
+            # actually left. The gap between the two is how much of the
+            # timing is the policy's decision and how much is the arm
+            # overshooting between physics steps.
+            "release_target_deg": self.release_target_commanded,
         }
         return self._obs(), reward, done, info
+
+    # The commanded target stops short of the window's top edge, because a
+    # target the arm cannot actually hit is a dead zone in the action space.
+    # Release is tested once per physics step, and near the top of the swing
+    # the shoulder covers up to 4.36 deg in one step at full torque. A target
+    # of exactly release_window_max is therefore usually skipped: the arm
+    # steps from just under it to just over, and on the step where it has
+    # finally passed the target it has also left the window, so
+    # _release_permitted() refuses. 10 deg clears the measured worst case
+    # with margin. Nothing useful is lost -- 300 deg is already well past
+    # vertical, where the arm is sweeping down and drives the ball into the
+    # ground a couple of metres away.
+    RELEASE_TARGET_INSET_DEG = 10.0
+
+    def release_target_deg(self, release_action):
+        """The shoulder angle action[2] is asking for, in degrees. Linear
+        across the release window: -1 -> as early as legal, +1 -> as late as
+        is reliably reachable. Only meaningful in "target_angle" mode."""
+        a = float(np.clip(release_action, -1.0, 1.0))
+        top = max(self.release_window_min,
+                  self.release_window_max - self.RELEASE_TARGET_INSET_DEG)
+        return self.release_window_min + 0.5 * (a + 1.0) * (top - self.release_window_min)
+
+    def release_action_for_angle(self, angle_deg):
+        """Inverse of release_target_deg: the action value that asks for a
+        release at this shoulder angle. Lets callers (demos, tests, sweeps)
+        specify release timing in degrees instead of reverse-engineering the
+        mapping. Clamped to the reachable part of the window."""
+        top = max(self.release_window_min,
+                  self.release_window_max - self.RELEASE_TARGET_INSET_DEG)
+        if top <= self.release_window_min:
+            return -1.0
+        frac = (float(angle_deg) - self.release_window_min) / (top - self.release_window_min)
+        return float(np.clip(2.0 * frac - 1.0, -1.0, 1.0))
+
+    def _release_commanded(self, release_action):
+        """Whether the policy is asking for the ball to go right now.
+        Separate from _release_permitted(), which is the ICC/action-validity
+        gate -- this is the policy's own decision."""
+        if self.release_mode == "threshold":
+            return release_action > 0.0
+        if self.release_mode == "target_angle":
+            return np.degrees(self.data.qpos[0]) >= self.release_target_deg(release_action)
+        raise ValueError(f"unknown release_mode: {self.release_mode!r}")
 
     def _release_permitted(self):
         """Whether the ball is allowed to leave the hand right now: the arm

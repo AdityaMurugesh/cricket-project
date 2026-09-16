@@ -13,9 +13,13 @@ from envs.throw_env import ThrowEnv
 env = ThrowEnv()
 obs = env.reset()
 
+# action[2] is a target release angle mapped onto the overarm window, not a
+# fire-now flag, so it is constant here: "let go at 265 deg", near vertical.
+release_action = env.release_action_for_angle(265.0)
+
 released_at = None
 for i in range(env.max_steps):
-    action = [1.0, 0.3, 1.0 if i > 50 else 0.0]
+    action = [1.0, 0.3, release_action]
     obs, reward, done, info = env.step(action)
     if info["released"] and released_at is None:
         released_at = i

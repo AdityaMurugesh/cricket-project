@@ -58,11 +58,17 @@ def describe(info):
     landing = info.get("landing_pos")
     speed = info.get("release_speed") or 0.0
     ext = info.get("elbow_extension_deg")
-    return (f"released at shoulder {info['shoulder_at_release_deg']:.1f} deg, "
+    target = info.get("release_target_deg")
+    asked = f" (asked for {target:.1f})" if target is not None else ""
+    # The landing clause is a separate term on purpose. It used to sit inside
+    # a ternary spanning the whole concatenation, so a throw that never landed
+    # printed "no landing" INSTEAD of the release geometry rather than
+    # alongside it -- losing exactly what you need to see why it didn't land.
+    where = f"landed {landing[0]:.2f} m" if landing else "never landed"
+    return (f"released at shoulder {info['shoulder_at_release_deg']:.1f} deg{asked}, "
             f"elbow {info['elbow_at_release_deg']:.1f} deg, "
             f"height {info['release_height_m']:.2f} m | {speed * 3.6:.1f} km/h | "
-            f"landed {landing[0]:.2f} m" if landing else "no landing") + (
-            f" | extension {ext:+.2f} deg, legal={info.get('legal')} "
+            f"{where} | extension {ext:+.2f} deg, legal={info.get('legal')} "
             f"| reward {info.get('episode_reward', float('nan')):+.2f}")
 
 
@@ -71,17 +77,23 @@ def release_profile(env, model):
     walked along a deterministic rollout. A flat column means the policy
     is not timing the release at all."""
     std = float(np.exp(model.policy.log_std.detach().cpu().numpy()[2]))
+    mode = env._env.release_mode
     obs, _ = env.reset(seed=0)
     rows = []
     while True:
         action, _ = model.predict(obs, deterministic=True)
         shoulder = float(np.degrees(env._env.data.qpos[0]))
-        p_fire = 0.5 * (1.0 - math.erf((0.0 - float(action[2])) / (std * math.sqrt(2.0))))
-        rows.append((shoulder, float(action[2]), p_fire))
+        if mode == "target_angle":
+            # the angle the policy is ASKING to release at -- the quantity
+            # that matters now, and the one the tradeoff curve needs
+            third = env._env.release_target_deg(action[2])
+        else:
+            third = 100.0 * 0.5 * (1.0 - math.erf((0.0 - float(action[2])) / (std * math.sqrt(2.0))))
+        rows.append((shoulder, float(action[2]), third))
         obs, _, terminated, truncated, _ = env.step(action)
         if terminated or truncated:
             break
-    return std, rows
+    return std, mode, rows
 
 
 def run(model_path, episodes, seed, speed_weight):
@@ -117,18 +129,26 @@ def run(model_path, episodes, seed, speed_weight):
         print("     almost always does. The release is being fired by exploration")
         print("     noise, not chosen -- see this file's docstring.")
 
-    std, rows = release_profile(env, model)
-    print(f"\n=== release channel profile (action std = {std:.2f}) ===")
-    print(f"  {'shoulder':>9}  {'mean action':>12}  {'P(fires)':>9}")
+    std, mode, rows = release_profile(env, model)
+    print(f"\n=== release channel profile (mode={mode}, action std = {std:.2f}) ===")
+    # Worth watching on its own. Under the old "threshold" semantics this
+    # grew to 9-19 during run7 while the torque dimensions stayed near 1.5:
+    # a dimension with no gradient collects the entropy bonus for free once
+    # its samples are clipped, and release timing becomes random.
+    if std > 4.0:
+        print(f"  !! std {std:.1f} here is far above the torque dimensions --")
+        print("     sampled release is close to random.")
+    third_label = "target deg" if mode == "target_angle" else "P(fires) %"
+    print(f"  {'shoulder':>9}  {'mean action':>12}  {third_label:>11}")
     in_window = [r for r in rows if lo - 30 <= r[0] <= hi + 10]
-    for shoulder, mean_a, p in in_window[:: max(1, len(in_window) // 12)]:
+    for shoulder, mean_a, third in in_window[:: max(1, len(in_window) // 12)]:
         mark = "  <- in window" if lo <= shoulder <= hi else ""
-        print(f"  {shoulder:9.1f}  {mean_a:+12.3f}  {p:8.1%}{mark}")
+        print(f"  {shoulder:9.1f}  {mean_a:+12.3f}  {third:11.1f}{mark}")
     windowed = [r for r in rows if lo <= r[0] <= hi]
     if windowed:
         spread = max(r[1] for r in windowed) - min(r[1] for r in windowed)
-        print(f"\n  mean action varies by only {spread:.3f} across the release window.")
-        if spread < 0.2:
+        print(f"\n  mean action varies by {spread:.3f} across the release window.")
+        if mode == "threshold" and spread < 0.2:
             print("  That is flat -- the policy is not timing the release at all.")
 
 

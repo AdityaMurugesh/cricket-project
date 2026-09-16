@@ -1,0 +1,94 @@
+#!/bin/bash
+# Run 8: re-run of run7's speed_weight sweep after fixing two things run7
+# exposed. Same three weights, so the numbers are directly comparable.
+#
+# 1. ELBOW HYPEREXTENSION. MuJoCo joint limits are soft constraints, and a
+#    max-torque extensor drove the elbow to -15.8 deg -- 15.8 deg past its
+#    own 0 deg "straight" stop. ICC extension is measured as
+#    elbow[horizontal] - elbow[release], so every degree of that
+#    penetration counted as free extension against a 15 deg threshold. The
+#    artifact was large enough to manufacture an illegal delivery on its
+#    own, and run7's speed_weight=0.3 policy (extension +42.7 deg, 0%
+#    legal) was sitting at -7 to -9 deg of elbow at release. Fixed with a
+#    2 deg limit margin and stiffened solreflimit/solimplimit: worst-case
+#    penetration is now 0.000 deg, and the scripted optimum is unchanged
+#    at 42.7 km/h. This may well resolve the 0.3 chuck by itself.
+#
+# 2. RELEASE ACTION SEMANTICS. action[2] used to be a fire-now threshold:
+#    release on any step inside the window where it exceeded zero. The arm
+#    spends ~12 decisions in the window, so the policy only had to clear
+#    zero once and the dimension got almost no gradient. The entropy bonus
+#    then inflated its std for free, since sampled actions are clipped
+#    anyway. Measured at the end of run7:
+#        speed_weight=0.1 -> std [1.42, 1.69, 14.30]
+#        speed_weight=0.3 -> std [1.31, 1.76,  9.04]
+#        speed_weight=0.5 -> std [1.21, 1.44, 18.99]
+#    Torques sane, release blown up 10-19x -- so release timing was random
+#    in every stochastic rollout, which is what the training statistics are
+#    computed from. action[2] is now a TARGET SHOULDER ANGLE mapped onto
+#    the release window, and the ball leaves when the arm reaches it. One
+#    well-conditioned continuous decision instead of ~12 noisy binary ones.
+#    A large std now costs real reward (the ball lands somewhere random),
+#    so there is finally gradient pressure to be precise.
+#
+# Measured scripted behaviour of the new action, full torque:
+#    action -1.0 -> release 230 deg, 36.8 km/h, lands 11.76 m
+#    action  0.0 -> release 265 deg, 42.0 km/h, lands  7.97 m  (in zone)
+#    action +1.0 -> release 300 deg, 47.4 km/h, lands  2.77 m
+# Monotonic, no dead zones, and the speed/accuracy tradeoff is now visible
+# directly in the action -- which is what the deliverable curve needs.
+#
+# run7 for comparison (final segment): 0.1 -> 70% legal / 69% zone,
+# 0.3 -> 0% legal / 79% zone (chucking), 0.5 -> 100% legal / 86% zone.
+# Speed was FLAT at ~27 km/h across all three, versus 42.6 km/h scripted,
+# so raising the speed coefficient was not what capped speed.
+#
+# Submit one job per weight from the project root:
+#   qsub -v SW=0.1,TAG=sw01 hpc/train_throw_run8.pbs
+#   qsub -v SW=0.3,TAG=sw03 hpc/train_throw_run8.pbs
+#   qsub -v SW=0.5,TAG=sw05 hpc/train_throw_run8.pbs
+#
+# ncpus=4: DummyVecEnv steps its envs sequentially in one process, so
+# --n-envs does not spread across cores.
+#PBS -N cricket_throw_run8
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+
+: "${SW:?pass the speed weight, e.g. qsub -v SW=0.3,TAG=sw03 ...}"
+: "${TAG:?pass a run tag, e.g. qsub -v SW=0.3,TAG=sw03 ...}"
+
+RUN="throw_ppo_run8_${TAG}"
+echo "=== run8 ${RUN}: speed_weight=${SW} ==="
+python -c "import sys; print('python', sys.version)"
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD 2>/dev/null \
+    && echo "(commit above is the code this run used)"
+
+python scripts/train_throw.py \
+    --timesteps 8000000 \
+    --n-envs 8 \
+    --log-dir "logs/${RUN}" \
+    --model-path "checkpoints/${RUN}" \
+    --seed 0 \
+    --ent-coef 0.01 \
+    --speed-weight "${SW}" || {
+        echo "TRAINING FAILED (exit $?) -- not running the post-training steps."
+        echo "Without this guard they fail too, on the missing log and checkpoint,"
+        echo "and their tracebacks bury the real error at the top of the file."
+        exit 1
+    }
+
+echo "=== summary ==="
+python scripts/summarize_run.py "logs/${RUN}/episodes.csv" --buckets 10
+
+# The training log cannot tell a learned policy from one that is firing
+# the release on exploration noise -- see scripts/inspect_policy.py's
+# docstring, and the 900k run that scored 100% release / 100% legal while
+# deterministic evaluation never released the ball at all.
+echo "=== policy inspection (deterministic vs stochastic) ==="
+python scripts/inspect_policy.py --model-path "checkpoints/${RUN}" --episodes 100 --speed-weight "${SW}"

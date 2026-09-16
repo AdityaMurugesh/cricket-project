@@ -42,6 +42,11 @@ def summarise(rows, max_legal_extension_deg, target_range):
         vals = [v * scale for v in vals if v is not None]
         return stats.mean(vals) if vals else float("nan")
 
+    def sd(items, key):
+        vals = [_f(r, key) for r in items]
+        vals = [v for v in vals if v is not None]
+        return stats.pstdev(vals) if len(vals) > 1 else float("nan")
+
     return {
         "episodes": n,
         "released_pct": 100.0 * len(released) / n if n else 0.0,
@@ -56,6 +61,11 @@ def summarise(rows, max_legal_extension_deg, target_range):
         "mean_release_shoulder_deg": mean(released, "shoulder_at_release_deg"),
         "mean_release_elbow_deg": mean(released, "elbow_at_release_deg"),
         "mean_release_height_m": mean(released, "release_height_m"),
+        # what the policy asked for, averaged, plus how tightly it holds to
+        # it. A large sd here means release timing is still being decided by
+        # exploration noise rather than by the policy.
+        "mean_release_target_deg": mean(released, "release_target_deg"),
+        "sd_release_target_deg": sd(released, "release_target_deg"),
     }
 
 
@@ -77,6 +87,8 @@ FIELDS = [
     ("mean_release_shoulder_deg", "rel@sh", "{:.0f}"),
     ("mean_release_elbow_deg", "rel@el", "{:.0f}"),
     ("mean_release_height_m", "rel@z", "{:.2f}"),
+    ("mean_release_target_deg", "want@sh", "{:.0f}"),
+    ("sd_release_target_deg", "want:sd", "{:.1f}"),
 ]
 
 

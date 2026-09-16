@@ -47,6 +47,10 @@ class EpisodeLogger(BaseCallback):
             "landing_x", "landing_y", "elbow_extension_deg", "timeout",
             "max_shoulder_deg", "shoulder_at_release_deg",
             "elbow_at_release_deg", "release_height_m",
+            # what the policy ASKED for vs where the ball actually left.
+            # Release timing is a controlled variable now, not an accident,
+            # so it belongs in the results rather than only in diagnostics.
+            "release_target_deg",
         ])
 
     def _on_step(self):
@@ -68,6 +72,7 @@ class EpisodeLogger(BaseCallback):
                 info.get("shoulder_at_release_deg"),
                 info.get("elbow_at_release_deg"),
                 info.get("release_height_m"),
+                info.get("release_target_deg"),
             ])
             self._file.flush()
         return True
@@ -78,7 +83,7 @@ class EpisodeLogger(BaseCallback):
 
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-             speed_weight, gamma, illegal_penalty):
+             speed_weight, gamma, illegal_penalty, release_mode):
     def _init():
         # shaping_gamma must match PPO's gamma for the shaping to be the
         # correct potential-based form -- see ThrowEnvGym.__init__.
@@ -88,16 +93,17 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
                            max_release_elbow_deg=max_release_elbow,
                            speed_weight=speed_weight,
                            illegal_penalty=illegal_penalty,
+                           release_mode=release_mode,
                            shaping_gamma=gamma)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
-        speed_weight, gamma, illegal_penalty):
+        speed_weight, gamma, illegal_penalty, release_mode):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-                 speed_weight, gamma, illegal_penalty)
+                 speed_weight, gamma, illegal_penalty, release_mode)
         for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
@@ -201,7 +207,17 @@ if __name__ == "__main__":
                               "dead-centre throw (-1.00) score worse than an illegal throw "
                               "landing on the zone boundary (-0.00). Sets the size of the "
                               "legality incentive, so it is a reported config value.")
+    parser.add_argument("--release-mode", default="target_angle",
+                         choices=["target_angle", "threshold"],
+                         help="how action[2] is read. target_angle: it names the shoulder angle to "
+                              "release at, one continuous decision. threshold: fire on any step "
+                              "inside the window where it exceeds zero -- the original, kept only "
+                              "to reproduce run7. threshold is badly posed: the policy only has to "
+                              "clear zero once in ~12 decisions, so the dimension gets almost no "
+                              "gradient and the entropy bonus inflated its std to 9-19 while the "
+                              "torque dims stayed near 1.5, making release timing random.")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
-        args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty)
+        args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
+        args.release_mode)

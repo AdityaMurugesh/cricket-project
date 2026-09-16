@@ -19,21 +19,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from envs.throw_env import ThrowEnv
 
 
-def play_episode(env, viewer, shoulder, elbow, release_step):
+def play_episode(env, viewer, shoulder, elbow, release_action):
     env.reset()
     done = False
     t = 0
     info = {}
     reward = 0.0
     while not done:
-        # ">=" not "==": ThrowEnv now gates release on arm geometry (the
-        # overarm window + a near-straight elbow), so a single-step pulse
-        # at an arbitrary step is usually ignored and nothing ever leaves
-        # the hand. Holding the signal on releases at the first permitted
-        # moment at or after release_step instead, which is what hand-
-        # tuning release timing actually meant here. The env ignores the
-        # signal once released, so holding it costs nothing.
-        release = 1.0 if t >= release_step else -1.0
+        # ThrowEnv's release action is now a TARGET SHOULDER ANGLE mapped
+        # onto the overarm release window, not a fire-now flag, so hand
+        # tuning is done in degrees rather than in timesteps -- which is
+        # also the thing that was actually being tuned. env.release_action_
+        # for_angle() does the inverse mapping.
+        release = release_action
         obs, reward, done, info = env.step([shoulder, elbow, release])
         t += 1
         if viewer is not None:
@@ -61,8 +59,9 @@ def print_result(info, env):
     print(f"target zone: [{env.target_min}, {env.target_max}]")
 
 
-def run(view, shoulder, elbow, release_step, max_steps):
+def run(view, shoulder, elbow, release_angle, max_steps):
     env = ThrowEnv(max_steps=max_steps)
+    release_action = env.release_action_for_angle(release_angle)
 
     viewer = None
     if view:
@@ -75,10 +74,10 @@ def run(view, shoulder, elbow, release_step, max_steps):
         viewer.cam.elevation = -15
 
     while True:
-        info = play_episode(env, viewer, shoulder, elbow, release_step)
+        info = play_episode(env, viewer, shoulder, elbow, release_action)
         if info is None:
             break  # viewer window was closed mid-throw
-        print(f"\n[shoulder={shoulder} elbow={elbow} release_step={release_step}]")
+        print(f"\n[shoulder={shoulder} elbow={elbow} release_angle={release_angle}]")
         print_result(info, env)
 
         if viewer is None:
@@ -87,7 +86,7 @@ def run(view, shoulder, elbow, release_step, max_steps):
         if not viewer.is_running():
             break
 
-        print("\nEnter to replay, 'shoulder elbow release_step' to change "
+        print("\nEnter to replay, 'shoulder elbow release_angle' to change "
               "(e.g. '1.0 0.5 120'), or 'q' to quit:")
         try:
             line = input("> ").strip()
@@ -100,11 +99,12 @@ def run(view, shoulder, elbow, release_step, max_steps):
             parts = line.split()
             if len(parts) == 3:
                 try:
-                    shoulder, elbow, release_step = float(parts[0]), float(parts[1]), int(parts[2])
+                    shoulder, elbow, release_angle = float(parts[0]), float(parts[1]), float(parts[2])
+                    release_action = env.release_action_for_angle(release_angle)
                 except ValueError:
                     print("Couldn't parse that -- keeping previous parameters.")
             else:
-                print("Expected 3 values: shoulder elbow release_step -- keeping previous parameters.")
+                print("Expected 3 values: shoulder elbow release_angle -- keeping previous parameters.")
 
     if viewer is not None:
         viewer.close()
@@ -115,8 +115,13 @@ if __name__ == "__main__":
     parser.add_argument("--view", action="store_true", help="open the MuJoCo viewer and allow replay")
     parser.add_argument("--shoulder", type=float, default=1.0, help="shoulder torque in [-1, 1]")
     parser.add_argument("--elbow", type=float, default=0.0, help="elbow torque in [-1, 1]")
-    parser.add_argument("--release-step", type=int, default=155)
+    parser.add_argument("--release-angle", type=float, default=265.0,
+                         help="shoulder angle (deg) at which to let the ball go. 270 is "
+                              "straight up, the real overarm release point; 265 lands in "
+                              "the target zone at full torque. Clamped to the release "
+                              "window. Replaces --release-step, which stopped meaning "
+                              "anything once release became a target angle.")
     parser.add_argument("--max-steps", type=int, default=900)
     args = parser.parse_args()
     run(view=args.view, shoulder=args.shoulder, elbow=args.elbow,
-        release_step=args.release_step, max_steps=args.max_steps)
+        release_angle=args.release_angle, max_steps=args.max_steps)
