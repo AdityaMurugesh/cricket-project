@@ -145,6 +145,53 @@ sling on every axis:
 The speed/accuracy tension across that window is the tradeoff curve the
 research question asks for, so it exists in the environment as built.
 
+## Open problem: release timing is noise, not policy
+(2026-09-16, found by replaying the checkpoint that validated the
+overarm gates.) The run looked like a clear success -- 100% release
+rate, 100% ICC legality, 19-33% of throws in the target zone, mean
+reward near zero, and a real bowling action throughout (shoulder
+~238 deg, elbow ~-1 deg, height 1.72 m, zero lateral drift). Evaluated
+DETERMINISTICALLY, the same policy never releases the ball at all.
+
+The release channel's mean is flat at about -0.45 across the entire
+window (-0.479 at 231 deg, -0.415 at 307 deg, a spread of 0.064) with a
+standard deviation of 1.73, so ~39% of samples fire regardless of arm
+angle. Over the ~12 decisions the arm spends in the window that is a
+~99.8% chance of releasing somewhere, which is exactly the 100% release
+rate the log reported. The release instant is the first coin flip to
+come up heads, not a decision -- hence it lands at 236.6 deg (sd 11.8),
+right at the window's opening edge, instead of near vertical.
+
+Confirmed by cutting the entropy bonus: at ent_coef=0.003 the action
+std fell to 1.04 and release stopped firing ENTIRELY, 0 of 40 episodes
+even stochastically, with the arm never leaving the start pose. There is
+no learned release behaviour underneath the noise to fall back on. So
+lowering ent_coef is not a fix; it removes the only thing making the
+ball leave the hand.
+
+This also caps release speed. The policy settles on a gentle swing
+released early at ~27 km/h when 42.6 km/h is available at 270 deg,
+because at speed_weight=0.1 those two score 1.75 and 2.18 -- a 0.43 gap,
+smaller than episode-to-episode noise.
+
+`scripts/inspect_policy.py` checks for this: deterministic rollout vs
+stochastic statistics vs the release channel's profile across the
+window. A flat profile means timing is not being controlled, whatever
+the success rate says. Run it on every checkpoint before believing a
+result.
+
+Two candidate fixes, NOT yet decided:
+  1. Raise speed_weight so release timing actually pays. This is a
+     research-objective call -- it is the speed/accuracy tradeoff the
+     research question exists to map, not a tuning knob.
+  2. Change what the release action MEANS: have the policy output a
+     target release angle (mapping action[2] onto the release window)
+     and fire when the shoulder crosses it. That converts ~12 noisy
+     binary decisions into one well-conditioned continuous one, makes
+     deterministic evaluation meaningful, and directly parameterises
+     the quantity the research question studies. Costs an action-space
+     change and an update to demo_scripted.py's release convention.
+
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
 It cannot help here, for two independent reasons:
