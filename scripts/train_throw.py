@@ -150,8 +150,12 @@ if __name__ == "__main__":
                               "WARNING: 0.1 is measured to be too weak -- at 0.1 the policy never "
                               "commits to releasing, relies on exploration noise to fire the ball, "
                               "and fails deterministic evaluation entirely (0 releases). At 0.3 it "
-                              "commits, and the same 900k-step budget reaches 62% of throws in the "
-                              "zone at mean reward +1.63 instead of 33% at -0.11. Raising it is a "
+                              # NB: literal percent signs must be escaped as %% -- argparse formats
+                              # help strings with `help % params`, and Python 3.14 raises
+                              # "badly formed help string" at add_argument() time. An
+                              # unescaped % here killed all three run7 jobs instantly.
+                              "commits, and the same 900k-step budget reaches 62%% of throws in the "
+                              "zone at mean reward +1.63 instead of 33%% at -0.11. Raising it is a "
                               "research-objective decision, so the default is left alone pending "
                               "that call -- see context.md, 'Open problem: release timing'.")
     parser.add_argument("--swing-weight", type=float, default=30.0,

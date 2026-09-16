@@ -74,7 +74,12 @@ python scripts/train_throw.py \
     --model-path "checkpoints/${RUN}" \
     --seed 0 \
     --ent-coef 0.01 \
-    --speed-weight "${SW}"
+    --speed-weight "${SW}" || {
+        echo "TRAINING FAILED (exit $?) -- not running the post-training steps."
+        echo "Without this guard they fail too, on the missing log and checkpoint,"
+        echo "and their tracebacks bury the real error at the top of the file."
+        exit 1
+    }
 
 echo "=== summary ==="
 python scripts/summarize_run.py "logs/${RUN}/episodes.csv" --buckets 10
