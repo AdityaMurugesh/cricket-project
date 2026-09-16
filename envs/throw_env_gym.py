@@ -84,7 +84,7 @@ _OBS_BOUND = np.array([4 * np.pi, 4 * np.pi, 50.0, 50.0], dtype=np.float32)
 class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.999,
+    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.9999,
                  swing_weight=30.0, straight_arm_weight=6.0, **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
@@ -96,7 +96,11 @@ class ThrowEnvGym(gym.Env):
         # episode-terminal reward ~240 policy steps away is discounted to
         # 0.09 of its value, which made stalling to timeout beat throwing
         # and collapsed a validation run. See ThrowEnv._reward(). If you
-        # change one of the two, change both.
+        # change one of the two, change both. 0.999 was not enough either:
+        # it put a GOOD throw above stalling but left the intermediate step
+        # (swinging without managing to release) BELOW it, so the path from
+        # "do nothing" to "bowl well" still ran downhill first and the
+        # policy retreated. 0.9999 makes the ordering monotone.
         self.shaping_gamma = shaping_gamma
         self.swing_weight = swing_weight
         self.straight_arm_weight = straight_arm_weight

@@ -63,8 +63,8 @@ class ThrowEnv:
     def __init__(self, model_path=ASSET_PATH, target_range=(6.0, 8.0), max_steps=1200,
                  start_pose_deg=(100.0, 0.0), speed_weight=0.1, min_release_step=0,
                  release_window_deg=(230.0, 310.0), max_release_elbow_deg=40.0,
-                 max_legal_extension_deg=15.0, horizontal_selector="last_before_release",
-                 extension_mode="endpoint"):
+                 max_legal_extension_deg=15.0, illegal_penalty=2.0,
+                 horizontal_selector="last_before_release", extension_mode="endpoint"):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
         self.data = mujoco.MjData(self.model)
 
@@ -131,6 +131,9 @@ class ThrowEnv:
         # still pending Dr. Felton's reply (see elbow-legality-design-
         # decision memory) -- kept as config, not hardcoded, until resolved.
         self.max_legal_extension_deg = max_legal_extension_deg
+        # Flat penalty added to an illegal delivery's accuracy score, rather
+        # than illegality collapsing the accuracy term -- see _reward().
+        self.illegal_penalty = illegal_penalty
         self.horizontal_selector = horizontal_selector
         self.extension_mode = extension_mode
 
@@ -332,8 +335,26 @@ class ThrowEnv:
 
         legal = (self.elbow_extension_deg is not None
                  and self.elbow_extension_deg <= self.max_legal_extension_deg)
-        if self.target_min <= x <= self.target_max and legal:
+        in_zone = self.target_min <= x <= self.target_max
+        dist = 0.0 if in_zone else min(abs(x - self.target_min), abs(x - self.target_max))
+
+        if legal and in_zone:
             speed = self.release_speed if self.release_speed is not None else 0.0
             return 1.0 + self.speed_weight * speed
-        dist = min(abs(x - self.target_min), abs(x - self.target_max))
-        return -dist
+        if legal:
+            return -dist
+        # Illegal (or never bowled at all -- elbow_extension_deg is None when
+        # no release happened, and an un-bowled delivery must not score
+        # better than an illegal one). A flat penalty on top of the accuracy
+        # term, NOT instead of it.
+        #
+        # This replaces a version where illegality dropped the throw
+        # straight through to `-min(|x-min|, |x-max|)`, distance to the
+        # nearest zone EDGE. Inside the zone that is backwards: an illegal
+        # dead-centre throw scored -1.00 while an illegal throw landing
+        # exactly on the boundary scored -0.00, so among illegal deliveries
+        # accuracy was punished and the gradient pushed away from the middle
+        # of the target. It was harmless while every throw was trivially
+        # legal (a rigid bent arm has zero extension), and went live the
+        # moment the overarm gates made legality actually bind.
+        return -dist - self.illegal_penalty

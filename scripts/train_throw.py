@@ -78,7 +78,7 @@ class EpisodeLogger(BaseCallback):
 
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-             speed_weight, gamma):
+             speed_weight, gamma, illegal_penalty):
     def _init():
         # shaping_gamma must match PPO's gamma for the shaping to be the
         # correct potential-based form -- see ThrowEnvGym.__init__.
@@ -87,16 +87,17 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
                            release_window_deg=tuple(release_window),
                            max_release_elbow_deg=max_release_elbow,
                            speed_weight=speed_weight,
+                           illegal_penalty=illegal_penalty,
                            shaping_gamma=gamma)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
-        speed_weight, gamma):
+        speed_weight, gamma, illegal_penalty):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-                 speed_weight, gamma)
+                 speed_weight, gamma, illegal_penalty)
         for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
@@ -170,7 +171,7 @@ if __name__ == "__main__":
                               "113 deg, which is a shot-put. This is an action-validity filter, "
                               "NOT the ICC legality metric -- that stays extension-based and is "
                               "reported separately.")
-    parser.add_argument("--gamma", type=float, default=0.999,
+    parser.add_argument("--gamma", type=float, default=0.9999,
                          help="PPO discount factor, also used for the potential-based shaping so "
                               "the two stay consistent. NOT SB3's 0.99 default: the entire task "
                               "reward arrives in one lump at episode end, and episode length is "
@@ -178,8 +179,18 @@ if __name__ == "__main__":
                               "release. At 0.99 a terminal reward 240 policy steps out is worth "
                               "0.09 of its value, so stalling to timeout (-6.1 -> -0.55) beat a "
                               "bad throw (-4.0 -> -1.46) and the policy collapsed to standing "
-                              "still. At 0.999 the ordering is correct again.")
+                              "still. 0.999 was not enough either -- it ranked a good throw above "
+                              "stalling but left swinging-without-releasing below it, so the path out "
+                              "of the do-nothing policy still ran downhill first. 0.9999 makes the "
+                              "ordering monotone: good throw > bad throw > failed swing > stand still.")
+    parser.add_argument("--illegal-penalty", type=float, default=2.0,
+                         help="flat penalty added to an illegal delivery's accuracy score. Kept "
+                              "separate from the accuracy term so accuracy stays monotone for "
+                              "illegal throws too -- the previous form made an illegal "
+                              "dead-centre throw (-1.00) score worse than an illegal throw "
+                              "landing on the zone boundary (-0.00). Sets the size of the "
+                              "legality incentive, so it is a reported config value.")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
-        args.max_release_elbow, args.speed_weight, args.gamma)
+        args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty)
