@@ -84,14 +84,19 @@ _OBS_BOUND = np.array([4 * np.pi, 4 * np.pi, 50.0, 50.0], dtype=np.float32)
 class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.99,
+    def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.999,
                  swing_weight=30.0, straight_arm_weight=6.0, **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
         self.frame_skip = frame_skip
         self.use_shaping = use_shaping
         # must match the PPO model's own gamma for the shaping math to be
-        # the correct potential-based form -- SB3 PPO defaults to 0.99 too.
+        # the correct potential-based form. Note this is NOT SB3's default:
+        # train_throw.py passes gamma=0.999 explicitly, because at 0.99 an
+        # episode-terminal reward ~240 policy steps away is discounted to
+        # 0.09 of its value, which made stalling to timeout beat throwing
+        # and collapsed a validation run. See ThrowEnv._reward(). If you
+        # change one of the two, change both.
         self.shaping_gamma = shaping_gamma
         self.swing_weight = swing_weight
         self.straight_arm_weight = straight_arm_weight
@@ -217,8 +222,13 @@ class ThrowEnvGym(gym.Env):
             total_reward += reward
             self._episode_len += 1
 
-            terminated = bool(self._env.landed)
-            truncated = bool(info["timeout"] and not self._env.landed)
+            # a spent delivery (arm swung past the release window still
+            # holding the ball) is a real outcome with a real reward, not a
+            # cut-off, so it counts as terminated rather than truncated --
+            # otherwise SB3 would bootstrap a value estimate onto the end of
+            # an episode that genuinely has no future.
+            terminated = bool(self._env.landed or self._env.spent)
+            truncated = bool(info["timeout"] and not terminated)
             if terminated or truncated:
                 break
 

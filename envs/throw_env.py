@@ -136,6 +136,7 @@ class ThrowEnv:
 
         self.released = False
         self.landed = False
+        self.spent = False
         self.step_count = 0
         self.release_speed = None
         self.release_height = None
@@ -168,6 +169,7 @@ class ThrowEnv:
         self.data.eq_active[self.grip_eq_id] = 1
         self.released = False
         self.landed = False
+        self.spent = False
         self.step_count = 0
         self.release_speed = None
         self.release_height = None
@@ -214,12 +216,23 @@ class ThrowEnv:
             self.landed = True
             self.landing_pos = tuple(self._ball_pos()[:2])
 
+        # The delivery is spent once the arm has swung up through the
+        # release window and out the far side still holding the ball. The
+        # shoulder cannot come round again (upper joint limit 380), so
+        # nothing that happens afterwards can change the outcome, and a
+        # bowler only gets one delivery. Ending here instead of idling to
+        # max_steps also stops the episode length from being something the
+        # policy can manipulate -- see the discounting note in _reward().
+        if not self.released and self._shoulder_hist[-1] > self.release_window_max:
+            self.spent = True
+
         reward = self._reward()
         timeout = self.step_count >= self.max_steps
-        done = self.landed or timeout
+        done = self.landed or timeout or self.spent
 
         info = {
             "released": self.released,
+            "spent": self.spent,
             "release_speed": self.release_speed,
             "landing_pos": self.landing_pos,
             "timeout": timeout,
@@ -284,15 +297,35 @@ class ThrowEnv:
         # elbow-only flick, no real swing) -- treated as illegal too, since
         # that's not a bowling action the ICC rule could even evaluate.
         if not self.landed:
-            if self.step_count < self.max_steps:
+            if self.step_count < self.max_steps and not self.spent:
                 return 0.0
             # timed out with the ball still airborne (e.g. released too
-            # vertically to come down within max_steps) -- score it same as
-            # a landed miss, using the ball's current position, rather than
-            # returning a flat 0.0. A flat 0.0 scores better than almost any
-            # real miss and would give PPO an incentive to loft the ball
-            # into never landing at all instead of aiming for the zone (see
+            # vertically to come down within max_steps), or the delivery was
+            # spent without a release -- score it same as a landed miss,
+            # using the ball's current position, rather than returning a
+            # flat 0.0. A flat 0.0 scores better than almost any real miss
+            # and would give PPO an incentive to loft the ball into never
+            # landing at all instead of aiming for the zone (see
             # workflow-constraints memory, run3 local validation).
+            #
+            # Getting the VALUE right here is not sufficient, and this cost
+            # a validation run to find. The whole reward arrives in one lump
+            # at the end of the episode, so its weight to PPO is gamma^T,
+            # and T is something the policy controls: releasing ends the
+            # episode ~100 policy steps in, standing still runs the full
+            # ~240. At the old gamma=0.99 that made doing nothing the
+            # rational choice -- stalling to timeout scored -6.1 * 0.99^240
+            # = -0.55, while a bad throw scored -4.0 * 0.99^100 = -1.46. The
+            # policy was not failing to learn; it had correctly learned that
+            # bowling was not worth the risk, and it collapsed from a 96%
+            # release rate to 0%, arm barely leaving the start pose. That is
+            # very likely what run2 and run3 were doing too -- both were
+            # read as credit-assignment failures and answered with
+            # frame_skip and shaping.
+            #
+            # Fixed on two fronts: gamma is now 0.999 (see train_throw.py),
+            # which restores the correct ordering, and a spent delivery ends
+            # the episode immediately instead of idling out the clock.
             x = self._ball_pos()[0]
         else:
             x = self.landing_pos[0]

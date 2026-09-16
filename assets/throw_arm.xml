@@ -48,6 +48,22 @@
     </body>
   </worldbody>
 
+  <contact>
+    <!-- The ball sphere (r=0.036) sits exactly on the hand site, which is
+         the endpoint of the forearm capsule (r=0.035), so the two geoms
+         start 0.071 m interpenetrated and stay that way for the whole
+         carry. The weld holds them together while the contact solver
+         shoves them apart, and the accumulated contact force is released
+         in one kick the instant the weld deactivates. That is why throws
+         drifted up to 1.5 m off-line in a mechanism that is purely planar
+         (the shoulder and elbow are both hinges about Y, so a correct
+         release has exactly zero lateral velocity). It also injects energy
+         into the release speed, which is the reported research metric.
+         Excluding the pair leaves the weld as the only thing coupling the
+         ball to the hand, which is what "ball welded to the end effector"
+         was supposed to mean. -->
+    <exclude body1="ball" body2="forearm"/>
+  </contact>
   <equality>
     <!-- relpose/anchor omitted on purpose: mujoco derives them from the
          compiled qpos0 configuration, where the ball sphere is coincident

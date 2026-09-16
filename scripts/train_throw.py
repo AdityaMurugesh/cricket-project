@@ -78,22 +78,25 @@ class EpisodeLogger(BaseCallback):
 
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-             speed_weight):
+             speed_weight, gamma):
     def _init():
+        # shaping_gamma must match PPO's gamma for the shaping to be the
+        # correct potential-based form -- see ThrowEnvGym.__init__.
         return ThrowEnvGym(swing_weight=swing_weight,
                            straight_arm_weight=straight_arm_weight,
                            release_window_deg=tuple(release_window),
                            max_release_elbow_deg=max_release_elbow,
-                           speed_weight=speed_weight)
+                           speed_weight=speed_weight,
+                           shaping_gamma=gamma)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
-        speed_weight):
+        speed_weight, gamma):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-                 speed_weight)
+                 speed_weight, gamma)
         for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
@@ -104,7 +107,8 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
         model.ent_coef = ent_coef
         print(f"resumed from {resume_from} at num_timesteps={model.num_timesteps}")
     else:
-        model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef)
+        model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef,
+                    gamma=gamma)
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = EpisodeLogger(csv_path)
@@ -166,7 +170,16 @@ if __name__ == "__main__":
                               "113 deg, which is a shot-put. This is an action-validity filter, "
                               "NOT the ICC legality metric -- that stays extension-based and is "
                               "reported separately.")
+    parser.add_argument("--gamma", type=float, default=0.999,
+                         help="PPO discount factor, also used for the potential-based shaping so "
+                              "the two stay consistent. NOT SB3's 0.99 default: the entire task "
+                              "reward arrives in one lump at episode end, and episode length is "
+                              "something the policy controls by choosing when (or whether) to "
+                              "release. At 0.99 a terminal reward 240 policy steps out is worth "
+                              "0.09 of its value, so stalling to timeout (-6.1 -> -0.55) beat a "
+                              "bad throw (-4.0 -> -1.46) and the policy collapsed to standing "
+                              "still. At 0.999 the ordering is correct again.")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
-        args.max_release_elbow, args.speed_weight)
+        args.max_release_elbow, args.speed_weight, args.gamma)

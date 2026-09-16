@@ -123,6 +123,28 @@ class BowlerEnv:
         self._frozen_body_qpos = self.data.qpos.copy()
         mujoco.mj_forward(self.model, self.data)
 
+    def follow_through_step(self, t):
+        """Carry the scripted swing on past release, for t seconds since
+        the delivery started, while the ball is already in free flight.
+
+        The bowler used to stop dead the instant the ball left the hand,
+        because flight_step() pins the whole body to its release-instant
+        pose. A real delivery carries the arm on down and across the body,
+        and that follow-through is most of what makes an action read as
+        bowling rather than as a throw. This just keeps updating the pose
+        flight_step() pins to, so it costs nothing extra.
+
+        Purely cosmetic: by now the ball is a fully independent free body,
+        so nothing here can affect its flight. Deliberately does NOT go
+        through _write_pose(), which zeroes qvel and snaps the ball back
+        into the hand -- both of which would destroy the throw.
+        """
+        if self._frozen_body_qpos is None:
+            return
+        shoulder_deg, elbow_deg = delivery_arm_angles_deg(t, self.delivery_duration)
+        self._frozen_body_qpos[self.shoulder_qpos_adr] = np.radians(shoulder_deg)
+        self._frozen_body_qpos[self.elbow_qpos_adr] = np.radians(elbow_deg)
+
     # ---- dynamic free-flight phase (mirrors envs/throw_env.py) --------
 
     def reset(self, seed=None):
