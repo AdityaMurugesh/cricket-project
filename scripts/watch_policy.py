@@ -39,10 +39,25 @@ def print_result(info, env, episode_num, seed):
     speed_str = f"{speed * 3.6:.1f} km/h" if speed else "n/a"
     landing = info.get("landing_pos")
     print(f"\n[episode {episode_num}, seed={seed}]")
-    print(f"released: {info.get('released')}")
+    if not info.get("released"):
+        # a spent delivery: the arm swung up through the release window and
+        # out the far side still holding the ball. Worth calling out here --
+        # on screen it just looks like a swing with no throw.
+        print(f"released: False  (delivery spent={info.get('spent')}, "
+              f"arm reached {info.get('max_shoulder_deg', float('nan')):.0f} deg)")
+    else:
+        print("released: True")
+        # the geometry that separates a bowling action from a sling. 270 deg is
+        # straight up, the real overarm release point, and a bowler's elbow is
+        # near 0 there. On screen a sling and a bowl can look similar until you
+        # know where the ball actually left the hand.
+        print(f"release geometry: shoulder {info['shoulder_at_release_deg']:.1f} deg, "
+              f"elbow {info['elbow_at_release_deg']:.1f} deg, "
+              f"height {info['release_height_m']:.2f} m")
     print(f"release_speed: {speed_str}")
     print(f"landing_pos (x, y): {landing}")
-    print(f"elbow_extension_deg: {info.get('elbow_extension_deg')}")
+    print(f"elbow_extension_deg: {info.get('elbow_extension_deg')}  "
+          f"(legal={info.get('legal')}, limit {env._env.max_legal_extension_deg} deg)")
     print(f"episode reward: {info.get('episode_reward')}")
     print(f"target zone: [{env._env.target_min}, {env._env.target_max}]")
 
@@ -55,8 +70,13 @@ def setup_camera(viewer, lookat, distance, azimuth, elevation):
 
 
 def run(model_path, view, n_episodes, deterministic, seed,
-        cam_lookat, cam_distance, cam_azimuth, cam_elevation):
-    env = ThrowEnvGym()
+        cam_lookat, cam_distance, cam_azimuth, cam_elevation, speed_weight):
+    # speed_weight must match what the checkpoint was TRAINED with, or the
+    # rewards printed here are computed under a different objective than the
+    # one the policy optimised. It does not change what you see -- the policy's
+    # actions depend only on the observation -- only whether the numbers
+    # alongside it mean anything.
+    env = ThrowEnvGym(speed_weight=speed_weight)
     model = PPO.load(model_path)
 
     viewer = None
@@ -126,6 +146,11 @@ if __name__ == "__main__":
     parser.add_argument("--cam-distance", type=float, default=12)
     parser.add_argument("--cam-azimuth", type=float, default=90)
     parser.add_argument("--cam-elevation", type=float, default=-15)
+    parser.add_argument("--speed-weight", type=float, default=0.1,
+                         help="must match what the checkpoint was trained with, or the "
+                              "printed rewards use a different objective than the policy "
+                              "optimised. checkpoints/_local_sw03 was trained at 0.3.")
     args = parser.parse_args()
     run(args.model_path, args.view, args.episodes, not args.stochastic, args.seed,
-        args.cam_lookat, args.cam_distance, args.cam_azimuth, args.cam_elevation)
+        args.cam_lookat, args.cam_distance, args.cam_azimuth, args.cam_elevation,
+        args.speed_weight)
