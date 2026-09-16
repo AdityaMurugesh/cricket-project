@@ -24,6 +24,9 @@ for i in range(env.max_steps):
         print("steps:", i)
         print("released_at_step:", released_at)
         print("release_speed_m_s:", info["release_speed"])
+        print("shoulder_at_release_deg:", info["shoulder_at_release_deg"])
+        print("elbow_at_release_deg:", info["elbow_at_release_deg"])
+        print("release_height_m:", info["release_height_m"])
         print("landing_pos:", info["landing_pos"])
         print("timeout:", info["timeout"])
         break

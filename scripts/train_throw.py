@@ -46,6 +46,7 @@ class EpisodeLogger(BaseCallback):
             "episode", "timesteps", "reward", "release_speed_m_s",
             "landing_x", "landing_y", "elbow_extension_deg", "timeout",
             "max_shoulder_deg", "shoulder_at_release_deg",
+            "elbow_at_release_deg", "release_height_m",
         ])
 
     def _on_step(self):
@@ -65,6 +66,8 @@ class EpisodeLogger(BaseCallback):
                 info.get("timeout"),
                 info.get("max_shoulder_deg"),
                 info.get("shoulder_at_release_deg"),
+                info.get("elbow_at_release_deg"),
+                info.get("release_height_m"),
             ])
             self._file.flush()
         return True
@@ -74,15 +77,24 @@ class EpisodeLogger(BaseCallback):
             self._file.close()
 
 
-def make_env(swing_weight):
+def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
+             speed_weight):
     def _init():
-        return ThrowEnvGym(swing_weight=swing_weight)
+        return ThrowEnvGym(swing_weight=swing_weight,
+                           straight_arm_weight=straight_arm_weight,
+                           release_window_deg=tuple(release_window),
+                           max_release_elbow_deg=max_release_elbow,
+                           speed_weight=speed_weight)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
-        swing_weight):
-    vec_env = DummyVecEnv([make_env(swing_weight) for _ in range(n_envs)])
+        swing_weight, straight_arm_weight, release_window, max_release_elbow,
+        speed_weight):
+    vec_env = DummyVecEnv([
+        make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
+                 speed_weight)
+        for _ in range(n_envs)])
     if resume_from:
         # warm-start from an existing checkpoint instead of a fresh random
         # policy -- reset_num_timesteps=False keeps model.num_timesteps
@@ -125,12 +137,36 @@ if __name__ == "__main__":
                               "under the old reward keeps its collapsed exploration and stays in the "
                               "old local optimum -- that is what made the first legality run go from "
                               "16 horizontal crossings to zero after resuming.")
+    parser.add_argument("--speed-weight", type=float, default=0.1,
+                         help="coefficient on release speed in ThrowEnv's reward, applied only "
+                              "once the throw is both accurate and legal. This is the research "
+                              "question's objective, so it is a reported config value, not a "
+                              "tuning knob to be changed casually between runs.")
     parser.add_argument("--swing-weight", type=float, default=30.0,
                          help="scale of the shaping term rewarding progress of the shoulder around "
                               "the swing arc toward the release orientation. 0 disables it, leaving "
                               "the landing-distance potential alone. Needs to be >~17 to overcome the "
                               "distance term's penalty on the backswing -- at 5.0 the policy collapses "
                               "to standing still and dropping the ball. See ThrowEnvGym._potential().")
+    parser.add_argument("--straight-arm-weight", type=float, default=6.0,
+                         help="scale of the shaping term rewarding elbow extension as the release "
+                              "window approaches, so PPO can find the hard elbow-at-release gate. "
+                              "0 disables it. Like --swing-weight this is potential-based and "
+                              "therefore cannot change the optimal policy, only how fast it is "
+                              "found. See ThrowEnvGym._potential().")
+    parser.add_argument("--release-window", type=float, nargs=2, default=[230.0, 310.0],
+                         metavar=("MIN_DEG", "MAX_DEG"),
+                         help="shoulder-angle sector in which the ball may leave the hand (ICC "
+                              "'overarm, not underarm'). 270 is straight up, the true overarm "
+                              "release point. Widening this toward 180 re-admits the sling-from-"
+                              "behind-the-back action that run6 converged on.")
+    parser.add_argument("--max-release-elbow", type=float, default=40.0,
+                         help="maximum absolute elbow flexion permitted at release, degrees. A "
+                              "bowling action releases with a near-straight arm; run6 released at "
+                              "113 deg, which is a shot-put. This is an action-validity filter, "
+                              "NOT the ICC legality metric -- that stays extension-based and is "
+                              "reported separately.")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
-        args.resume_from, args.swing_weight)
+        args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
+        args.max_release_elbow, args.speed_weight)

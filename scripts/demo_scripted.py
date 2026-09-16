@@ -26,7 +26,14 @@ def play_episode(env, viewer, shoulder, elbow, release_step):
     info = {}
     reward = 0.0
     while not done:
-        release = 1.0 if t == release_step else -1.0
+        # ">=" not "==": ThrowEnv now gates release on arm geometry (the
+        # overarm window + a near-straight elbow), so a single-step pulse
+        # at an arbitrary step is usually ignored and nothing ever leaves
+        # the hand. Holding the signal on releases at the first permitted
+        # moment at or after release_step instead, which is what hand-
+        # tuning release timing actually meant here. The env ignores the
+        # signal once released, so holding it costs nothing.
+        release = 1.0 if t >= release_step else -1.0
         obs, reward, done, info = env.step([shoulder, elbow, release])
         t += 1
         if viewer is not None:
@@ -45,6 +52,9 @@ def print_result(info, env):
     print(f"steps: {info['steps']}")
     print(f"released: {info['released']}")
     print(f"release_speed: {speed_str}")
+    print(f"release geometry (shoulder, elbow, height): "
+          f"{info['shoulder_at_release_deg']}, {info['elbow_at_release_deg']}, "
+          f"{info['release_height_m']}")
     print(f"landing_pos (x, y): {info['landing_pos']}")
     print(f"timeout (never landed): {info['timeout'] and not env.landed}")
     print(f"final reward: {info['reward']}")

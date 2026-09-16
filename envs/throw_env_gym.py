@@ -54,9 +54,21 @@ attractor bug that the first version of this term introduced. It spans
 0 -> swing_weight across the full swing, so swing_weight is set to be
 roughly commensurate with the distance term's metre-scale range.
 
-Both terms are functions of the current state only, and Phi is forced
-to 0 at terminal states, so the Ng/Harada/Russell policy-invariance
-guarantee still holds for the pair. The *actual* task reward used for
+The third (straight_arm_weight) rewards extending the elbow as the
+release window approaches, so PPO can find ThrowEnv's hard
+elbow-at-release gate instead of arriving at the top folded up and being
+unable to let go.
+
+A caveat that run6 paid for: because this whole block is potential-based,
+NONE of these weights can change which policy is optimal -- that is the
+entire point of the Ng/Harada/Russell form, and it is why tuning
+swing_weight from 5 to 30 never stopped the policy slinging the ball from
+behind its back. Shaping is a learning-speed knob only. Anything the task
+must actually require belongs in ThrowEnv, as a reward term or a gate.
+
+All three terms are functions of the current state only, and Phi is
+forced to 0 at terminal states, so the Ng/Harada/Russell policy-invariance
+guarantee still holds for the set. The *actual* task reward used for
 episode_reward/CSV logging (the real research metric) is never touched
 -- only the per-step signal PPO trains on is shaped.
 """
@@ -73,7 +85,7 @@ class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.99,
-                 swing_weight=30.0, **throw_env_kwargs):
+                 swing_weight=30.0, straight_arm_weight=6.0, **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
         self.frame_skip = frame_skip
@@ -82,6 +94,7 @@ class ThrowEnvGym(gym.Env):
         # the correct potential-based form -- SB3 PPO defaults to 0.99 too.
         self.shaping_gamma = shaping_gamma
         self.swing_weight = swing_weight
+        self.straight_arm_weight = straight_arm_weight
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
         self._episode_reward = 0.0
@@ -155,11 +168,35 @@ class ThrowEnvGym(gym.Env):
         # which PPO crosses easily. Policy invariance holds at any weight
         # (this is still PBRS), so this is a gradient-shaping knob only --
         # it cannot bias the reported research metric.
+        #
+        # The climb now targets the centre of ThrowEnv's overarm release
+        # window rather than a hardcoded 270, so the shaping and the hard
+        # gate cannot drift apart if the window is reconfigured.
         angle = env.data.qpos[0] * 180.0 / np.pi
         start_deg = float(np.degrees(env.start_pose[0]))
-        progress = (angle - start_deg) / (270.0 - start_deg)
+        release_deg = 0.5 * (env.release_window_min + env.release_window_max)
+        progress = (angle - start_deg) / (release_deg - start_deg)
         swing_term = self.swing_weight * float(np.clip(progress, 0.0, 1.0))
-        return dist_term + swing_term
+
+        # Third term: straighten the arm as the window approaches. Release
+        # is hard-gated on elbow <= max_release_elbow_deg, so a policy that
+        # arrives at the top still folded up simply cannot let go, and the
+        # episode is wasted. Nothing else in Phi asks for extension -- the
+        # distance term is if anything happy with a bent arm, since folding
+        # up shortens the lever and calms the predicted landing point. This
+        # just makes the gate findable; it cannot make an unstraight arm
+        # legal or illegal, because it is still pure PBRS.
+        #
+        # Ramped in over the last 60 deg of the climb instead of applied
+        # throughout: a straight arm early in the backswing is a longer
+        # lever fighting gravity, and demanding it from the start would
+        # penalise the very acceleration phase that produces the speed.
+        elbow = abs(env.data.qpos[1] * 180.0 / np.pi)
+        approach = float(np.clip((angle - (release_deg - 60.0)) / 60.0, 0.0, 1.0))
+        straightness = float(np.clip(1.0 - elbow / 180.0, 0.0, 1.0))
+        straight_term = self.straight_arm_weight * approach * straightness
+
+        return dist_term + swing_term + straight_term
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
