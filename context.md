@@ -226,6 +226,41 @@ Two candidate fixes, NOT yet decided:
      the quantity the research question studies. Costs an action-space
      change and an update to demo_scripted.py's release convention.
 
+## run7 results (2026-09-16) -- first sweep on the fixed environment
+Three 8M-step jobs on cpuq, one per speed_weight, ~55k episodes each.
+Final-segment figures:
+
+| speed_weight | legal | in zone | mean reward | deterministic policy |
+|---|---|---|---|---|
+| 0.1 | 70% | 69% | +0.07 | 33.2 km/h @ 266 deg, 6.47 m, legal |
+| 0.3 | **0%** | 79% | -2.15 | 26.8 km/h, extension +42.7 deg -- a chuck |
+| 0.5 | **100%** | 86% | **+4.04** | 26.4 km/h @ 230.6 deg, 6.47 m, legal |
+
+**0.5 is the working default** -- 100/100 legal, 90/100 in zone.
+
+Three findings, two of which were defects now fixed (see the commit
+"Stop the elbow hyperextending, and make release a target angle"):
+
+1. **Raising speed_weight 5x did not raise speed.** 26.5 -> 26.9 -> 26.9
+   km/h against 42.6 scripted. The speed coefficient is NOT what caps
+   release speed; the binding constraint is that releasing early forces
+   a gentle swing to stay inside a 2 m zone. Notably the FASTEST
+   deterministic policy came from 0.1 (33.2 km/h released at 266 deg,
+   near vertical) -- the fast solution exists, the optimiser was not
+   reliably finding it. This is a real result about the task, not a bug,
+   and it is the heart of the tradeoff curve.
+2. **Elbow hyperextension was contaminating the ICC metric** (fixed).
+   Soft joint limits let a max-torque extensor reach -15.8 deg, and
+   extension is measured as a difference of elbow angles, so the
+   solver's compliance was being reported as the policy's technique.
+   Probably a large part of why 0.3 read as a 42.7 deg chuck.
+3. **The release dimension's entropy exploded** (fixed). std 9-19 vs
+   ~1.5 for the torque dims, because a fire-now threshold only has to
+   be cleared once in ~12 decisions and so collects almost no gradient.
+   Every stochastic statistic in the table above therefore has random
+   release timing baked into it -- treat run7's numbers as indicative,
+   not as results, and prefer run8's.
+
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
 It cannot help here, for two independent reasons:
