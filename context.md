@@ -261,6 +261,50 @@ Three findings, two of which were defects now fixed (see the commit
    release timing baked into it -- treat run7's numbers as indicative,
    not as results, and prefer run8's.
 
+## run9: the release dimension does not belong in the action vector
+(2026-09-16.) Matrix over ent_coef x seed, environment held fixed,
+latched release, 3M steps each. Release spread in degrees of shoulder
+angle (35 = sampling across half the window), start -> end:
+
+    ent 0.01,  seed 0:  35 -> 132   COLLAPSED to standing still
+    ent 0.01,  seed 1:  35 -> 126   COLLAPSED
+    ent 0.003, seed 0:  35 ->  22   survived: 100% release, 99% legal,
+                                    31% in zone, reward +0.88 and rising
+    ent 0.003, seed 1:  35 ->  55   COLLAPSED
+
+Three of four collapsed. ent_coef=0.01 (carried unexamined since run2)
+diverges on both seeds, so it is definitively too high -- but 0.003 is
+not a fix either, it just makes the coin-flip closer. Collapse tracks
+the release spread exactly: every run whose spread climbed collapsed,
+the one whose spread fell survived.
+
+**Mechanism, and it is structural rather than a tuning problem.** With
+the target latched, exactly ONE of ~240 policy steps' action[2] values
+affects the outcome; PPO still computes a gradient for action[2] at all
+240. So that dimension carries roughly a 240:1 noise-to-signal ratio,
+the entropy bonus dominates whatever real gradient survives, the spread
+grows, outcomes become random, the advantage of swinging turns to noise,
+and the policy retreats to standing still -- which then removes the
+gradient entirely. It is a positive feedback loop, and it explains why
+latching was WORSE than per-step release: with per-step, every step's
+action[2] could genuinely fire, so more of them carried signal.
+
+No amount of tuning fixes a 240:1 noise ratio. The release decision
+should not be a per-step action at all.
+
+**Recommended direction (not yet decided): make release angle an
+experimental variable instead of a learned one.** Drop action[2], fire
+at a fixed commanded angle per run, and sweep that angle across runs.
+The RL problem becomes "given this release point, learn the torques",
+which is well conditioned -- two dimensions, both mattering at every
+step. And the sweep IS the deliverable: release angle trades directly
+against speed and landing distance, measured on the scripted arm as
+    230 deg -> 36.8 km/h, lands 11.76 m
+    265 deg -> 42.0 km/h, lands  7.97 m   (in zone)
+    300 deg -> 47.4 km/h, lands  2.77 m
+so sweeping it produces the speed/accuracy curve directly rather than
+hoping a policy discovers one point on it.
+
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
 It cannot help here, for two independent reasons:
