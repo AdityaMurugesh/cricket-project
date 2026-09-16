@@ -89,6 +89,77 @@ Implement BOTH, named clearly, and make it a config flag.
 Emailed Dr Paul Felton (Nottingham Trent, ICC Suspect Bowling
 Actions Panel) about this.
 
+## Settled: what makes the action a bowling action
+(2026-09-16, after run6.) Legality alone cannot produce a bowling
+action, and this cost several runs to learn. A rigidly flexed arm has
+zero elbow EXTENSION and is legal by construction -- which is correct
+ICC, and stated above -- so a policy maximising speed subject to
+legality + accuracy is free to shot-put. run6 did exactly that: released
+at shoulder 207 deg with the elbow bent 113 deg, ball leaving from
+behind the body at 1.6 m, slung forward and up at 28 deg.
+
+Also settled, and worth not rediscovering: potential-based reward
+shaping (throw_env_gym.py's swing_weight / straight_arm_weight) is
+provably policy-INVARIANT (Ng, Harada & Russell 1999). It changes how
+fast PPO finds the optimum, never which optimum it is. Three runs were
+spent tuning swing_weight against a failure mode it mathematically
+cannot affect. Anything the task must actually REQUIRE belongs in
+ThrowEnv as a reward term or a hard gate. Shaping is a learning-speed
+knob, nothing more.
+
+So "Overarm, not underarm" -- already listed below as a required hard
+episode filter -- is now implemented, as a gate on the action space
+rather than a reward penalty, so it cannot be traded away against speed:
+  - release_window_deg=(230, 310): the ball may only leave the hand with
+    the arm up near vertical (270 = straight up, the true overarm
+    release point). Reaching the window from the 100 deg start pose
+    requires swinging up through 180, since the shoulder's lower joint
+    limit is 95 -- so entering it also guarantees the arm-horizontal
+    crossing the ICC metric is measured from. One-shot in practice: the
+    upper joint limit is 380, so an arm that sails past 310 without
+    releasing cannot come round again.
+  - max_release_elbow_deg=40: near-straight arm at release.
+
+max_release_elbow_deg is an "is this a bowling action at all" filter and
+is explicitly NOT part of the legality metric, which stays exactly as
+settled above. Both gates are config, so their cost in achievable speed
+is reportable rather than hidden.
+
+This makes the ICC metric bind for the first time. Under run6 every
+episode was trivially legal because the arm was rigid; a scripted
+attempt to reproduce that action now releases at 235 deg with 63.5 deg
+of extension and is correctly scored illegal. The three failure modes
+are now separated by three different mechanisms: sling-from-behind by
+the release window, folded-arm shot-put by the elbow cap, and genuine
+chucking by the extension metric.
+
+Scripted reference points on the current actuator budget (gear 40/30),
+measured 2026-09-16 -- the constrained optimum beats run6's learned
+sling on every axis:
+  - release at 270 deg, straight arm: 41.5 km/h, lands 7.82 m,
+    extension -0.02 deg, release height 1.84 m, reward +2.15
+  - release at 250 deg, straight arm: 38.9 km/h, lands 11.09 m (over)
+  - release at 300 deg, straight arm: 46.2 km/h, lands 3.06 m (short)
+  - run6's learned policy, for comparison: 31.5 km/h, lands 8.48 m
+    (a miss), release height 1.60 m, reward -0.48
+The speed/accuracy tension across that window is the tradeoff curve the
+research question asks for, so it exists in the environment as built.
+
+## On LocoMuJoCo
+Checked 2026-09-16, before trying to use it to fix the bowling action.
+It cannot help here, for two independent reasons:
+  - Its datasets are locomotion and general movement only: walk, run,
+    sprint, jumps, dance, fight, fallAndGetUp (LAFAN1), plus AMASS.
+    There is no cricket bowling and no overarm throw of any kind.
+  - It retargets onto full humanoid embodiments (UnitreeH1/G1, Atlas,
+    Talos, MyoSkeleton...). RL here targets a 2-joint arm; there is
+    nothing to retarget onto.
+Even with ideal mocap it would not have applied: per the scope section
+below, a style term supplies GROSS BODY style only (trunk, lower limb)
+and never the arm -- and the arm swing is precisely what was broken.
+LocoMuJoCo's role in this project is unchanged: a future style term for
+the humanoid's trunk/legs, gated on reference motion being captured.
+
 ## Current task
 Two tracks now exist side by side:
 
