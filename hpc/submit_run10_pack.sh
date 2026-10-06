@@ -7,6 +7,7 @@
 # and a (budget, seed, ent) with nothing left is skipped. Make sure no
 # earlier run10 jobs are still queued/running first, or they will be doubled.
 #   DRY=1 bash hpc/submit_run10_pack.sh   # print the qsub lines only
+#   SEEDS=2 CONTROL=0 bash hpc/submit_run10_pack.sh   # add a seed
 set -euo pipefail
 
 ANGLES="${ANGLES:-230 240 250 260 265 270 275 280 285 290 300}"
@@ -33,4 +34,5 @@ for scale in $SCALES; do
         submit "$scale" "$seed" 0.003
     done
 done
-submit 1.0 0 0.01
+# CONTROL=0 skips the ent_coef=0.01 column (e.g. when only adding seeds)
+[ "${CONTROL:-1}" = "0" ] || submit 1.0 0 0.01
