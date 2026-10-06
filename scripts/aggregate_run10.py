@@ -34,6 +34,11 @@ def load_evals(log_root):
             continue
         e = json.loads(path.read_text())
         d, s = e["deterministic"], e["stochastic"]
+        curve_p, ck_p = path.parent / "curve.json", path.parent / "ckpt_eval.json"
+        cur = json.loads(curve_p.read_text()) if curve_p.exists() else []
+        peak = max(cur, key=lambda b: b["good_pct"]) if cur else None
+        ck = json.loads(ck_p.read_text()) if ck_p.exists() else None
+        best = ck["best"] if ck else None
         rows.append({
             "tag": tag,
             "release_angle_deg": float(m["ang"]),
@@ -54,6 +59,15 @@ def load_evals(log_root):
             "stoch_mean_speed_good_kmh": s["mean_speed_good_kmh"],
             "stoch_mean_land_x": s["mean_land_x"],
             "action_std": " ".join(f"{v:.2f}" for v in e["action_std"]),
+            # training-time stochastic outcomes, bucketed: did it find the zone and keep it?
+            "train_peak_good_pct": peak["good_pct"] if peak else None,
+            "train_peak_timesteps": peak["timesteps_end"] if peak else None,
+            "train_final_good_pct": cur[-1]["good_pct"] if cur else None,
+            # best periodic checkpoint (runs that saved them), judged deterministically
+            "ckpt_best_speed_kmh": best["deterministic"]["speed_kmh"] if best else None,
+            "ckpt_best_timesteps": best["timesteps"] if best else None,
+            "ckpt_best_stoch_good_pct": best["stoch_good_pct"] if best else None,
+            "has_ckpts": ck is not None,
         })
     return rows
 
@@ -102,17 +116,39 @@ def markdown(rows, frontier, ent):
 
 
 def headline(rows, frontier, ent):
-    lines = ["| budget | best RL legal in-zone (det) | at angle | scripted ceiling | at angle |",
-             "|---|---|---|---|---|"]
+    lines = ["| budget | best final policy, legal in-zone (det) | at angle | best checkpoint | at angle "
+             "| scripted ceiling | at angle |",
+             "|---|---|---|---|---|---|---|"]
     for scale in sorted({r["actuator_scale"] for r in rows}):
         good = [r for r in rows if r["actuator_scale"] == scale and r["det_good"]
                 and abs(r["ent_coef"] - ent) < 1e-9]
         best = max(good, key=lambda r: r["det_speed_kmh"], default=None)
+        ck = [r for r in rows if r["actuator_scale"] == scale and r["ckpt_best_speed_kmh"] is not None
+              and abs(r["ent_coef"] - ent) < 1e-9]
+        bck = max(ck, key=lambda r: r["ckpt_best_speed_kmh"], default=None)
         f = {a: v for a, v in frontier.get(scale, {}).items() if v is not None}
         fa = max(f, key=f.get) if f else None
         lines.append(f"| {scale:.2f}x | {fmt(best['det_speed_kmh'] if best else None)} km/h | "
                      f"{fmt(best['release_angle_deg'] if best else None, '{:.0f}')} | "
+                     f"{fmt(bck['ckpt_best_speed_kmh'] if bck else None)} km/h | "
+                     f"{fmt(bck['release_angle_deg'] if bck else None, '{:.0f}')} | "
                      f"{fmt(f.get(fa) if fa else None)} km/h | {fmt(fa, '{:.1f}')} |")
+    return "\n".join(lines)
+
+
+def drift(rows):
+    """Runs that held the zone during training and lost it by the end."""
+    lost = [r for r in rows if r["train_peak_good_pct"] is not None
+            and r["train_peak_good_pct"] >= 30 and (r["train_final_good_pct"] or 0) < 10]
+    with_curve = [r for r in rows if r["train_peak_good_pct"] is not None]
+    lines = [f"{len(lost)} of {len(with_curve)} runs reached >=30% legal-and-in-zone during training "
+             "and ended below 10% (stochastic, training-time episodes).", "",
+             "| run | peak good% | at step | final good% | final det |", "|---|---|---|---|---|"]
+    for r in sorted(lost, key=lambda r: (r["actuator_scale"], r["release_angle_deg"], r["seed"])):
+        det = (f"{fmt(r['det_speed_kmh'])} km/h, lands {fmt(r['det_land_x'], '{:.1f}')} m"
+               if r["det_released"] else "no release")
+        lines.append(f"| {r['tag']} | {r['train_peak_good_pct']:.0f} | "
+                     f"{r['train_peak_timesteps'] / 1e6:.1f}M | {r['train_final_good_pct']:.0f} | {det} |")
     return "\n".join(lines)
 
 
@@ -159,6 +195,10 @@ def plot(rows, frontier, ent, out_png):
         ax1.scatter([r["release_angle_deg"] for r in good], [r["det_speed_kmh"] for r in good],
                     s=64, color=color, edgecolor=SURFACE, linewidth=2, zorder=3,
                     label=f"{scale:g}x budget")
+        ck = [r for r in mine if r["ckpt_best_speed_kmh"] is not None
+              and not (r["det_good"] and abs(r["ckpt_best_speed_kmh"] - r["det_speed_kmh"]) < 0.05)]
+        ax1.scatter([r["release_angle_deg"] for r in ck], [r["ckpt_best_speed_kmh"] for r in ck],
+                    s=64, facecolor="none", edgecolor=color, linewidth=2, zorder=3)
         by_ang = defaultdict(list)
         for r in mine:
             by_ang[r["release_angle_deg"]].append(r["stoch_good_pct"])
@@ -172,7 +212,8 @@ def plot(rows, frontier, ent, out_png):
                  arrowprops={"arrowstyle": "-", "color": INK_2, "linewidth": 0.8})
     ax1.set_ylabel("Release speed, km/h", color=INK, fontsize=10)
     ax1.set_title("Fastest legal delivery landing in the 6-8 m zone, by release angle\n"
-                  "lines: scripted constant-torque ceiling   dots: trained policy (deterministic, per seed)",
+                  "lines: scripted constant-torque ceiling   dots: final policy   rings: best checkpoint "
+                  "(deterministic, per seed)",
                   loc="left", fontsize=10.5, color=INK)
     ax1.legend(frameon=False, fontsize=9, labelcolor=INK, loc="upper left")
     ax2.set_ylabel("Legal & in zone, % of\nstochastic deliveries", color=INK, fontsize=10)
@@ -205,6 +246,7 @@ def main():
                                                 r["release_angle_deg"], r["seed"])))
     md = ["# run10 results", "", f"{len(rows)} evaluated checkpoints.", "",
           "## Headline per budget", "", headline(rows, frontier, args.ent), "",
+          "## Found the zone, then lost it", "", drift(rows), "",
           "## Full grid", "", markdown(rows, frontier, args.ent), ""]
     ents = sorted({r["ent_coef"] for r in rows} - {args.ent})
     for e in ents:
