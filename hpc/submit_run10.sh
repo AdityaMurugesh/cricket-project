@@ -10,11 +10,27 @@ SCALES="${SCALES:-0.75 1.0 1.5}"
 SEEDS="${SEEDS:-0 1}"
 CONTROL_ENT="${CONTROL_ENT:-0.01}"
 
+# safe to re-run: skips tags already queued/running or already evaluated.
+# qsub takes ~10 s per job here, so run it under nohup rather than over a
+# short-lived ssh session.
+QUEUED=$(qstat -f -F json 2>/dev/null | python3 -c '
+import json, sys
+try: jobs = json.load(sys.stdin).get("Jobs", {})
+except ValueError: jobs = {}
+for j in jobs.values():
+    if j.get("Job_Name") == "cricket_throw_run10":
+        print(j.get("Variable_List", {}).get("TAG", ""))
+' || true)
+
 submit() {  # ang scale seed ent
     local s100 e tag
     s100=$(awk -v s="$2" 'BEGIN { printf "%03d", s * 100 }')
     e=$(echo "$4" | tr -d '.')
     tag="a$1_s${s100}_e${e}_${3}"
+    if grep -qx "$tag" <<< "$QUEUED" || [ -f "logs/throw_ppo_run10_${tag}/eval.json" ]; then
+        echo "${tag}: already queued or done, skipping"
+        return
+    fi
     local cmd="qsub -v ANG=$1,SCALE=$2,SEED=$3,ENT=$4,TAG=${tag}${STEPS:+,STEPS=$STEPS} hpc/train_throw_run10.pbs"
     if [ -n "${DRY:-}" ]; then echo "$cmd"; else echo "${tag}: $($cmd)"; fi
 }
