@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from envs.throw_env_gym import ThrowEnvGym
@@ -108,7 +108,7 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
         speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-        release_angle, actuator_scale):
+        release_angle, actuator_scale, checkpoint_every=0):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
                  speed_weight, gamma, illegal_penalty, release_mode, release_latch,
@@ -125,6 +125,13 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = [EpisodeLogger(csv_path), ActionStdLogger()]
+    if checkpoint_every > 0:
+        # run10 policies reached the zone and then drifted out of it, so the
+        # final checkpoint alone can understate what training found
+        callback.append(CheckpointCallback(
+            save_freq=max(1, checkpoint_every // n_envs),
+            save_path=str(Path(model_path).parent / (Path(model_path).name + "_ckpts")),
+            name_prefix="step"))
     model.learn(total_timesteps=total_timesteps, callback=callback,
                 reset_num_timesteps=(resume_from is None))
 
@@ -170,8 +177,11 @@ if __name__ == "__main__":
                          help="multiplier on every motor's gear (40/30 at 1.0), i.e. the actuator budget")
     parser.add_argument("--no-release-latch", action="store_true",
                          help="re-sample the release target every step instead of latching it")
+    parser.add_argument("--checkpoint-every", type=int, default=1_000_000,
+                         help="also save the policy every N timesteps (0 disables)")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
-        args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale)
+        args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale,
+        args.checkpoint_every)
