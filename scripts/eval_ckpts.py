@@ -29,16 +29,18 @@ def main():
     parser.add_argument("--run", required=True, help="run name, e.g. throw_ppo_run10_a260_s075_e0003_2")
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--speed-weight", type=float, default=0.5)
+    parser.add_argument("--root", default=str(ROOT), help="dir holding checkpoints/ and logs/")
     args = parser.parse_args()
 
     m = TAG_RE.match(args.run)
     if not m:
         sys.exit(f"not a run10 run name: {args.run}")
     ang, scale = float(m["ang"]), int(m["s100"]) / 100.0
-    ckpt_dir = ROOT / "checkpoints" / f"{args.run}_ckpts"
+    root = Path(args.root)
+    ckpt_dir = root / "checkpoints" / f"{args.run}_ckpts"
     paths = sorted(ckpt_dir.glob("step_*_steps.zip"),
                    key=lambda p: int(p.stem.split("_")[1]))
-    final = ROOT / "checkpoints" / f"{args.run}.zip"
+    final = root / "checkpoints" / f"{args.run}.zip"
     if final.exists():
         paths.append(final)
     if not paths:
@@ -66,7 +68,8 @@ def main():
     best = max(good_det, key=lambda r: r["deterministic"]["speed_kmh"]) if good_det else None
     out = {"run": args.run, "release_angle_deg": ang, "actuator_scale": scale,
            "checkpoints": results, "best": best}
-    (ROOT / "logs" / args.run / "ckpt_eval.json").write_text(json.dumps(out, indent=1))
+    (root / "logs" / args.run).mkdir(parents=True, exist_ok=True)
+    (root / "logs" / args.run / "ckpt_eval.json").write_text(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":
