@@ -1,0 +1,28 @@
+#!/bin/bash
+# run10 post-processing, after every training job has finished:
+#   1. curve.json per run: good%/speed/landing over training (no torch)
+#   2. ckpt_eval.json per run that saved periodic checkpoints: every
+#      checkpoint evaluated, best legal in-zone one picked
+# Several run10 seeds found the zone then drifted out of it, so the final
+# checkpoint alone understates what training found; this recovers the best.
+#   qsub hpc/run10_post.pbs
+#PBS -N cricket_run10_post
+#PBS -q cpuq
+#PBS -l select=1:ncpus=12:mem=24gb
+#PBS -l walltime=03:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD
+
+echo "=== training curves ==="
+python scripts/curve_summary.py logs/throw_ppo_run10_*/episodes.csv --buckets 10
+
+echo "=== periodic checkpoints ==="
+ls -d checkpoints/throw_ppo_run10_*_ckpts 2>/dev/null \
+    | sed -E 's#checkpoints/(.*)_ckpts#\1#' \
+    | xargs -P 12 -I{} sh -c 'python scripts/eval_ckpts.py --run {} --episodes 50 > logs/{}/ckpt_eval.log 2>&1; echo "{} exit $?"'
+echo "=== done ==="
