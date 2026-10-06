@@ -1,14 +1,4 @@
-"""Summarise a training run's episodes.csv into the numbers that matter.
-
-The training log's own reward/loss curves say whether PPO is optimising;
-they say nothing about whether the thing it found is a bowling action.
-That takes release geometry, which is why throw_env.py logs
-elbow_at_release_deg and release_height_m. run6 looked healthy in the SB3
-console output while releasing the ball from behind its back at chest
-height.
-
-Speeds are reported in km/h throughout -- see the speed-units memory.
-"""
+"""Summarise a run's episodes.csv: legality, accuracy, speed (km/h), release geometry."""
 import argparse
 import csv
 import statistics as stats
@@ -31,8 +21,7 @@ def summarise(rows, max_legal_extension_deg, target_range):
              and _f(r, "elbow_extension_deg") <= max_legal_extension_deg]
     lo, hi = target_range
     on_target = [r for r in landed if lo <= _f(r, "landing_x") <= hi]
-    # the actual research metric: speed among throws that were BOTH legal
-    # and accurate, since that is the "subject to" in the research question
+    # the metric we actually care about: legal AND in the zone
     good = [r for r in on_target
             if _f(r, "elbow_extension_deg") is not None
             and _f(r, "elbow_extension_deg") <= max_legal_extension_deg]
@@ -57,23 +46,16 @@ def summarise(rows, max_legal_extension_deg, target_range):
         "best_speed_kmh": max([_f(r, "release_speed_m_s") * 3.6 for r in good], default=float("nan")),
         "mean_speed_good_kmh": mean(good, "release_speed_m_s", 3.6),
         "mean_reward": mean(rows, "reward"),
-        # the two release-geometry numbers that separate a bowl from a sling
         "mean_release_shoulder_deg": mean(released, "shoulder_at_release_deg"),
         "mean_release_elbow_deg": mean(released, "elbow_at_release_deg"),
         "mean_release_height_m": mean(released, "release_height_m"),
-        # what the policy asked for, averaged, plus how tightly it holds to
-        # it. A large sd here means release timing is still being decided by
-        # exploration noise rather than by the policy.
+        # requested release angle and how consistent it is
         "mean_release_target_deg": mean(released, "release_target_deg"),
         "sd_release_target_deg": sd(released, "release_target_deg"),
     }
 
 
-# (key, column header, format). Headers are abbreviated so a run fits one
-# terminal line: rel% = released, legal% is of released throws, zone% is
-# landed in the target zone, good% is legal AND in the zone -- the actual
-# success rate. kmh/good and kmh/best are over good throws only, since
-# speed on an illegal or wayward delivery is not a result.
+# (key, header, fmt); good% = legal and in zone, kmh/good is over those only
 FIELDS = [
     ("episodes", "eps", "{:.0f}"),
     ("released_pct", "rel%", "{:.0f}"),

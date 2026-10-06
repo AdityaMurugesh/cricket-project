@@ -1,11 +1,4 @@
-"""Full bowler demo: scripted run-up into a scripted bowling swing, with
-the ball going through real physics from the moment of release.
-
-Run-up and swing are both kinematic (see envs/bowler_env.py for why) --
-this is a visual demo, not the RL-trainable environment. Run with --view
-to watch it; the same replay-and-edit loop as demo_scripted.py lets you
-retune parameters between throws without restarting.
-"""
+"""Scripted humanoid bowler demo (kinematic body, physical ball). --view to watch."""
 import argparse
 import sys
 import time
@@ -49,9 +42,7 @@ def play_episode(env, viewer, release_frac, real_time=True):
     reward = 0.0
     steps = 0
     while not done:
-        # keep the scripted swing running through its follow-through while
-        # the ball flies, instead of freezing the bowler at the release
-        # pose -- see BowlerEnv.follow_through_step().
+        # keep the follow-through going while the ball is in the air
         if t2 < env.delivery_duration:
             env.follow_through_step(t2)
         t2 += dt
@@ -127,15 +118,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--view", action="store_true", help="open the MuJoCo viewer and allow replay")
     parser.add_argument("--release-frac", type=float, default=0.52,
-                         help="fraction of the delivery swing at which the ball is released. "
-                              "0.52 puts release at shoulder 275 deg -- the arm essentially "
-                              "vertical, which is the real overarm release point -- with the "
-                              "elbow at 10 deg and the hand within a whisker of its peak speed "
-                              "(the smoothstep's velocity peaks at 0.5). Lands 7.27 m at "
-                              "60.8 km/h. The old 0.56 default released at shoulder 212 deg, "
-                              "arm back and barely above shoulder height, and lobbed the ball "
-                              "at 33.8 km/h. Release is very sensitive here: 0.50 lands 11.2 m "
-                              "and 0.53 lands 5.5 m, at essentially the same release speed.")
+                         help="fraction of the swing at which the ball is released (0.52 ~ arm vertical)")
     parser.add_argument("--max-steps", type=int, default=900)
     args = parser.parse_args()
     run(view=args.view, release_frac=args.release_frac, max_steps=args.max_steps)

@@ -1,22 +1,4 @@
-"""Humanoid bowler: fully scripted run-up + bowling swing, with the ball
-going through real physics from the moment of release.
-
-Both the run-up and the bowling arm swing are kinematic (joint angles set
-directly from envs/runup.py's pure functions, no actuators, no forces) --
-this is a visual demo of a run-up + bowling action, not the RL-trainable
-environment. envs/throw_env.py (2-joint arm, actuator-driven, no run-up)
-remains the environment used for actual policy training; see the
-run-up-method scope decision.
-
-An earlier version tried to make the arm actuator/torque-driven here too,
-holding the root+legs in place with weld constraints. That didn't work:
-even a stiff weld has finite compliance, and that was enough give under
-the arm's reaction torque to badly distort the throw (release speed and
-direction were both wrong). Since the run-up was already scripted, the
-simplest fix was to script the whole swing the same way and only let the
-ball be dynamically simulated, launched at the hand's velocity (measured
-by finite difference) at the scripted release instant.
-"""
+"""Scripted humanoid bowler demo; only the ball is physically simulated."""
 from pathlib import Path
 
 import mujoco
@@ -65,11 +47,11 @@ class BowlerEnv:
         self.release_speed = None
         self.landing_pos = None
         self._prev_hand_pos = None
-        self._frozen_body_qpos = None  # body pose at release, held during flight
+        self._frozen_body_qpos = None  # pose held during ball flight
 
         self.reset()
 
-    # ---- kinematic puppeteering (run-up and delivery swing) -----------
+    # kinematic puppeteering
 
     def _write_pose(self, root_xyz, leg_deg, shoulder_deg, elbow_deg):
         x, y, z = root_xyz
@@ -92,25 +74,20 @@ class BowlerEnv:
         mujoco.mj_forward(self.model, self.data)
 
     def run_up_step(self, t):
-        """Advance the scripted run-up to time t seconds (0 to run_duration).
-        Root translates, legs cycle, arm stays in the carry pose."""
+        """Scripted run-up at time t, arm held in carry pose."""
         root_xyz, legs = runup_pose(t, self.run_duration, self.blend_duration,
                                      self.run_speed, self.start_x, self.pelvis_height)
         self._write_pose(root_xyz, legs, *CARRY_ARM_DEG)
 
     def delivery_step(self, t):
-        """Advance the scripted bowling swing to time t seconds since the
-        run-up ended (0 to delivery_duration). Root+legs stay frozen at
-        DELIVERY_STRIDE_DEG; the arm eases from carry to release pose."""
+        """Scripted arm swing at time t since the run-up ended."""
         self._prev_hand_pos = self.data.site_xpos[self.hand_site_id].copy()
         root_xyz = (self.data.qpos[self.root_qpos_adr], 0.0, self.pelvis_height)
         shoulder_deg, elbow_deg = delivery_arm_angles_deg(t, self.delivery_duration)
         self._write_pose(root_xyz, DELIVERY_STRIDE_DEG, shoulder_deg, elbow_deg)
 
     def release_ball(self):
-        """Release the ball with the hand's current velocity (finite
-        difference against the previous delivery_step frame) and switch it
-        to real dynamics. Call once, at the scripted release instant."""
+        """Let go of the ball at the hand's finite-difference velocity."""
         hand_pos = self.data.site_xpos[self.hand_site_id].copy()
         if self._prev_hand_pos is not None:
             velocity = (hand_pos - self._prev_hand_pos) / self.dt
@@ -124,28 +101,14 @@ class BowlerEnv:
         mujoco.mj_forward(self.model, self.data)
 
     def follow_through_step(self, t):
-        """Carry the scripted swing on past release, for t seconds since
-        the delivery started, while the ball is already in free flight.
-
-        The bowler used to stop dead the instant the ball left the hand,
-        because flight_step() pins the whole body to its release-instant
-        pose. A real delivery carries the arm on down and across the body,
-        and that follow-through is most of what makes an action read as
-        bowling rather than as a throw. This just keeps updating the pose
-        flight_step() pins to, so it costs nothing extra.
-
-        Purely cosmetic: by now the ball is a fully independent free body,
-        so nothing here can affect its flight. Deliberately does NOT go
-        through _write_pose(), which zeroes qvel and snaps the ball back
-        into the hand -- both of which would destroy the throw.
-        """
+        """Cosmetic follow-through; avoids _write_pose so the ball stays free."""
         if self._frozen_body_qpos is None:
             return
         shoulder_deg, elbow_deg = delivery_arm_angles_deg(t, self.delivery_duration)
         self._frozen_body_qpos[self.shoulder_qpos_adr] = np.radians(shoulder_deg)
         self._frozen_body_qpos[self.elbow_qpos_adr] = np.radians(elbow_deg)
 
-    # ---- dynamic free-flight phase (mirrors envs/throw_env.py) --------
+    # free-flight phase
 
     def reset(self, seed=None):
         mujoco.mj_resetData(self.model, self.data)
@@ -160,11 +123,7 @@ class BowlerEnv:
         return self._obs()
 
     def flight_step(self):
-        """Advance real dynamics by one step. Only meaningful after
-        release_ball(). The puppeteered body (root/legs/arm) has no
-        actuators, so it's teleport-corrected back to its release-instant
-        pose every frame -- purely cosmetic, doesn't affect ball physics
-        since the ball is a fully independent free body once released."""
+        """One physics step after release; body is pinned to its frozen pose."""
         mujoco.mj_step(self.model, self.data)
 
         if self._frozen_body_qpos is not None:

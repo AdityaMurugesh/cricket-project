@@ -1,8 +1,4 @@
-"""Headless sanity check: confirms mujoco + throw_env work in the current
-Python environment. Used to validate the HPC job-submission pipeline
-(module load, venv activation, PBS scheduling) independently of whether
-the actual RL training code works yet.
-"""
+"""Headless check that mujoco + throw_env import and run (for HPC smoke tests)."""
 import sys
 from pathlib import Path
 
@@ -13,8 +9,7 @@ from envs.throw_env import ThrowEnv
 env = ThrowEnv()
 obs = env.reset()
 
-# action[2] is a target release angle mapped onto the overarm window, not a
-# fire-now flag, so it is constant here: "let go at 265 deg", near vertical.
+# release action = target shoulder angle, so just ask for 265 deg
 release_action = env.release_action_for_angle(265.0)
 
 released_at = None

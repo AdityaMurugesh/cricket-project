@@ -1,30 +1,4 @@
-"""Inspect a trained checkpoint's actual decision-making, not just its scores.
-
-A training log can show a 100% release rate, 100% ICC legality and a
-healthy reward while the policy has learned nothing at all about WHEN to
-let go of the ball. That happened on 2026-09-16: the release channel's
-mean sat flat at about -0.45 across the whole release window with a
-standard deviation of 1.73, so roughly 39% of samples fired regardless of
-arm angle. Over the ~12 decisions the arm spends inside the window that
-is a ~99.8% chance of releasing somewhere, which is where the 100%
-release rate came from -- but the release instant was the first coin flip
-to come up heads, not a decision. The same policy evaluated
-deterministically never released at all.
-
-So this reports three things the episode CSV cannot:
-
-  1. the deterministic rollout -- the policy you would actually report,
-     which is the distribution's mean action rather than a sample
-  2. stochastic rollout statistics, which is what the training log saw
-  3. the release-channel profile: mean action and firing probability as a
-     function of shoulder angle
-
-If (1) and (2) disagree, the behaviour is coming from exploration noise.
-If the profile in (3) is flat across the window, release timing is not
-being controlled at all, whatever the success rate says.
-
-Speeds in km/h throughout -- see the speed-units memory.
-"""
+"""Compare a checkpoint's deterministic vs stochastic behaviour and its release profile."""
 import argparse
 import math
 import sys
@@ -60,10 +34,6 @@ def describe(info):
     ext = info.get("elbow_extension_deg")
     target = info.get("release_target_deg")
     asked = f" (asked for {target:.1f})" if target is not None else ""
-    # The landing clause is a separate term on purpose. It used to sit inside
-    # a ternary spanning the whole concatenation, so a throw that never landed
-    # printed "no landing" INSTEAD of the release geometry rather than
-    # alongside it -- losing exactly what you need to see why it didn't land.
     where = f"landed {landing[0]:.2f} m" if landing else "never landed"
     return (f"released at shoulder {info['shoulder_at_release_deg']:.1f} deg{asked}, "
             f"elbow {info['elbow_at_release_deg']:.1f} deg, "
@@ -73,9 +43,7 @@ def describe(info):
 
 
 def release_profile(env, model):
-    """Mean release action and its firing probability vs shoulder angle,
-    walked along a deterministic rollout. A flat column means the policy
-    is not timing the release at all."""
+    """Release action vs shoulder angle along a deterministic rollout."""
     std = float(np.exp(model.policy.log_std.detach().cpu().numpy()[2]))
     mode = env._env.release_mode
     obs, _ = env.reset(seed=0)
@@ -84,8 +52,7 @@ def release_profile(env, model):
         action, _ = model.predict(obs, deterministic=True)
         shoulder = float(np.degrees(env._env.data.qpos[0]))
         if mode == "target_angle":
-            # the angle the policy is ASKING to release at -- the quantity
-            # that matters now, and the one the tradeoff curve needs
+            # the release angle the policy is asking for
             third = env._env.release_target_deg(action[2])
         else:
             third = 100.0 * 0.5 * (1.0 - math.erf((0.0 - float(action[2])) / (std * math.sqrt(2.0))))
@@ -97,8 +64,7 @@ def release_profile(env, model):
 
 
 def run(model_path, episodes, seed, speed_weight):
-    # must match what the checkpoint was TRAINED with, or the rewards here
-    # are computed under a different objective than the policy optimised.
+    # speed_weight has to match training or the rewards printed are meaningless
     env = ThrowEnvGym(speed_weight=speed_weight)
     model = PPO.load(model_path)
     lo, hi = env._env.release_window_min, env._env.release_window_max
@@ -127,14 +93,11 @@ def run(model_path, episodes, seed, speed_weight):
     if det_released == 0 and rel:
         print("\n  !! The deterministic policy never releases but the stochastic one")
         print("     almost always does. The release is being fired by exploration")
-        print("     noise, not chosen -- see this file's docstring.")
+        print("     noise, not chosen.")
 
     std, mode, rows = release_profile(env, model)
     print(f"\n=== release channel profile (mode={mode}, action std = {std:.2f}) ===")
-    # Worth watching on its own. Under the old "threshold" semantics this
-    # grew to 9-19 during run7 while the torque dimensions stayed near 1.5:
-    # a dimension with no gradient collects the entropy bonus for free once
-    # its samples are clipped, and release timing becomes random.
+    # a big std here means release timing is basically random
     if std > 4.0:
         print(f"  !! std {std:.1f} here is far above the torque dimensions --")
         print("     sampled release is close to random.")
@@ -159,8 +122,6 @@ if __name__ == "__main__":
                         help="stochastic episodes to sample for the statistics")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--speed-weight", type=float, default=0.1,
-                        help="must match what the checkpoint was trained with, or the "
-                             "printed rewards use a different objective than the policy "
-                             "optimised.")
+                        help="must match the value the checkpoint was trained with")
     args = parser.parse_args()
     run(args.model_path, args.episodes, args.seed, args.speed_weight)

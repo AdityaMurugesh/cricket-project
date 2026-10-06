@@ -13,3 +13,9 @@ Thumbs.db
 # training run output
 logs/
 checkpoints/
+
+# Motion capture raw data (large, contains video of the participant) -- never commit
+Aditya Bowling/
+*.c3d
+*.qtm
+*.avi

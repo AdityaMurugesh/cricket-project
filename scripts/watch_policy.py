@@ -1,11 +1,4 @@
-"""Watch a trained PPO policy throw, live, in the MuJoCo viewer.
-
-Same viewer setup as demo_scripted.py, but driven by a loaded model's
-actions instead of hand-picked torques/release-step. In --view mode this
-loops interactively (replay / next / quit) instead of running a fixed
-number of episodes and closing -- same interaction pattern as
-demo_scripted.py's replay prompt.
-"""
+"""Replay a trained PPO checkpoint, optionally live in the MuJoCo viewer."""
 import argparse
 import sys
 import time
@@ -40,17 +33,12 @@ def print_result(info, env, episode_num, seed):
     landing = info.get("landing_pos")
     print(f"\n[episode {episode_num}, seed={seed}]")
     if not info.get("released"):
-        # a spent delivery: the arm swung up through the release window and
-        # out the far side still holding the ball. Worth calling out here --
-        # on screen it just looks like a swing with no throw.
+        # spent = swung through the window without letting go
         print(f"released: False  (delivery spent={info.get('spent')}, "
               f"arm reached {info.get('max_shoulder_deg', float('nan')):.0f} deg)")
     else:
         print("released: True")
-        # the geometry that separates a bowling action from a sling. 270 deg is
-        # straight up, the real overarm release point, and a bowler's elbow is
-        # near 0 there. On screen a sling and a bowl can look similar until you
-        # know where the ball actually left the hand.
+        # where the ball actually left the hand
         print(f"release geometry: shoulder {info['shoulder_at_release_deg']:.1f} deg, "
               f"elbow {info['elbow_at_release_deg']:.1f} deg, "
               f"height {info['release_height_m']:.2f} m")
@@ -71,11 +59,7 @@ def setup_camera(viewer, lookat, distance, azimuth, elevation):
 
 def run(model_path, view, n_episodes, deterministic, seed,
         cam_lookat, cam_distance, cam_azimuth, cam_elevation, speed_weight):
-    # speed_weight must match what the checkpoint was TRAINED with, or the
-    # rewards printed here are computed under a different objective than the
-    # one the policy optimised. It does not change what you see -- the policy's
-    # actions depend only on the observation -- only whether the numbers
-    # alongside it mean anything.
+    # speed_weight has to match training or the printed rewards are off
     env = ThrowEnvGym(speed_weight=speed_weight)
     model = PPO.load(model_path)
 
@@ -95,7 +79,7 @@ def run(model_path, view, n_episodes, deterministic, seed,
         print_result(info, env, ep, cur_seed)
 
         if viewer is None:
-            # headless: run exactly n_episodes back-to-back, no prompt
+            # headless: just run n_episodes
             cur_seed += 1
             if ep >= n_episodes:
                 break
@@ -147,9 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--cam-azimuth", type=float, default=90)
     parser.add_argument("--cam-elevation", type=float, default=-15)
     parser.add_argument("--speed-weight", type=float, default=0.1,
-                         help="must match what the checkpoint was trained with, or the "
-                              "printed rewards use a different objective than the policy "
-                              "optimised. checkpoints/_local_sw03 was trained at 0.3.")
+                         help="must match the value the checkpoint was trained with")
     args = parser.parse_args()
     run(args.model_path, args.view, args.episodes, not args.stochastic, args.seed,
         args.cam_lookat, args.cam_distance, args.cam_azimuth, args.cam_elevation,

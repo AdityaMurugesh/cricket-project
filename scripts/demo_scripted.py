@@ -1,14 +1,4 @@
-"""Sanity-check run: a hand-scripted swing-and-release, not a learned policy.
-
-Purpose: confirm the ball is rigidly welded to the hand pre-release, flies
-off with a sensible velocity at release, and lands somewhere the target-zone
-reward can score.
-
-Run with --view to watch it in the MuJoCo viewer. In viewer mode the script
-loops: after each throw it asks whether to replay with the same parameters
-or type new ones, so you can retune shoulder/elbow torque and release timing
-without restarting the process.
-"""
+"""Hand-scripted swing and release on ThrowEnv, no learned policy. --view to watch."""
 import argparse
 import sys
 import time
@@ -26,11 +16,6 @@ def play_episode(env, viewer, shoulder, elbow, release_action):
     info = {}
     reward = 0.0
     while not done:
-        # ThrowEnv's release action is now a TARGET SHOULDER ANGLE mapped
-        # onto the overarm release window, not a fire-now flag, so hand
-        # tuning is done in degrees rather than in timesteps -- which is
-        # also the thing that was actually being tuned. env.release_action_
-        # for_angle() does the inverse mapping.
         release = release_action
         obs, reward, done, info = env.step([shoulder, elbow, release])
         t += 1
@@ -67,7 +52,7 @@ def run(view, shoulder, elbow, release_angle, max_steps):
     if view:
         import mujoco.viewer
         viewer = mujoco.viewer.launch_passive(env.model, env.data)
-        # zoom/pan out enough to see the whole throw (target zone is ~13m out)
+        # pull the camera back so the whole flight is visible
         viewer.cam.lookat[:] = [3.5, 0, 0.8]
         viewer.cam.distance = 12
         viewer.cam.azimuth = 90
@@ -81,7 +66,7 @@ def run(view, shoulder, elbow, release_angle, max_steps):
         print_result(info, env)
 
         if viewer is None:
-            break  # headless: single run, nothing to replay against
+            break  # headless: one run and out
 
         if not viewer.is_running():
             break
@@ -116,11 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--shoulder", type=float, default=1.0, help="shoulder torque in [-1, 1]")
     parser.add_argument("--elbow", type=float, default=0.0, help="elbow torque in [-1, 1]")
     parser.add_argument("--release-angle", type=float, default=265.0,
-                         help="shoulder angle (deg) at which to let the ball go. 270 is "
-                              "straight up, the real overarm release point; 265 lands in "
-                              "the target zone at full torque. Clamped to the release "
-                              "window. Replaces --release-step, which stopped meaning "
-                              "anything once release became a target angle.")
+                         help="shoulder angle (deg) at which to let go; 270 is straight up")
     parser.add_argument("--max-steps", type=int, default=900)
     args = parser.parse_args()
     run(view=args.view, shoulder=args.shoulder, elbow=args.elbow,
