@@ -305,6 +305,40 @@ against speed and landing distance, measured on the scripted arm as
 so sweeping it produces the speed/accuracy curve directly rather than
 hoping a policy discovers one point on it.
 
+## run10: release angle is now an experimental variable (2026-10-06)
+Decided (user approved overnight plan): run9's recommendation is adopted.
+`release_mode="fixed_angle"` drops action[2]; the ball leaves the hand the
+first time the shoulder reaches `release_angle_deg`, still subject to the
+elbow<=40 bowling-action gate (reaching the angle with a bent arm spends
+the delivery -- one chance, so the gate cannot be used to pick a later
+release). The policy only learns the two torques. `actuator_scale`
+multiplies both gears (40/30 at 1.0) and is the actuator-budget axis.
+Legality metric unchanged.
+
+**Scripted ceiling, no learning** (`scripts/frontier_scripted.py`,
+constant torques, 2.5 deg grid, `logs/frontier_scripted_fine.csv`):
+fastest delivery that is legal AND lands in 6-8 m, per budget:
+
+    budget  230    250    260    270    peak
+    0.75x   29.6   32.3   33.7   --     34.8 km/h @ 267.5 deg
+    1.0x    29.6   32.3   37.1   42.7   43.3 km/h @ 275.0 deg
+    1.25x   29.6   32.1   36.6   48.7   50.3 km/h @ 277.5 deg
+    1.5x    29.6   32.3   36.8   49.5   56.5 km/h @ 280.0 deg
+
+Structure: early release lofts the ball, so 230-250 deg is capped near
+30 km/h by the landing constraint whatever the budget -- extra torque only
+buys speed at late release angles. For every budget the peak sits at the
+LAST angle where a full-torque swing still reaches the zone's near edge;
+one step later the zone is unreachable. So the speed/accuracy tradeoff
+curve exists in the physics, and the actuator budget moves where it ends.
+
+**RL sweep:** angles 230-300 (dense 260-285) x budgets {0.75, 1.0, 1.5} x
+seeds {0, 1} at ent_coef=0.003, plus an ent_coef=0.01 control column at
+1.0x, 8M steps each, speed_weight 0.5. cpuq caps a user at 12
+queued+running jobs, so runs are packed 11 per job
+(`hpc/train_throw_run10_pack.pbs`, `hpc/submit_run10_pack.sh`).
+Results: `scripts/aggregate_run10.py` -> `results/run10/`.
+
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
 It cannot help here, for two independent reasons:
