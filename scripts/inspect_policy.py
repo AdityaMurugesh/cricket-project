@@ -98,8 +98,7 @@ def run(model_path, episodes, seed, speed_weight, release_mode="target_angle",
         print("     noise, not chosen.")
 
     if env.action_space.shape[0] < 3:
-        print(f"
-(release fixed at {release_angle} deg -- no release channel to profile)")
+        print(f"\n(release fixed at {release_angle} deg -- no release channel to profile)")
         return
 
     std, mode, rows = release_profile(env, model)

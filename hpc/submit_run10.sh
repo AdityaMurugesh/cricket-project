@@ -5,7 +5,7 @@
 #   DRY=1 bash hpc/submit_run10.sh      # print the qsub lines only
 set -euo pipefail
 
-ANGLES="${ANGLES:-230 240 250 260 270 280 290 300}"
+ANGLES="${ANGLES:-230 240 250 260 265 270 275 280 285 290 300}"
 SCALES="${SCALES:-0.75 1.0 1.5}"
 SEEDS="${SEEDS:-0 1}"
 CONTROL_ENT="${CONTROL_ENT:-0.01}"
