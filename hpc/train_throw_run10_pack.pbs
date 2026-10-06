@@ -1,0 +1,58 @@
+#!/bin/bash
+# run10, packed: one PBS job trains every release angle for one (budget,
+# seed, ent_coef) in parallel, one single-threaded process per angle.
+#
+# Why packed: cpuq allows 12 queued+running jobs per user (max_queued
+# u:PBS_GENERIC=12), so one-run-per-job puts 77 runs through in ~7 serial
+# waves (~9 h). The limit is on job count, not cores, so 7 packed jobs of
+# 11 runs each cover the whole grid in one wave. Same RUN names, logs and
+# eval.json as train_throw_run10.pbs, so aggregate_run10.py reads either.
+#
+#   hpc/submit_run10_pack.sh
+#   qsub -v SCALE=1.0,SEED=0,ENT=0.003,ANGLES=230:240:250 hpc/train_throw_run10_pack.pbs
+#PBS -N cricket_run10_pack
+#PBS -q cpuq
+#PBS -l select=1:ncpus=12:mem=32gb
+#PBS -l walltime=05:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+# one core per run; torch's own thread pool would oversubscribe the node
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+
+: "${SCALE:?pass an actuator scale}"
+: "${SEED:?pass a seed}"
+: "${ENT:?pass ent_coef}"
+: "${ANGLES:?pass colon-separated release angles, e.g. 230:240:250}"
+STEPS="${STEPS:-8000000}"
+S100=$(awk -v s="$SCALE" 'BEGIN { printf "%03d", s * 100 }')
+E=$(echo "$ENT" | tr -d '.')
+
+echo "=== run10 pack: actuator_scale=${SCALE} seed=${SEED} ent_coef=${ENT} steps=${STEPS} angles=${ANGLES} ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+
+run_one() {
+    local ang=$1 tag="a${1}_s${S100}_e${E}_${SEED}"
+    local run="throw_ppo_run10_${tag}"
+    mkdir -p "logs/${run}"
+    {
+        python scripts/train_throw.py --timesteps "${STEPS}" --n-envs 8 \
+            --log-dir "logs/${run}" --model-path "checkpoints/${run}" \
+            --seed "${SEED}" --ent-coef "${ENT}" --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ang}" --actuator-scale "${SCALE}" \
+        && python scripts/summarize_run.py "logs/${run}/episodes.csv" --buckets 10 \
+        && python scripts/eval_checkpoint.py --model-path "checkpoints/${run}" \
+            --out "logs/${run}/eval.json" --episodes 200 --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ang}" --actuator-scale "${SCALE}" \
+            --tag "${tag}"
+    } > "logs/${run}/job.log" 2>&1
+    echo "$(date +%T) ${tag} exit $?"
+}
+
+for ang in ${ANGLES//:/ }; do
+    run_one "$ang" &
+done
+wait
+echo "=== all angles finished ==="
