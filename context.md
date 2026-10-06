@@ -339,6 +339,36 @@ queued+running jobs, so runs are packed 11 per job
 (`hpc/train_throw_run10_pack.pbs`, `hpc/submit_run10_pack.sh`).
 Results: `scripts/aggregate_run10.py` -> `results/run10/`.
 
+## Motion capture, 2026-10-01 session (processed 2026-10-07)
+Qualisys, MARKER-BASED (not markerless), IOR full-body set, 100 Hz,
+6 trials = 11 deliveries (trials 2-6 bowl once towards each end).
+Pipeline: `mocap/`, regenerate with `scripts/mocap_process.py`; report
+and plots in `data/mocap/` (not committed -- participant data, public repo).
+
+**The export is only partly usable.** QTM's AIM model "partially applied"
+on every dynamic trial and failed on the static one (session log), so
+label columns jump between markers mid-trial, unlabelled markers were not
+exported (median 7-16 visible per frame), the static trial has no marker
+data, and the force plates are uncalibrated. Marker identity was rebuilt
+from rigid spacing and speed instead. Fix: re-label in QTM (steps at the
+end of data/mocap/REPORT.md) and re-export; check with the lab whether the
+marker set worn matched the AIM model (an unexpected second elbow marker
+~11 cm away appears in 4 deliveries).
+
+What it gives now:
+  - hand tracked through release in 3 deliveries (+1 lower bound):
+    peak hand/wrist MARKER speed 68.4 +/- 7.7 km/h (60.5-76.0); no ball
+    marker, so ball speed is not measured
+  - approach speed 11.4 +/- 1.0 km/h over all 11 (short indoor run-up)
+  - release arm angle ~300 deg in ThrowEnv's convention (vs 270 vertical)
+  - human elbow extension, HUMAN COMPARISON ONLY: T3a 5.3 deg endpoint /
+    5.5 max; T4b -2.0 / 0.0. Legality for the robot stays simulated.
+  - reference motion for the ARM only (`reference_motion_T3a/T4b.npz`,
+    `scripts/demo_mocap.py`): trunk/leg style term NOT possible from this
+    export. Played on bowler.xml at ~300 deg the ball lands ~3 m -- the
+    same "late release throws into the ground" seen in ThrowEnv; the human
+    gets distance from wrist and trunk, which the model lacks.
+
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
 It cannot help here, for two independent reasons:
