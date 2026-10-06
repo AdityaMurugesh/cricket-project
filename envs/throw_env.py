@@ -15,8 +15,12 @@ class ThrowEnv:
                  release_window_deg=(230.0, 310.0), max_release_elbow_deg=40.0,
                  release_mode="target_angle", release_latch=True,
                  max_legal_extension_deg=15.0, illegal_penalty=2.0,
-                 horizontal_selector="last_before_release", extension_mode="endpoint"):
+                 horizontal_selector="last_before_release", extension_mode="endpoint",
+                 release_angle_deg=None, actuator_scale=1.0):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
+        # actuator budget: torque = gear * ctrl, so this scales every motor's peak torque
+        self.actuator_scale = actuator_scale
+        self.model.actuator_gear[:, 0] *= actuator_scale
         self.data = mujoco.MjData(self.model)
 
         self.grip_eq_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_EQUALITY, "grip")
@@ -38,8 +42,15 @@ class ThrowEnv:
         # arm must be near straight to let go (not the ICC metric)
         self.max_release_elbow_deg = max_release_elbow_deg
 
-        # "threshold": fire when action[2] > 0, "target_angle": fire at that angle
+        # "threshold": fire when action[2] > 0, "target_angle": fire at that angle,
+        # "fixed_angle": fire at release_angle_deg, action[2] unused (run10 sweep)
         self.release_mode = release_mode
+        self.release_angle_deg = release_angle_deg
+        if release_mode == "fixed_angle" and not (
+                release_angle_deg is not None
+                and release_window_deg[0] <= release_angle_deg <= release_window_deg[1]):
+            raise ValueError(f"fixed_angle needs release_angle_deg inside {release_window_deg}, "
+                             f"got {release_angle_deg!r}")
 
         # pick the target angle once when entering the window
         self.release_latch = release_latch
@@ -105,21 +116,37 @@ class ThrowEnv:
         return self._obs()
 
     def step(self, action):
-        """action = [shoulder_torque, elbow_torque, release], each in [-1, 1]."""
+        """action = [shoulder_torque, elbow_torque, release], each in [-1, 1].
+        In fixed_angle mode the release entry is optional and ignored."""
         action = np.asarray(action, dtype=np.float64)
         self.data.ctrl[:2] = np.clip(action[:2], -1.0, 1.0)
 
+        if self.release_mode == "fixed_angle":
+            fire = (not self.released and not self.spent
+                    and np.degrees(self.data.qpos[0]) >= self.release_angle_deg)
+            if fire and not self._release_permitted():
+                # one chance per delivery: reaching the set angle with a bent arm wastes it
+                self.spent = True
+                fire = False
+        else:
+            fire = (not self.released and self._release_permitted()
+                    and self._release_commanded(action[2]))
+
         just_released = False
         # one-shot release: drop the weld and record the release state
-        if not self.released and self._release_permitted() and self._release_commanded(action[2]):
+        if fire:
             self.release_speed = self._ball_linear_speed()
             self.release_height = float(self._ball_pos()[2])
             self.release_shoulder_deg = float(np.degrees(self.data.qpos[0]))
             self.release_elbow_deg = float(np.degrees(self.data.qpos[1]))
-            self.release_target_commanded = (
-                self.release_target_latched if self.release_latch
-                else self.release_target_deg(action[2])
-            ) if self.release_mode == "target_angle" else None
+            if self.release_mode == "fixed_angle":
+                self.release_target_commanded = float(self.release_angle_deg)
+            elif self.release_mode == "target_angle":
+                self.release_target_commanded = (
+                    self.release_target_latched if self.release_latch
+                    else self.release_target_deg(action[2]))
+            else:
+                self.release_target_commanded = None
             self.data.eq_active[self.grip_eq_id] = 0
             self.released = True
             just_released = True

@@ -22,7 +22,9 @@ class ThrowEnvGym(gym.Env):
         self.swing_weight = swing_weight
         self.straight_arm_weight = straight_arm_weight
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
+        # fixed_angle mode has no release decision, so torques only
+        n_act = 2 if self._env.release_mode == "fixed_angle" else 3
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(n_act,), dtype=np.float32)
         self._episode_reward = 0.0
         self._episode_len = 0
 

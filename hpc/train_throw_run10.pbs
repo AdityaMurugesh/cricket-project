@@ -1,0 +1,71 @@
+#!/bin/bash
+# Run 10: release angle becomes an experimental variable, not a learned one.
+#
+# run9 showed the release decision cannot live in the action vector: with
+# the target latched, one of ~240 policy steps' action[2] values matters and
+# PPO still computes a gradient for all 240, so that dimension runs at ~240:1
+# noise-to-signal, its entropy grows, outcomes go random and the policy
+# retreats to standing still (3 of 4 configs collapsed).
+#
+# So, as context.md recommends: release_mode=fixed_angle drops action[2]
+# entirely and lets go the first time the shoulder reaches ANG (still subject
+# to the elbow<=40 deg bowling-action gate; reaching ANG with a bent arm
+# wastes the delivery). The policy only learns torques -- two dimensions,
+# both mattering at every step. The sweep over ANG x actuator budget IS the
+# deliverable: each cell is one point of the speed/accuracy/legality curve.
+#
+# ACTUATOR BUDGET: SCALE multiplies both motors' gear (40/30 at 1.0).
+# scripts/frontier_scripted.py gives the constant-torque ceiling for every
+# cell, computed locally with no learning, for comparison.
+#
+#   hpc/submit_run10.sh   (submits the whole grid)
+#   qsub -v ANG=270,SCALE=1.0,SEED=0,ENT=0.003,TAG=a270_s100_e003_0 hpc/train_throw_run10.pbs
+#
+# speed_weight 0.5 is run7's working default. ent_coef 0.003 is the only
+# run9 setting that survived; with the release dimension gone it may be
+# unnecessarily low, so a 0.01 control column runs at SCALE=1.0.
+#PBS -N cricket_throw_run10
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+
+: "${ANG:?pass a release angle, e.g. qsub -v ANG=270,SCALE=1.0,SEED=0,ENT=0.003,TAG=... }"
+: "${SCALE:?pass an actuator scale}"
+: "${SEED:?pass a seed}"
+: "${ENT:?pass ent_coef}"
+: "${TAG:?pass a run tag}"
+STEPS="${STEPS:-8000000}"
+
+RUN="throw_ppo_run10_${TAG}"
+echo "=== run10 ${RUN}: release_angle=${ANG} actuator_scale=${SCALE} seed=${SEED} ent_coef=${ENT} steps=${STEPS} speed_weight=0.5 ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+
+python scripts/train_throw.py \
+    --timesteps "${STEPS}" \
+    --n-envs 8 \
+    --log-dir "logs/${RUN}" \
+    --model-path "checkpoints/${RUN}" \
+    --seed "${SEED}" \
+    --ent-coef "${ENT}" \
+    --speed-weight 0.5 \
+    --release-mode fixed_angle \
+    --release-angle "${ANG}" \
+    --actuator-scale "${SCALE}" || {
+        echo "TRAINING FAILED (exit $?) -- skipping the post-training steps,"
+        echo "whose own failures would otherwise bury the real error above."
+        exit 1
+    }
+
+echo "=== summary ==="
+python scripts/summarize_run.py "logs/${RUN}/episodes.csv" --buckets 10
+
+echo "=== evaluation (deterministic + 200 stochastic) ==="
+python scripts/eval_checkpoint.py --model-path "checkpoints/${RUN}" \
+    --out "logs/${RUN}/eval.json" --episodes 200 --speed-weight 0.5 \
+    --release-mode fixed_angle --release-angle "${ANG}" --actuator-scale "${SCALE}" \
+    --tag "${TAG}"

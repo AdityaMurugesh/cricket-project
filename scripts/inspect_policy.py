@@ -63,9 +63,11 @@ def release_profile(env, model):
     return std, mode, rows
 
 
-def run(model_path, episodes, seed, speed_weight):
+def run(model_path, episodes, seed, speed_weight, release_mode="target_angle",
+        release_angle=None, actuator_scale=1.0):
     # speed_weight has to match training or the rewards printed are meaningless
-    env = ThrowEnvGym(speed_weight=speed_weight)
+    env = ThrowEnvGym(speed_weight=speed_weight, release_mode=release_mode,
+                      release_angle_deg=release_angle, actuator_scale=actuator_scale)
     model = PPO.load(model_path)
     lo, hi = env._env.release_window_min, env._env.release_window_max
 
@@ -95,6 +97,11 @@ def run(model_path, episodes, seed, speed_weight):
         print("     almost always does. The release is being fired by exploration")
         print("     noise, not chosen.")
 
+    if env.action_space.shape[0] < 3:
+        print(f"
+(release fixed at {release_angle} deg -- no release channel to profile)")
+        return
+
     std, mode, rows = release_profile(env, model)
     print(f"\n=== release channel profile (mode={mode}, action std = {std:.2f}) ===")
     # a big std here means release timing is basically random
@@ -123,5 +130,13 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--speed-weight", type=float, default=0.1,
                         help="must match the value the checkpoint was trained with")
+    parser.add_argument("--release-mode", default="target_angle",
+                         choices=["target_angle", "threshold", "fixed_angle"],
+                         help="must match the checkpoint's training config")
+    parser.add_argument("--release-angle", type=float, default=None,
+                         help="fixed_angle mode: the release angle it was trained at")
+    parser.add_argument("--actuator-scale", type=float, default=1.0,
+                         help="must match the checkpoint's training config")
     args = parser.parse_args()
-    run(args.model_path, args.episodes, args.seed, args.speed_weight)
+    run(args.model_path, args.episodes, args.seed, args.speed_weight,
+        args.release_mode, args.release_angle, args.actuator_scale)

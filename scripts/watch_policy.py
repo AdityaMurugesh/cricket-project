@@ -58,9 +58,11 @@ def setup_camera(viewer, lookat, distance, azimuth, elevation):
 
 
 def run(model_path, view, n_episodes, deterministic, seed,
-        cam_lookat, cam_distance, cam_azimuth, cam_elevation, speed_weight):
+        cam_lookat, cam_distance, cam_azimuth, cam_elevation, speed_weight,
+        release_mode="target_angle", release_angle=None, actuator_scale=1.0):
     # speed_weight has to match training or the printed rewards are off
-    env = ThrowEnvGym(speed_weight=speed_weight)
+    env = ThrowEnvGym(speed_weight=speed_weight, release_mode=release_mode,
+                      release_angle_deg=release_angle, actuator_scale=actuator_scale)
     model = PPO.load(model_path)
 
     viewer = None
@@ -132,7 +134,14 @@ if __name__ == "__main__":
     parser.add_argument("--cam-elevation", type=float, default=-15)
     parser.add_argument("--speed-weight", type=float, default=0.1,
                          help="must match the value the checkpoint was trained with")
+    parser.add_argument("--release-mode", default="target_angle",
+                         choices=["target_angle", "threshold", "fixed_angle"],
+                         help="must match the checkpoint's training config")
+    parser.add_argument("--release-angle", type=float, default=None,
+                         help="fixed_angle mode: the release angle it was trained at")
+    parser.add_argument("--actuator-scale", type=float, default=1.0,
+                         help="must match the checkpoint's training config")
     args = parser.parse_args()
     run(args.model_path, args.view, args.episodes, not args.stochastic, args.seed,
         args.cam_lookat, args.cam_distance, args.cam_azimuth, args.cam_elevation,
-        args.speed_weight)
+        args.speed_weight, args.release_mode, args.release_angle, args.actuator_scale)

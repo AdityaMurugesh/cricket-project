@@ -24,8 +24,10 @@ class ActionStdLogger(BaseCallback):
     def _on_rollout_end(self):
         import numpy as np
         std = np.exp(self.model.policy.log_std.detach().cpu().numpy())
-        for i, name in enumerate(["shoulder", "elbow", "release"]):
-            self.logger.record(f"action_std/{name}", float(std[i]))
+        for name, value in zip(["shoulder", "elbow", "release"], std):
+            self.logger.record(f"action_std/{name}", float(value))
+        if len(std) < 3:
+            return  # fixed_angle: no release dimension
         env = self.training_env.envs[0]._env
         span = ((env.release_window_max - env.RELEASE_TARGET_INSET_DEG)
                 - env.release_window_min)
@@ -85,7 +87,8 @@ class EpisodeLogger(BaseCallback):
 
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-             speed_weight, gamma, illegal_penalty, release_mode, release_latch):
+             speed_weight, gamma, illegal_penalty, release_mode, release_latch,
+             release_angle, actuator_scale):
     def _init():
         # shaping gamma must equal PPO gamma
         return ThrowEnvGym(swing_weight=swing_weight,
@@ -96,16 +99,20 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
                            illegal_penalty=illegal_penalty,
                            release_mode=release_mode,
                            release_latch=release_latch,
+                           release_angle_deg=release_angle,
+                           actuator_scale=actuator_scale,
                            shaping_gamma=gamma)
     return _init
 
 
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
-        speed_weight, gamma, illegal_penalty, release_mode, release_latch):
+        speed_weight, gamma, illegal_penalty, release_mode, release_latch,
+        release_angle, actuator_scale):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
-                 speed_weight, gamma, illegal_penalty, release_mode, release_latch)
+                 speed_weight, gamma, illegal_penalty, release_mode, release_latch,
+                 release_angle, actuator_scale)
         for _ in range(n_envs)])
     if resume_from:
         # warm start; timestep counter continues from the checkpoint
@@ -154,12 +161,17 @@ if __name__ == "__main__":
     parser.add_argument("--illegal-penalty", type=float, default=2.0,
                          help="flat penalty added to an illegal delivery")
     parser.add_argument("--release-mode", default="target_angle",
-                         choices=["target_angle", "threshold"],
-                         help="target_angle: action[2] is a release angle; threshold: fire when > 0")
+                         choices=["target_angle", "threshold", "fixed_angle"],
+                         help="target_angle: action[2] is a release angle; threshold: fire when > 0; "
+                              "fixed_angle: release at --release-angle, torques-only policy")
+    parser.add_argument("--release-angle", type=float, default=None,
+                         help="shoulder angle (deg) to release at; fixed_angle mode only")
+    parser.add_argument("--actuator-scale", type=float, default=1.0,
+                         help="multiplier on every motor's gear (40/30 at 1.0), i.e. the actuator budget")
     parser.add_argument("--no-release-latch", action="store_true",
                          help="re-sample the release target every step instead of latching it")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
-        args.release_mode, not args.no_release_latch)
+        args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale)
