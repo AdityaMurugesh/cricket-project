@@ -167,6 +167,9 @@ def plot(rows, frontier, ent, out_png):
                  linewidth=2, marker="o", markersize=6, markeredgecolor=SURFACE,
                  markeredgewidth=2, label=f"{scale:g}x budget")
 
+    ax1.annotate("ceilings coincide here: the landing\nconstraint binds, not the torque",
+                 (240, 30.1), xytext=(236, 36), fontsize=8.5, color=INK_2,
+                 arrowprops={"arrowstyle": "-", "color": INK_2, "linewidth": 0.8})
     ax1.set_ylabel("Release speed, km/h", color=INK, fontsize=10)
     ax1.set_title("Fastest legal delivery landing in the 6-8 m zone, by release angle\n"
                   "lines: scripted constant-torque ceiling   dots: trained policy (deterministic, per seed)",
