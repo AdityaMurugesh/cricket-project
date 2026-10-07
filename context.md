@@ -339,6 +339,43 @@ queued+running jobs, so runs are packed 11 per job
 (`hpc/train_throw_run10_pack.pbs`, `hpc/submit_run10_pack.sh`).
 Results: `scripts/aggregate_run10.py` -> `results/run10/`.
 
+**run10 results (2026-10-07; 110 runs, all completed, all evaluated).**
+Fastest legal in-zone delivery, deterministic (the env has no reset
+noise, so a deterministic delivery is an exact property of the policy):
+
+    budget  final policy        best checkpoint     scripted ceiling
+    0.75x   34.2 km/h @ 265     34.0 km/h @ 265     34.8 @ 267.5
+    1.0x    33.2 km/h @ 265     41.9 km/h @ 270     43.3 @ 275
+            (ent 0.01 control:  41.1 final, 42.7 best ckpt @ 270)
+    1.5x    54.9 km/h @ 275     55.8 km/h @ 275     56.5 @ 280
+
+So PPO with a fixed release angle DOES find deliveries within ~1-3% of
+the constant-torque ceiling at every budget -- the curve is learnable.
+The best checkpoints trace the same speed/angle/budget structure as the
+scripted ceiling. But it is not reliable:
+  - of 60 main-grid runs in cells where the zone is reachable, only 18
+    end with a legal in-zone deterministic delivery; 28 of the 36 that
+    saved checkpoints had one at SOME checkpoint (8 within 5% of ceiling)
+  - 25 of 110 runs reached >=30% legal-and-in-zone during training and
+    ended below 10% ("found it, then lost it"; e.g. 260 deg 0.75x seed 1:
+    98% at 1.5M steps -> 0% at 8M, true reward +3.95 -> -1.06). This is
+    PPO instability, not a local optimum or a reward problem.
+  - 13 reachable-cell runs and 32 of 39 unreachable-cell runs end in "no
+    release" (the run9 retreat-to-standing-still, now only where the
+    zone is hard or impossible to reach)
+  - 14 reachable-cell runs end ILLEGAL, mostly at 230-250 deg: the slow
+    early-release swing gets bent-then-straightened elbows, so the ICC
+    metric genuinely binds there
+  - ent 0.01 vs 0.003: inconclusive on one control seed (best 1.0x
+    result, but collapses elsewhere)
+
+Next (run11, not started): stabilise PPO rather than the task -- learning
+rate decay and/or target_kl, larger rollouts, and select the reported
+policy by periodic evaluation (checkpointing is already on, every 1M
+steps). Then more seeds on the 260-280 deg cells that carry the curve.
+Full table: `results/run10/run10_results.md`; figure
+`results/run10/run10_frontier.png`.
+
 ## Motion capture, 2026-10-01 session (processed 2026-10-07)
 Qualisys, MARKER-BASED (not markerless), IOR full-body set, 100 Hz,
 6 trials = 11 deliveries (trials 2-6 bowl once towards each end).
