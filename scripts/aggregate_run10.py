@@ -87,11 +87,17 @@ def fmt(v, spec="{:.1f}", none="--"):
 
 
 def markdown(rows, frontier, ent):
-    lines = [f"Main grid (ent_coef={ent}). Deterministic policy per seed: speed if the delivery "
-             "was legal AND in the 6-8 m zone, else why not. good% = stochastic, 200 episodes.",
+    by = {(r["actuator_scale"], r["release_angle_deg"], r["seed"]): r
+          for r in rows if abs(r["ent_coef"] - ent) < 1e-9}
+    seeds = sorted({k[2] for k in by})
+    lines = [f"ent_coef={ent}. Deterministic policy per seed: speed (km/h) if the delivery was "
+             "legal AND in the 6-8 m zone (bold), else why not. Best ckpt = fastest legal in-zone "
+             "deterministic delivery among the periodic checkpoints (runs that saved them). "
+             "good% = stochastic, 200 episodes, final policy.",
              "",
-             "| budget | angle | scripted ceiling | seed 0 (det) | seed 1 (det) | good% s0 / s1 |",
-             "|---|---|---|---|---|---|"]
+             "| budget | angle | scripted ceiling | " + " | ".join(f"seed {s}" for s in seeds)
+             + " | best ckpt | good% " + " / ".join(f"s{s}" for s in seeds) + " |",
+             "|---|---|---|" + "---|" * len(seeds) + "---|---|"]
 
     def cell(r):
         if r is None:
@@ -103,15 +109,15 @@ def markdown(rows, frontier, ent):
         why = "illegal" if not r["det_legal"] else f"lands {fmt(r['det_land_x'], '{:.1f}')} m"
         return f"{fmt(r['det_speed_kmh'])} ({why})"
 
-    by = {(r["actuator_scale"], r["release_angle_deg"], r["seed"]): r
-          for r in rows if abs(r["ent_coef"] - ent) < 1e-9}
     for scale in sorted({k[0] for k in by}):
         for ang in sorted({k[1] for k in by if k[0] == scale}):
-            r0, r1 = by.get((scale, ang, 0)), by.get((scale, ang, 1))
+            rs = [by.get((scale, ang, s)) for s in seeds]
             ceil = frontier.get(scale, {}).get(ang)
-            g = " / ".join(fmt(r["stoch_good_pct"], "{:.0f}") if r else "--" for r in (r0, r1))
+            ck = [r["ckpt_best_speed_kmh"] for r in rs if r and r["ckpt_best_speed_kmh"] is not None]
+            g = " / ".join(fmt(r["stoch_good_pct"], "{:.0f}") if r else "--" for r in rs)
             lines.append(f"| {scale:.2f}x | {ang:.0f} | {fmt(ceil, '{:.1f}', 'unreachable')} | "
-                         f"{cell(r0)} | {cell(r1)} | {g} |")
+                         + " | ".join(cell(r) for r in rs)
+                         + f" | {fmt(max(ck) if ck else None)} | {g} |")
     return "\n".join(lines)
 
 
