@@ -163,7 +163,7 @@ def plot(rows, frontier, ent, out_png):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 7.5), sharex=True,
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True,
                                    gridspec_kw={"height_ratios": [3, 2]})
     fig.patch.set_facecolor(SURFACE)
     for ax in (ax1, ax2):
@@ -217,12 +217,14 @@ def plot(rows, frontier, ent, out_png):
                  (240, 30.1), xytext=(236, 36), fontsize=8.5, color=INK_2,
                  arrowprops={"arrowstyle": "-", "color": INK_2, "linewidth": 0.8})
     ax1.set_ylabel("Release speed, km/h", color=INK, fontsize=10)
-    ax1.set_title("Fastest legal delivery landing in the 6-8 m zone, by release angle\n"
-                  "lines: scripted constant-torque ceiling   dots: final policy   rings: best checkpoint "
-                  "(deterministic, per seed)",
-                  loc="left", fontsize=10.5, color=INK)
+    ax1.set_title("Fastest legal delivery landing in the 6-8 m zone, by release angle", loc="left",
+                  fontsize=11, color=INK, pad=36)
+    ax1.text(0, 1.015, "lines: scripted constant-torque ceiling   dots: final trained policy   "
+             "rings: best checkpoint\n(deterministic delivery, one marker per seed; "
+             "only legal in-zone deliveries plotted)",
+             transform=ax1.transAxes, fontsize=8.5, color=INK_2, va="bottom")
     ax1.legend(frameon=False, fontsize=9, labelcolor=INK, loc="upper left")
-    ax2.set_ylabel("Legal & in zone, % of\nstochastic deliveries", color=INK, fontsize=10)
+    ax2.set_ylabel("Legal & in zone, %\n(final policy, mean of seeds)", color=INK, fontsize=10)
     ax2.set_xlabel("Release angle (shoulder, deg; 270 = arm vertical)", color=INK, fontsize=10)
     ax2.set_ylim(-3, 103)
     fig.tight_layout()
