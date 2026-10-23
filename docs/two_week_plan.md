@@ -271,3 +271,17 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     for 230–250°. The 230°/240° failures never learn to release (exploration).
   - Together with run13b, the remaining problem is getting the first releases at 1.0x, not
     keeping the zone.
+- **Stage 3, the full bowler** (`envs/runup_bowl_env.py`), built after the user saw the stage-1
+  viewer: "the solid simulation is bad, it's not even doing the full arm rotation". That's right: in
+  stage 1 the bowling arm has no target at all (the legality rule keeps the mocap off the arm).
+  - The arm now has the ThrowEnv job: ball at the right hand's grip, release at a set upper-arm
+    angle, ICC legality from the simulated elbow, landing zone, pace.
+  - Checks:
+    - the captured arm reads 290° at release in ThrowEnv's convention;
+    - not bowling never scores better than any release;
+    - episodes start at least 1 s before release, so the swing is always the policy's own;
+    - the arm length is the participant's (arm_scale 0.903).
+  - Scripted over-the-top swing on the 5M stage-1 body: legal at 31 km/h but landing at 2.4–2.8 m.
+    The weak body collapses and releases from 1.3 m, so the oracle is not yet conclusive.
+  - Training: from scratch at release angles 250° and 270°, T3a, 60M steps (queued). A warm start
+    from a strong stage-1 checkpoint follows later.
