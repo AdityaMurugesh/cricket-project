@@ -311,3 +311,18 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Launched (jobs 28742–28745): warm start from stage-1 35M at 250° and 270° with drift 1.5 m;
     warm 250° with drift 1.0 m; from scratch 250° with drift 1.5 m.
 - Stage 1 (27778 T3a, 27880 T4b): at about 39M of 60M steps; pose 0.73–0.74.
+- **run15 noise-robustness result** (jobs 28738–28741; the 45 final policies that release, each
+  scored over 200 episodes per noise condition; `results/run15/noise_robustness/`, figure
+  `results/run15/noise_training.png`). Matched pairs (same angle, budget, seed), each scored under
+  the noise it was trained with versus the noise-free-trained twin:
+  - Timing jitter: **+12.6 points good** on average (median +5.2), 6 better, 1 worse of 8.
+  - Both noises: **+12.4** (median +12.5), 7 better, 0 worse of 7.
+  - Torque noise: no gain (median 0, 1 better, 4 worse of 9). Torque noise barely hurts the
+    noise-free 1.5x policies to begin with.
+  - The biggest gains are on the fast, fragile deliveries (250°/260°): 7 → 35%, 27 → 64%,
+    10 → 30% good under timing jitter. The already-robust ~37 km/h policies stay where they were.
+  - Speed is about 1 km/h lower when trained with timing noise. That is the expected direction of the
+    speed–tolerance trade-off, but small.
+  - Caveats: 2 seeds per cell, only pairs where both runs release, and 1.0x is thin (1–3 pairs).
+  - Next: equifinality windows of the noise-trained policies (do they widen the in-zone release
+    window, or only aim at the zone centre?), and more seeds if the meeting wants a firm claim.
