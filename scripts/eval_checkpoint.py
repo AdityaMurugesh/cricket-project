@@ -61,11 +61,15 @@ def main():
     parser.add_argument("--actuator-scale", type=float, default=1.0)
     parser.add_argument("--target-range", type=float, nargs=2, default=[6.0, 8.0])
     parser.add_argument("--tag", default="")
+    parser.add_argument("--release-timing-sd-ms", type=float, default=0.0)
+    parser.add_argument("--torque-noise-sd", type=float, default=0.0)
     args = parser.parse_args()
 
     env = ThrowEnvGym(speed_weight=args.speed_weight, release_mode=args.release_mode,
                       release_angle_deg=args.release_angle, actuator_scale=args.actuator_scale,
-                      target_range=tuple(args.target_range))
+                      target_range=tuple(args.target_range),
+                      release_timing_sd_ms=args.release_timing_sd_ms,
+                      torque_noise_sd=args.torque_noise_sd)
     model = PPO.load(args.model_path)
 
     det = row(rollout(env, model, True, args.seed), env)
@@ -85,6 +89,8 @@ def main():
         "release_angle_deg": args.release_angle,
         "actuator_scale": args.actuator_scale,
         "speed_weight": args.speed_weight,
+        "release_timing_sd_ms": args.release_timing_sd_ms,
+        "torque_noise_sd": args.torque_noise_sd,
         "deterministic": det,
         "stochastic": {
             "episodes": n,

@@ -13,7 +13,7 @@ class ThrowEnvGym(gym.Env):
 
     def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.9999,
                  swing_weight=30.0, straight_arm_weight=6.0, resolve_at_release=False,
-                 timeout_terminal=False,
+                 timeout_terminal=False, torque_noise_sd=0.0,
                  **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
@@ -32,6 +32,10 @@ class ThrowEnvGym(gym.Env):
         # Holding the ball to the time limit is a failed delivery, not a cut-off:
         # with this on, a timeout is terminal and SB3 does not bootstrap past it.
         self.timeout_terminal = timeout_terminal
+        # Signal-dependent motor noise (Harris & Wolpert 1998; docs/noise_design.md):
+        # each decision's torque is u * (1 + sd * eps), eps ~ N(0, 1) per joint, so a
+        # harder push is a noisier one. At the torque limit it can only come out weaker.
+        self.torque_noise_sd = torque_noise_sd
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
         # fixed_angle mode has no release decision, so torques only
         n_act = 2 if self._env.release_mode == "fixed_angle" else 3
@@ -79,6 +83,10 @@ class ThrowEnvGym(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
+        if seed is not None:
+            self._noise_rng = np.random.default_rng([seed, 1])
+        elif not hasattr(self, "_noise_rng"):
+            self._noise_rng = np.random.default_rng()
         obs = self._env.reset(seed=seed)
         self._episode_reward = 0.0
         self._episode_len = 0
@@ -86,6 +94,10 @@ class ThrowEnvGym(gym.Env):
 
     def step(self, action):
         phi_before = self._potential() if self.use_shaping else 0.0
+        if self.torque_noise_sd > 0:
+            action = np.array(action, dtype=np.float64)
+            u = np.clip(action[:2], -1.0, 1.0)
+            action[:2] = u * (1.0 + self.torque_noise_sd * self._noise_rng.standard_normal(2))
 
         total_reward = 0.0
         terminated = False

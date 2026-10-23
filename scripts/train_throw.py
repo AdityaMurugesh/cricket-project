@@ -91,11 +91,14 @@ class EpisodeLogger(BaseCallback):
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
              speed_weight, gamma, illegal_penalty, release_mode, release_latch,
              release_angle, actuator_scale, target_range=(6.0, 8.0), use_shaping=True,
-             resolve_at_release=False, timeout_terminal=False):
+             resolve_at_release=False, timeout_terminal=False, release_timing_sd_ms=0.0,
+             torque_noise_sd=0.0):
     def _init():
         # shaping gamma must equal PPO gamma
         return ThrowEnvGym(use_shaping=use_shaping, resolve_at_release=resolve_at_release,
                            timeout_terminal=timeout_terminal,
+                           release_timing_sd_ms=release_timing_sd_ms,
+                           torque_noise_sd=torque_noise_sd,
                            swing_weight=swing_weight,
                            straight_arm_weight=straight_arm_weight,
                            release_window_deg=tuple(release_window),
@@ -117,12 +120,12 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
         release_angle, actuator_scale, checkpoint_every=0, target_range=(6.0, 8.0),
         algo="ppo", use_shaping=True, lr=3e-4, lr_decay=False, target_kl=None,
         freeze_log_std=False, resolve_at_release=False,
-        timeout_terminal=False):
+        timeout_terminal=False, release_timing_sd_ms=0.0, torque_noise_sd=0.0):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
                  speed_weight, gamma, illegal_penalty, release_mode, release_latch,
                  release_angle, actuator_scale, target_range, use_shaping, resolve_at_release,
-                 timeout_terminal)
+                 timeout_terminal, release_timing_sd_ms, torque_noise_sd)
         for _ in range(n_envs)])
     Algo = SAC if algo == "sac" else PPO
     if resume_from:
@@ -156,7 +159,8 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
         model.policy.log_std.requires_grad_(False)
     print(f"algo={algo} shaping={use_shaping} lr={lr} lr_decay={lr_decay} "
           f"target_kl={target_kl} freeze_log_std={freeze_log_std} "
-          f"resolve_at_release={resolve_at_release} timeout_terminal={timeout_terminal}")
+          f"resolve_at_release={resolve_at_release} timeout_terminal={timeout_terminal} "
+          f"release_timing_sd_ms={release_timing_sd_ms} torque_noise_sd={torque_noise_sd}")
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = [EpisodeLogger(csv_path), ActionStdLogger()]
@@ -230,6 +234,10 @@ if __name__ == "__main__":
                          help="simulate the ball's flight inside the releasing step and end the episode there")
     parser.add_argument("--timeout-terminal", action="store_true",
                          help="treat the time limit as a failed delivery (terminal), not a bootstrapped cut-off")
+    parser.add_argument("--release-timing-sd-ms", type=float, default=0.0,
+                         help="fixed_angle: SD (ms) of release-timing jitter, unseen by the policy (0 = exact)")
+    parser.add_argument("--torque-noise-sd", type=float, default=0.0,
+                         help="signal-dependent torque noise: torque * (1 + sd * N(0,1)) per decision")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
@@ -237,4 +245,4 @@ if __name__ == "__main__":
         args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale,
         args.checkpoint_every, args.target_range, args.algo, not args.no_shaping, args.lr,
         args.lr_decay, args.target_kl, args.freeze_log_std, args.resolve_at_release,
-        args.timeout_terminal)
+        args.timeout_terminal, args.release_timing_sd_ms, args.torque_noise_sd)

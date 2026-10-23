@@ -16,7 +16,7 @@ class ThrowEnv:
                  release_mode="target_angle", release_latch=True,
                  max_legal_extension_deg=15.0, illegal_penalty=2.0,
                  horizontal_selector="last_before_release", extension_mode="endpoint",
-                 release_angle_deg=None, actuator_scale=1.0):
+                 release_angle_deg=None, actuator_scale=1.0, release_timing_sd_ms=0.0):
         self.model = mujoco.MjModel.from_xml_path(str(model_path))
         # actuator budget: torque = gear * ctrl, so this scales every motor's peak torque
         self.actuator_scale = actuator_scale
@@ -52,6 +52,14 @@ class ThrowEnv:
             raise ValueError(f"fixed_angle needs release_angle_deg inside {release_window_deg}, "
                              f"got {release_angle_deg!r}")
 
+        # Release-timing noise (fixed_angle only; docs/noise_design.md): each delivery
+        # lets go delta ~ N(0, sd) away from the set angle, delta > 0 late, < 0 early.
+        # The policy never sees delta. 0 keeps the exact release.
+        self.release_timing_sd_ms = release_timing_sd_ms
+        self._rng = np.random.default_rng()
+        self.release_delay_ms = 0.0
+        self._cross_step = None
+
         # pick the target angle once when entering the window
         self.release_latch = release_latch
         # bottom of the backswing, degrees
@@ -83,6 +91,11 @@ class ThrowEnv:
         self.reset()
 
     def reset(self, seed=None):
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
+        self.release_delay_ms = (float(self._rng.normal(0.0, self.release_timing_sd_ms))
+                                 if self.release_timing_sd_ms > 0 else 0.0)
+        self._cross_step = None
         mujoco.mj_resetData(self.model, self.data)
         self.data.qpos[0], self.data.qpos[1] = self.start_pose
         self.data.qvel[:] = 0
@@ -121,7 +134,14 @@ class ThrowEnv:
         action = np.asarray(action, dtype=np.float64)
         self.data.ctrl[:2] = np.clip(action[:2], -1.0, 1.0)
 
-        if self.release_mode == "fixed_angle":
+        if self.release_mode == "fixed_angle" and self.release_delay_ms != 0.0:
+            fire = not self.released and not self.spent and self._noisy_release_due()
+            # the jitter may carry the release just outside the window, so only the
+            # straight-arm condition applies here
+            if fire and abs(np.degrees(self.data.qpos[1])) > self.max_release_elbow_deg:
+                self.spent = True
+                fire = False
+        elif self.release_mode == "fixed_angle":
             fire = (not self.released and not self.spent
                     and np.degrees(self.data.qpos[0]) >= self.release_angle_deg)
             if fire and not self._release_permitted():
@@ -190,6 +210,7 @@ class ThrowEnv:
             "elbow_at_release_deg": self.release_elbow_deg,
             "release_height_m": self.release_height,
             "release_target_deg": self.release_target_commanded,
+            "release_delay_ms": self.release_delay_ms,
         }
         return self._obs(), reward, done, info
 
@@ -230,6 +251,22 @@ class ThrowEnv:
         else:
             target = self.release_target_deg(release_action)
         return shoulder_deg >= target
+
+    def _noisy_release_due(self):
+        """fixed_angle with timing noise: is it delta after (or before) the set angle?"""
+        dt = self.model.opt.timestep
+        angle = np.degrees(self.data.qpos[0])
+        if self._cross_step is None and angle >= self.release_angle_deg:
+            self._cross_step = self.step_count
+        if self.release_delay_ms > 0:
+            return (self._cross_step is not None
+                    and (self.step_count - self._cross_step) * dt * 1000.0 >= self.release_delay_ms)
+        if self._cross_step is not None:
+            return True
+        # early: the arm will reach the set angle within |delta| at its current speed
+        omega = np.degrees(self.data.qvel[0])
+        return (self.step_count >= self.min_release_step and omega > 0
+                and (self.release_angle_deg - angle) / omega * 1000.0 <= -self.release_delay_ms)
 
     def _release_permitted(self):
         """Is the arm in a position where letting go is allowed?"""

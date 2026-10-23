@@ -1,0 +1,30 @@
+#!/bin/bash
+# Score finished policies with motor noise on (no training): scripts/noise_robustness.py
+# for every run matching PREFIX whose final policy bowled a good delivery.
+#   qsub -v PREFIX=throw_ppo_run13b,ZONE="10.9 12.9" hpc/noise_robustness.pbs
+#PBS -N cricket_noise_eval
+#PBS -q cpuq
+#PBS -l select=1:ncpus=8:mem=16gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${PREFIX:?pass a run prefix}"
+ZONE="${ZONE:-6.0 8.0}"
+SWEEP=$(echo "$PREFIX" | sed -E 's/^throw_[a-z]+_//')
+OUT="results/${SWEEP}/noise_robustness"
+mkdir -p "$OUT"
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD
+
+python - "$PREFIX" > /tmp/noise_runs_$$.txt <<'PY'
+import glob, json, os, sys
+for f in sorted(glob.glob(f"logs/{sys.argv[1]}_*/eval.json")):
+    if json.load(open(f))["deterministic"]["good"]:
+        print(os.path.basename(os.path.dirname(f)))
+PY
+xargs -P 8 -I{} sh -c "python scripts/noise_robustness.py --run {} --target-range ${ZONE} \
+    --out ${OUT}/{}.csv > logs/{}/noise_robustness.log 2>&1; echo \"{} exit \$?\"" < /tmp/noise_runs_$$.txt
+echo "=== done ==="
