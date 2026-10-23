@@ -206,3 +206,47 @@ for run13.
       swing.
   - So the noise-training experiment (run15) has a clear question: when trained under jitter, do
     the policies widen the window (equifinal), or slow down?
+
+### 24 Oct: training under noise, and the run-up
+The user asked for two things, with the next supervisor meeting in about 2 weeks: train with the
+noise now, and start learning the full run-up with the mocap as the run-up and trunk reference.
+
+- `scripts/check_regressions.py` now runs before any sweep. It passes locally and on the HPC:
+  - recorded deliveries replay identically through every code path;
+  - resolve-at-release equals the full flight;
+  - timeout handling is correct;
+  - noise statistics, seeding and defaults are as specified;
+  - a PPO smoke run with every flag trains and saves;
+  - the physics bowler builds, scores 1 on its own reference, and falls under open-loop PD.
+- **run15: training under motor noise** (`hpc/submit_run15.sh`, jobs from 27554). Setup: run13b
+  no-shaping, 4M steps, 1.0x and 1.5x × 4 angles × seeds 0–1. Four conditions:
+  - no noise
+  - timing jitter only (12 ms)
+  - torque noise only (0.15)
+  - both
+
+  16 jobs, submitted as queue slots free up. Analysis:
+  - good % with and without noise;
+  - equifinal window over training (`equifinality.py`);
+  - noise-trained vs noise-free policies both scored under noise (`noise_robustness.py`,
+    FILTER=released).
+- **Run-up imitation, stage 1** (`envs/humanoid_bowler.py`, `envs/runup_imitation_env.py`,
+  `hpc/train_runup.pbs`):
+  - **Physics bowler:** the mocap-fitted Hamner skeleton (89 kg) with motors on every joint, using
+    LocoMuJoCo skeleton_torque strengths. Feet collide with the floor, PD control. The root is
+    unactuated, so balance has to be learned.
+  - **Feasibility:**
+    - open-loop PD on the reference falls after 0.3 s of the run-up, or about 1 s standing;
+    - 650 decisions/s per core.
+  - **Reward:** DeepMimic-style.
+    - Tracks the pelvis path, legs, trunk (2× weight), head and front arm.
+    - The bowling arm is neither tracked nor driven from the reference, per the legality rule.
+  - **Training:** PPO, 16 envs, 60M steps, references T3a and T4b. Two jobs, queued behind run15.
+  - The reference is joint angles only (`data/mocap/ref_<D>.npz`), copied to the HPC by hand.
+    `data/mocap/` is now ignored whole in git.
+- **Next stages:**
+  - (2) Check the learned run-up visually against the reference and the camera-3 video, before
+    trusting any score.
+  - (3) Add the delivery: ball in the right hand, release, ICC legality from the simulated elbow,
+    landing zone and pace. That is the full bowler.
+  - (4) Noise on the full bowler.
