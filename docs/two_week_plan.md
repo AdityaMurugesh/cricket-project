@@ -91,7 +91,7 @@ for run13.
     and on whether the ball has been released, but the policy only observes the arm's two angles
     and two velocities. Shaping is policy-invariant only if the potential is a function of the
     state the learner sees.
-  - There is also a large drop in the potential at landing (about −36, swing + straight terms),
+  - There is also a large drop in the potential at landing (up to −36: swing term 30 + straight term 6),
     at a time the critic can't see coming.
   - Fix candidates for run13:
     - (a) shaping to find the zone, then switch it off (what run12 did);
