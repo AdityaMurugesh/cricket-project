@@ -1,0 +1,39 @@
+{
+  "tag": "a240_s150_e0003_0",
+  "model_path": "checkpoints/throw_ppo_run13b_noshape_a240_s150_e0003_0",
+  "release_mode": "fixed_angle",
+  "release_angle_deg": 240.0,
+  "actuator_scale": 1.5,
+  "speed_weight": 0.5,
+  "deterministic": {
+    "released": true,
+    "spent": false,
+    "speed_kmh": 38.24609062688584,
+    "land_x": 11.972295868461364,
+    "extension_deg": 2.27293651682281e-05,
+    "legal": true,
+    "in_zone": true,
+    "good": true,
+    "release_shoulder_deg": 241.07194703931776,
+    "release_elbow_deg": 2.001492255003444,
+    "release_height_m": 1.760010948858443,
+    "episode_reward": 6.311957031511922
+  },
+  "stochastic": {
+    "episodes": 200,
+    "released_pct": 100.0,
+    "legal_pct": 100.0,
+    "in_zone_pct": 92.5,
+    "good_pct": 92.5,
+    "mean_speed_kmh": 37.73434156420305,
+    "mean_speed_good_kmh": 37.87764619610691,
+    "best_speed_good_kmh": 40.576553384247354,
+    "mean_land_x": 11.722832254962317,
+    "sd_land_x": 0.5443714608495663,
+    "mean_extension_deg": -0.04259402338151339
+  },
+  "action_std": [
+    0.544416606426239,
+    0.5572112202644348
+  ]
+}
