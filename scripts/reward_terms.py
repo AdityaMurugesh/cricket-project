@@ -55,6 +55,9 @@ def summarize(run_dirs, out_dir, buckets, zone):
     out_dir.mkdir(parents=True, exist_ok=True)
     for d in run_dirs:
         d = Path(d)
+        if not (d / "episodes.csv").exists():
+            print("skip (no episodes.csv):", d)
+            continue
         rows = list(csv.DictReader(open(d / "episodes.csv")))
         if not rows:
             continue
