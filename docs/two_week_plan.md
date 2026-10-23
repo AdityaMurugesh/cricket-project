@@ -261,3 +261,13 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
 - Run-up T3a started (job 27778): 1,715 steps/s with 16 envs, so 60M steps take about 10 h.
   After 0.4M steps, episodes last about 52 decisions before a fall (open-loop PD: 10–45).
   T4b is queued.
+- **run14 result** (resolve + no shaping, 6M steps, seeds 2–3, jobs 27470–27473): **10 / 16 final
+  policies bowl a legal good length.** Every run that found the zone kept it.
+  - 1.5x: 7 / 8. Several only found it after 3.5–5M steps, so the longer training mattered.
+    - The 8th (230° s2) is 88% good with exploration noise, but its deterministic policy never
+      releases.
+    - Fastest: 260° s3 at **58.4 km/h**, 94% good under exploration noise.
+  - 1.0x: 3 / 8. The two 260° runs can't reach: the scripted reach check gave 12 m at 1.0x only
+    for 230–250°. The 230°/240° failures never learn to release (exploration).
+  - Together with run13b, the remaining problem is getting the first releases at 1.0x, not
+    keeping the zone.
