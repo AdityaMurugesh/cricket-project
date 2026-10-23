@@ -258,3 +258,6 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - PPO with resolve-at-release gets 9 of 16 in about 25 min per run.
   - Decision: stay with PPO. SAC was a hedge against the collapse, and the collapse now has a cause
     and a fix.
+- Run-up T3a started (job 27778): 1,715 steps/s with 16 envs, so 60M steps take about 10 h.
+  After 0.4M steps, episodes last about 52 decisions before a fall (open-loop PD: 10–45).
+  T4b is queued.
