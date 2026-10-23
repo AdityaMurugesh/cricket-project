@@ -125,3 +125,24 @@ for run13.
     - PPO itself, which the SAC pilot tests.
   - Not yet checked: what "no landing" means in the two no-shaping runs (no release, or still in
     the air at timeout).
+
+### 23 Oct (evening)
+- **New lead: most decisions happen after the ball has gone.** I replayed three run11 checkpoints:
+  - Release comes at decision 27–48, but the episode runs to decision 151–183.
+  - So 104–156 decisions (75–85% of the episode, 1.0–1.6 s of flight) come after release, when no
+    action can change the outcome.
+  - With GAE (γλ ≈ 0.95), the landing reward reaches the release-time decisions with weight
+    3e-4 to 5e-3. The rest has to be carried by the critic, which only sees the arm and not the ball.
+  - So nearly all of the policy-gradient signal lands on irrelevant post-release arm motion. That
+    fits a drift whose direction depends on the shaping: the shaping terms keep paying out on that
+    post-release arm motion.
+- **Fix: `--resolve-at-release`** (`envs/throw_env_gym.py`). When the ball is released, the flight
+  is simulated inside that step and the episode ends.
+  - Same physics, same reward.
+  - Checked on 6 scripted deliveries: identical landing, reward and legality, with 24–26 decisions
+    instead of 101–174.
+  - It is not a reward change, and it also ends the shaping at release.
+- **run13 pilot** = run11 + `--resolve-at-release`, 2M steps. 1.0x and 1.5x × 4 angles × seeds 0–1,
+  16 runs (jobs 27336–27339). It runs at about 1,800 steps/s, so about 20 min per run.
+  - If run13 keeps the zone where run11 lost it, this becomes the default and run11/run12 are
+    explained.
