@@ -53,8 +53,14 @@ def _base(name):
     return name[:-2] if name.endswith(("_r", "_l")) else name
 
 
-def build_model(timestep=0.002):
-    spec = mujoco.MjSpec.from_file(str(SKELETON_XML))
+def build_model(timestep=0.002, arm_scale=1.0):
+    """arm_scale: forearm + hand length relative to the template; the fits used
+    0.903 (the participant's arms), stage-1 run-up training used 1.0."""
+    if arm_scale == 1.0:
+        spec = mujoco.MjSpec.from_file(str(SKELETON_XML))
+    else:
+        from mocap.skeleton3d import build_xml
+        spec = mujoco.MjSpec.from_string(build_xml(arm_scale=arm_scale))
     for j in [j for j in spec.joints if j.name.startswith("girdle_")]:
         spec.delete(j)
     spec.delete(spec.body("ball"))
@@ -141,8 +147,9 @@ def export_reference(model, delivery="T3a"):
     the HPC) only needs the pose, so that is all this file carries."""
     ref = _from_fit(model, delivery)
     out = MOCAP_DIR / f"ref_{delivery}.npz"
+    arm = float(np.load(MOCAP_DIR / f"fit3d_{delivery}.npz")["arm_scale"])
     np.savez_compressed(out, qpos=ref["qpos"], rate=ref["rate"], release_index=ref["release_index"],
-                        nq=model.nq, delivery=delivery)
+                        nq=model.nq, delivery=delivery, arm_scale=arm)
     return out
 
 
@@ -156,7 +163,9 @@ def load_reference(model, delivery="T3a"):
         return _from_fit(model, delivery)
     z = np.load(f)
     assert int(z["nq"]) == model.nq, "reference was exported for a different model layout"
-    return _with_velocity(model, z["qpos"], float(z["rate"]), int(z["release_index"]), delivery)
+    ref = _with_velocity(model, z["qpos"], float(z["rate"]), int(z["release_index"]), delivery)
+    ref["arm_scale"] = float(z["arm_scale"]) if "arm_scale" in z.files else 1.0
+    return ref
 
 
 def _with_velocity(model, Q, rate, release_index, delivery):

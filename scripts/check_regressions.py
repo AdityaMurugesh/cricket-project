@@ -195,6 +195,38 @@ def main():
             if te or tr:
                 break
         check(info["fell"] and 5 < n < 100, f"open-loop PD falls, as it must ({n} steps)")
+        print("8. full bowler (run-up + bowling arm)")
+        import mujoco
+        from envs.runup_bowl_env import RunupBowlEnv
+        be = RunupBowlEnv(rsi=False)
+        ref = be.ref
+        be.reset(seed=0)
+        be._arm_hist, be._elbow_hist = [], []
+        for i in range(ref["release_index"] + 1):
+            be.d.qpos[:] = ref["qpos"][i]
+            mujoco.mj_kinematics(be.m, be.d)
+            if be._arm_hist:
+                be._track_arm()
+            else:
+                be.start_arm_tracking()
+        a_rel = be._arm_hist[-1]
+        check(260 <= a_rel <= 320, f"captured bowling arm at release: {a_rel:.0f} deg (ThrowEnv convention; ~300 measured)")
+        be._outcome = {"speed_m_s": 20.0}
+        held = be._task_reward(None, False)
+        worst = min(be._task_reward(x, lg) for x in (-30.0, 0.0, 5.0, 30.0, 60.0) for lg in (True, False))
+        check(held <= worst, f"no ball ({held:.1f}) never beats a release (worst {worst:.1f})")
+        be.reset(seed=0)
+        R = 0.0
+        while True:
+            _, r, te, tr, info = be.step(np.zeros(be.n_act))
+            R += r
+            if te or tr:
+                break
+        o = info["outcome"]
+        check(not o["released"] and abs(info["task_reward"] - held) < 1e-9,
+              f"open-loop: no ball ({o['why']}), scored {info['task_reward']:.1f} x {be.task_weight:g}")
+        check(be.rsi_last_index / ref["rate"] <= be.t_ref_release - 0.99,
+              f"episodes start >= 1 s before the captured release ({be.rsi_last_index / ref['rate']:.2f} s)")
     else:
         print("  skip  no data/mocap/ref_T3a.npz here")
 

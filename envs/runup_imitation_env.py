@@ -54,9 +54,10 @@ def _quat_angle(q1, q2):
 class RunupImitationEnv(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, delivery="T3a", frame_skip=10, action_scale=0.5, rsi=True, seed=None):
+    def __init__(self, delivery="T3a", frame_skip=10, action_scale=0.5, rsi=True, seed=None,
+                 arm_scale=1.0):
         super().__init__()
-        self.m = build_model()
+        self.m = build_model(arm_scale=arm_scale)
         self.d = mujoco.MjData(self.m)
         self.J = Joints(self.m)
         self.ref = load_reference(self.m, delivery)
@@ -101,7 +102,7 @@ class RunupImitationEnv(gym.Env):
         super().reset(seed=seed)
         if seed is not None:
             self.rng = np.random.default_rng(seed)
-        last = self.ref["release_index"] - 10
+        last = getattr(self, "rsi_last_index", self.ref["release_index"] - 10)
         i0 = int(self.rng.integers(0, last)) if self.rsi else 0
         self.t = i0 / self.ref["rate"]
         mujoco.mj_resetData(self.m, self.d)
@@ -125,7 +126,9 @@ class RunupImitationEnv(gym.Env):
                     target[qa] = q_ref[qa] + self.action_scale * a[sl][0]
             else:
                 base = np.array([1.0, 0, 0, 0]) if bowling else q_ref[qa:qa + 4]
-                scale = np.pi if bowling else self.action_scale
+                # bowling shoulder: up to a full turn, so the over-the-back swing to
+                # release (~205 deg about local -z) is one continuous action
+                scale = 2 * np.pi if bowling else self.action_scale
                 # actuator order is local x, z, y; the rotation vector is (x, y, z)
                 rv = np.zeros(3)
                 for k, axis in enumerate("xzy"):
