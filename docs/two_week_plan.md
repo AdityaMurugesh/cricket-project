@@ -74,3 +74,28 @@ for run13.
   `--freeze-log-std`. `eval_ckpts.py` now works for any sweep. Added `hpc/sweep_post.pbs`.
 - Submitted: 27040 (run11 checkpoint eval) and 27045–27048 (SAC pilot). run12 follows once the
   peak checkpoints are known.
+- **run12 result (first seed): the reward shaping is what drives the collapse.** Each arm was
+  restarted from 3 peak checkpoints. The table gives good deliveries (%) under normal noise at the
+  end, and where the deterministic delivery lands.
+
+  | arm | a230 1.0x | a230 1.5x | a250 1.5x |
+  |---|---|---|---|
+  | control (unchanged) | 0% (8.5 m, short) | 34% (10.1 m) | 0% (7.6 m) |
+  | stable lr + target_kl | 0% | 0% | 0% |
+  | frozen noise | 0% | 0% | 0% |
+  | **no shaping** | **74% (11.7 m, good, 36.7 km/h)** | **80%** | 1% (16.0 m, long, 50 km/h) |
+
+  - Neither stabilising PPO nor freezing the noise helps, so those explanations are out.
+  - Without shaping, two of the three runs keep the zone. The third goes long, chasing pace.
+  - Likely mechanism, not yet proven: the potential depends on the ball's position and velocity
+    and on whether the ball has been released, but the policy only observes the arm's two angles
+    and two velocities. Shaping is policy-invariant only if the potential is a function of the
+    state the learner sees.
+  - There is also a large drop in the potential at landing (about −36, swing + straight terms),
+    at a time the critic can't see coming.
+  - Fix candidates for run13:
+    - (a) shaping to find the zone, then switch it off (what run12 did);
+    - (b) end the shaping at release, not at landing;
+    - (c) add the ball state and a released flag to the observation.
+- Replication submitted: no-shaping vs control on all 10 rescued run11 checkpoints, seed 1
+  (jobs 27060–27067, plus 2 more queued behind the per-user job limit).
