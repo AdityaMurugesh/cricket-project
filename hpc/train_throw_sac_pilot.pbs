@@ -1,0 +1,38 @@
+#!/bin/bash
+# SAC pilot: same task, reward and shaping as run11 (good length 10.9-12.9 m),
+# trained from scratch with SAC instead of PPO, to see whether it keeps the
+# zone once it finds it. SAC tunes its own entropy, so it never runs its noise
+# down the way PPO did in run11. Risk: gamma 0.9999 is hard on a Q critic.
+# ~100 steps/s per process with one gradient step per transition.
+#   qsub -v ANG=240,SCALE=1.5,SEED=0 hpc/train_throw_sac_pilot.pbs
+#PBS -N cricket_sac_pilot
+#PBS -q cpuq
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=10:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+
+: "${ANG:?pass a release angle}"
+: "${SCALE:?pass an actuator scale}"
+: "${SEED:?pass a seed}"
+STEPS="${STEPS:-1500000}"
+ZONE="10.9 12.9"
+S100=$(awk -v s="$SCALE" 'BEGIN { printf "%03d", s * 100 }')
+run="throw_sac_run12_a${ANG}_s${S100}_${SEED}"
+
+echo "=== SAC pilot: ${run} steps=${STEPS} ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+mkdir -p "logs/${run}"
+python scripts/train_throw.py --algo sac --timesteps "${STEPS}" --n-envs 8 \
+    --log-dir "logs/${run}" --model-path "checkpoints/${run}" \
+    --seed "${SEED}" --speed-weight 0.5 \
+    --release-mode fixed_angle --release-angle "${ANG}" --actuator-scale "${SCALE}" \
+    --target-range ${ZONE} --checkpoint-every 250000 > "logs/${run}/job.log" 2>&1
+echo "train exit $?"
+python scripts/eval_ckpts.py --run "${run}" --episodes 50 --target-range ${ZONE} \
+    > "logs/${run}/ckpt_eval.log" 2>&1
+echo "ckpt eval exit $?"

@@ -123,6 +123,7 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
     if resume_from:
         # warm start; timestep counter continues from the checkpoint
         model = Algo.load(resume_from, env=vec_env)
+        model.set_random_seed(seed)
         if algo == "ppo":
             model.ent_coef = ent_coef
         print(f"resumed from {resume_from} at num_timesteps={model.num_timesteps}")

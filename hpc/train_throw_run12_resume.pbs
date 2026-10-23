@@ -1,0 +1,60 @@
+#!/bin/bash
+# run12: why do policies find the zone and then drift out of it?
+# Continue a run11 policy from its best checkpoint for STEPS more steps under
+# one change per arm, everything else as run11:
+#   control  same settings (does the drift come back?)
+#   noshape  task reward only (shaping is policy-invariant, so this is a fair
+#            change on resume; tests whether the shaping drives the drift)
+#   stable   lr 1e-4 decaying to 0, target_kl 0.02 (tests update instability)
+#   frozen   exploration noise frozen at the checkpoint's level (tests the
+#            shrinking-noise / noise-robustness explanations)
+#   qsub -v SRC=throw_ppo_run11_a230_s100_e0003_2,CKPT=step_1000000_steps,SEED=0 hpc/train_throw_run12_resume.pbs
+#PBS -N cricket_run12_resume
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=04:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+
+: "${SRC:?pass the run11 run name}"
+: "${CKPT:?pass the checkpoint stem, e.g. step_1000000_steps}"
+: "${SEED:?pass a seed}"
+STEPS="${STEPS:-4000000}"
+ZONE="10.9 12.9"
+# angle and budget come from the source run's name
+ANG=$(echo "$SRC" | sed -E 's/.*_a([0-9.]+)_s.*/\1/')
+SCALE=$(echo "$SRC" | sed -E 's/.*_s([0-9]+)_.*/\1/' | awk '{ printf "%.2f", $1 / 100 }')
+TAG=$(echo "$SRC" | sed -E 's/^throw_ppo_run11_//')
+
+echo "=== run12 resume: src=${SRC}/${CKPT} angle=${ANG} scale=${SCALE} seed=${SEED} steps=${STEPS} ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+
+run_arm() {
+    local arm=$1; shift
+    local run="throw_ppo_run12${arm}_${TAG}_r${SEED}"
+    mkdir -p "logs/${run}"
+    {
+        python scripts/train_throw.py --timesteps "${STEPS}" --n-envs 8 \
+            --log-dir "logs/${run}" --model-path "checkpoints/${run}" \
+            --resume-from "checkpoints/${SRC}_ckpts/${CKPT}.zip" \
+            --seed "${SEED}" --ent-coef 0.003 --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ANG}" --actuator-scale "${SCALE}" \
+            --target-range ${ZONE} --checkpoint-every 500000 "$@" \
+        && python scripts/eval_checkpoint.py --model-path "checkpoints/${run}" \
+            --out "logs/${run}/eval.json" --episodes 200 --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ANG}" --actuator-scale "${SCALE}" \
+            --target-range ${ZONE} --tag "${arm}_${TAG}"
+    } > "logs/${run}/job.log" 2>&1
+    echo "$(date +%T) ${arm} exit $?"
+}
+
+run_arm control &
+run_arm noshape --no-shaping &
+run_arm stable --lr 1e-4 --lr-decay --target-kl 0.02 &
+run_arm frozen --freeze-log-std &
+wait
+echo "=== all arms finished ==="
