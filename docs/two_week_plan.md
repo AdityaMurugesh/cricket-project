@@ -159,3 +159,24 @@ for run13.
     needed.
   - `toterm`: shaping on, with the timeout counted as a terminal failed delivery
     (`--timeout-terminal`).
+- **run13b result: resolve-at-release removes the find-then-lose collapse.** Every run that found
+  the good length kept it to the end, at 90–100% good. There was no drift in any of them.
+
+  | variant | final policy bowls a good length | examples |
+  |---|---|---|
+  | `noshape` | **9 / 16** | 260° 1.5x: 98.5% good at 50.4 km/h; 240° 1.5x: 92.5% at 38.2 km/h |
+  | `toterm` | 5 / 16 | 230° 1.0x and 240° 1.0x: 100% good; 260° 1.5x: 96% at 51.2 km/h |
+  | run11 (for comparison) | 0 / 24 | |
+
+  - What remains is exploration: the failed runs never learn to release at all.
+  - Several `noshape` runs only found the zone in the last 25% of training and were still
+    climbing, so run14 trains longer.
+- Equifinality of three run13b policies over training:
+  - The in-zone release window holds steady: 30–32 ms at 37–38 km/h (230–240°), but only 4 ms for
+    the 50 km/h delivery at 260°.
+  - The window does not widen over training. That's expected, since nothing in the simulator is
+    noisy, and it's the baseline for the week-2 noise experiment. Faster means less
+    timing-tolerant, as in Müller & Loosch.
+- **run14** (jobs 27470–27473): resolve + no shaping, 6M steps, 1.0x and 1.5x × 4 angles, seeds 2–3.
+- Plan change: the collapse fix took 1 day instead of the week, so the motor-noise work (week 2)
+  can start earlier. The noise design still needs the user's review first.
