@@ -12,7 +12,8 @@ class ThrowEnvGym(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.9999,
-                 swing_weight=30.0, straight_arm_weight=6.0, **throw_env_kwargs):
+                 swing_weight=30.0, straight_arm_weight=6.0, resolve_at_release=False,
+                 **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
         self.frame_skip = frame_skip
@@ -21,6 +22,12 @@ class ThrowEnvGym(gym.Env):
         self.shaping_gamma = shaping_gamma
         self.swing_weight = swing_weight
         self.straight_arm_weight = straight_arm_weight
+        # Once the ball is released nothing the policy does can change the outcome,
+        # yet the flight is 100-160 decisions long, so the reward reaches the
+        # release-time decisions only through the critic, which cannot see the
+        # ball. With this on, the flight is simulated inside the releasing step and
+        # the episode ends there: same physics, same reward, no post-release steps.
+        self.resolve_at_release = resolve_at_release
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
         # fixed_angle mode has no release decision, so torques only
         n_act = 2 if self._env.release_mode == "fixed_angle" else 3
@@ -90,6 +97,17 @@ class ThrowEnvGym(gym.Env):
             truncated = bool(info["timeout"] and not terminated)
             if terminated or truncated:
                 break
+
+        if self.resolve_at_release and self._env.released and not (terminated or truncated):
+            # the arm keeps the last torque; the forearm cannot touch the ball
+            while True:
+                obs, reward, done, info = self._env.step(action)
+                total_reward += reward
+                self._episode_len += 1
+                if done:
+                    break
+            terminated = bool(self._env.landed or self._env.spent)
+            truncated = bool(info["timeout"] and not terminated)
 
         self._episode_reward += total_reward
 
