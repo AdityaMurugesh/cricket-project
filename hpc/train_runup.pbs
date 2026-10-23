@@ -6,6 +6,7 @@
 # Stage 3, the full bowler (envs/runup_bowl_env.py): + bowling with the right arm
 #   qsub -v DELIVERY=T3a,SEED=0,TASK=bowl,ANGLE=250 hpc/train_runup.pbs
 #   ... RESUME=checkpoints/runup_ppo_T3a_0.zip  warm-starts from a stage-1 policy
+#   ... DRIFT=1.0  drifting 1 m from the captured pelvis path counts as a fall
 #PBS -N cricket_runup
 #PBS -q cpuq
 #PBS -l select=1:ncpus=20:mem=32gb
@@ -24,7 +25,7 @@ STEPS="${STEPS:-60000000}"
 TASK="${TASK:-imitate}"
 ANGLE="${ANGLE:-250}"
 if [ "$TASK" = bowl ]; then
-    run="runup_bowl_a${ANGLE}_${DELIVERY}_${SEED}${RESUME:+_warm}"
+    run="runup_bowl_a${ANGLE}_${DELIVERY}_${SEED}${RESUME:+_warm}${DRIFT:+_d${DRIFT}}"
 else
     run="runup_ppo_${DELIVERY}_${SEED}"
 fi
@@ -32,5 +33,6 @@ mkdir -p "logs/${run}"
 git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
 python scripts/train_runup.py --task "${TASK}" --release-angle "${ANGLE}" --delivery "${DELIVERY}" \
     --seed "${SEED}" --timesteps "${STEPS}" ${RESUME:+--resume-from "${RESUME}"} \
+    ${DRIFT:+--max-pelvis-drift "${DRIFT}"} \
     --n-envs 16 --log-dir "logs/${run}" --model-path "checkpoints/${run}" > "logs/${run}/job.log" 2>&1
 echo "train exit $?"

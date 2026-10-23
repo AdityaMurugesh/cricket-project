@@ -58,10 +58,12 @@ def main():
     p.add_argument("--model-path", required=True)
     p.add_argument("--delivery", default="T3a")
     p.add_argument("--release-angle", type=float, default=250.0)
+    p.add_argument("--max-pelvis-drift", type=float, default=None, help="as in training (m)")
     p.add_argument("--starts", type=int, default=8, help="start times spread over the allowed range")
     p.add_argument("--out", default=None)
     a = p.parse_args()
-    env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle)
+    env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle,
+                       max_pelvis_drift_m=a.max_pelvis_drift)
     model = PPO.load(a.model_path, device="cpu")
     rows = [replay(env, model, int(i)) for i in np.linspace(0, env.rsi_last_index, a.starts)]
     for r in rows:

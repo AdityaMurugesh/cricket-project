@@ -13,6 +13,8 @@ Exits non-zero if anything fails. No torch needed unless --train is given.
   7. physics bowler (run-up imitation): the model builds with every joint
      actuated; reward is 1 on the reference; open-loop PD falls (skipped
      without data/mocap/ref_T3a.npz)
+  8. full bowler: captured arm angle at release, no ball never beats a release,
+     episodes start >= 1 s before release, the pelvis drift limit
 
     python scripts/check_regressions.py          # ~1 min
     python scripts/check_regressions.py --train  # + PPO smoke run
@@ -227,6 +229,16 @@ def main():
               f"open-loop: no ball ({o['why']}), scored {info['task_reward']:.1f} x {be.task_weight:g}")
         check(be.rsi_last_index / ref["rate"] <= be.t_ref_release - 0.99,
               f"episodes start >= 1 s before the captured release ({be.rsi_last_index / ref['rate']:.2f} s)")
+        # falling metres behind the captured run-up must end the episode as a no ball
+        for drift_limit, want in ((1.0, "left the run-up"), (None, None)):
+            de = RunupBowlEnv(rsi=False, max_pelvis_drift_m=drift_limit)
+            de.reset(seed=0)
+            de.d.qpos[0] -= 1.5
+            mujoco.mj_forward(de.m, de.d)
+            _, r, te, tr, info = de.step(np.zeros(de.n_act))
+            why = info["outcome"]["why"] if te else None
+            check(why == want and (not te or abs(info["task_reward"] - held) < 1e-9),
+                  f"drift limit {drift_limit}: 1.5 m behind -> {why or 'carries on'} ({info['drift_m']:.2f} m)")
     else:
         print("  skip  no data/mocap/ref_T3a.npz here")
 

@@ -86,6 +86,8 @@ def main():
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9],
                    help="bowl: landing zone, metres from the release point")
     p.add_argument("--task-weight", type=float, default=10.0, help="bowl: weight of the delivery reward")
+    p.add_argument("--max-pelvis-drift", type=float, default=None,
+                   help="bowl: drifting this far (m) from the captured pelvis path counts as a fall")
     p.add_argument("--timesteps", type=int, default=50_000_000)
     p.add_argument("--n-envs", type=int, default=16)
     p.add_argument("--seed", type=int, default=0)
@@ -102,7 +104,8 @@ def main():
         if a.task == "bowl":
             return lambda: RunupBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                         release_angle_deg=a.release_angle,
-                                        target_range=tuple(a.target_range), task_weight=a.task_weight)
+                                        target_range=tuple(a.target_range), task_weight=a.task_weight,
+                                        max_pelvis_drift_m=a.max_pelvis_drift)
         return lambda: RunupImitationEnv(delivery=a.delivery, seed=a.seed * 1000 + rank)
 
     Vec = DummyVecEnv if a.dummy else SubprocVecEnv
@@ -123,7 +126,7 @@ def main():
                                             save_path=a.model_path + "_ckpts", name_prefix="step"))
     print(f"task={a.task} delivery={a.delivery} envs={a.n_envs} timesteps={a.timesteps} lr={a.lr} "
           f"release_angle={a.release_angle} zone={a.target_range} task_weight={a.task_weight} "
-          f"resume_from={a.resume_from}", flush=True)
+          f"max_pelvis_drift={a.max_pelvis_drift} resume_from={a.resume_from}", flush=True)
     model.learn(total_timesteps=a.timesteps, callback=callbacks, reset_num_timesteps=a.resume_from is None)
     Path(a.model_path).parent.mkdir(parents=True, exist_ok=True)
     model.save(a.model_path)

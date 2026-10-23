@@ -18,7 +18,8 @@ same one ThrowEnv's two-joint arm learned:
     release point: legal + in zone 1 + 0.5 * speed (m/s); legal miss -distance;
     illegal -distance - 2
 
-No ball bowled -- a fall, or still holding it 0.3 s after the captured release --
+No ball bowled -- a fall, drifting more than max_pelvis_drift_m from the captured
+pelvis path (if set), or still holding it 0.3 s after the captured release --
 scores the held-ball value (ball at the hand, illegal), i.e. at least as badly as
 any real delivery. Without that, falling just before a bad release would pay.
 
@@ -39,7 +40,7 @@ G = 9.81
 class RunupBowlEnv(RunupImitationEnv):
     def __init__(self, delivery="T3a", release_angle_deg=250.0, target_range=(10.9, 12.9),
                  task_weight=10.0, speed_weight=0.5, illegal_penalty=2.0, max_release_elbow_deg=40.0,
-                 window_before_s=0.6, late_s=0.3, rsi_before_release_s=1.0, **kw):
+                 window_before_s=0.6, late_s=0.3, rsi_before_release_s=1.0, max_pelvis_drift_m=None, **kw):
         # the participant's arm length, as fitted (stored with the reference)
         arm = float(np.load(MOCAP_DIR / f"ref_{delivery}.npz")["arm_scale"])
         super().__init__(delivery=delivery, arm_scale=kw.pop("arm_scale", arm), **kw)
@@ -52,6 +53,10 @@ class RunupBowlEnv(RunupImitationEnv):
         self.speed_weight = speed_weight
         self.illegal_penalty = illegal_penalty
         self.max_release_elbow_deg = max_release_elbow_deg
+        # the fall test only looks at height and tilt, so a policy can stop running
+        # in and bowl from a standstill metres behind the capture (the 30M-step
+        # from-scratch runs did): with this set, drifting that far counts as a fall
+        self.max_pelvis_drift_m = max_pelvis_drift_m
         self.t_ref_release = self.t_end
         self.t_window = self.t_end - window_before_s
         self.t_end = self.t_end + late_s          # episode may run a little past the captured release
@@ -149,6 +154,10 @@ class RunupBowlEnv(RunupImitationEnv):
         fell = (abs(self.d.qpos[2] - q_ref[2]) > 0.3
                 or _tilt(self.d.qpos[3:7], q_ref[3:7]) > 1.0
                 or not np.isfinite(self.d.qpos).all())
+        drift = float(np.linalg.norm(self.d.qpos[:2] - q_ref[:2]))
+        if task is None and self.max_pelvis_drift_m is not None and drift > self.max_pelvis_drift_m:
+            fell = True
+            task = self._no_ball("left the run-up")
         if task is None and fell:
             task = self._no_ball("fell")
         if task is None and self.t >= self.t_end - 1e-9:
@@ -158,7 +167,7 @@ class RunupBowlEnv(RunupImitationEnv):
             r = 0.0
         if done:
             r += self.task_weight * task
-        info = {"terms": terms, "fell": bool(fell), "t": self.t, "start_t": self._start_t,
+        info = {"terms": terms, "fell": bool(fell), "t": self.t, "start_t": self._start_t, "drift_m": drift,
                 "reached_release": bool(self._outcome is not None and self._outcome["released"]),
                 "task_reward": task, "outcome": self._outcome}
         return self._obs(min(self.t, self.t_ref_release)), float(r), bool(done), False, info
