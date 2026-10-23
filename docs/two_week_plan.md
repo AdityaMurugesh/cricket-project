@@ -285,3 +285,29 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     The weak body collapses and releases from 1.3 m, so the oracle is not yet conclusive.
   - Training: from scratch at release angles 250° and 270°, T3a, 60M steps (queued). A warm start
     from a strong stage-1 checkpoint follows later.
+
+### 2026-10-24 (overnight, autonomous)
+- **run15 finished** (training under motor noise; 64 runs = 4 conditions x 4 angles x 2 scales x
+  2 seeds). Deterministic final deliveries, legal good length:
+  - none: 1.5x 8/8, 1.0x 4/8
+  - timing: 1.5x 5/8, 1.0x 3/8
+  - torque: 1.5x 5/8, 1.0x 5/8
+  - both: 1.5x 5/8, 1.0x 1/8
+  - These evals run in each run's own (noisy) env, so one deterministic episode is one noise draw.
+    The fair comparison is the noise-robustness scoring (200 episodes per condition), queued as
+    jobs 28738–28741 with FILTER=released (results/run15_<cond>/noise_robustness/).
+- **Stage 3, first results** (from scratch, jobs 28059 / 28073, at 30M of 60M steps):
+  - Training episodes, legal and good: 250° 61%, 270° 47%, up from 0% at 7.5M steps. Falls dropped
+    from 99% to 16–21%.
+  - Deterministic replays (`scripts/eval_runup.py`, 8 start times): 250° 6/8 good at 45–54 km/h,
+    270° 5/8 at 44–55 km/h. Released 1.5–1.9 m up; the arm turns 165–215° from hanging, over the
+    top to release; elbow extension within ±18°, all legal.
+  - **The loophole: it gave up the run-up.** The pelvis ends 1.5–4.5 m behind the captured path,
+    and the pose score is 0.04–0.34 (stage 1 alone: 0.74). The fall test only checked height and
+    tilt, so bowling from a near-standstill cost nothing but imitation reward.
+  - Fix: `--max-pelvis-drift` (drifting that far from the captured pelvis path is a fall, so a no
+    ball). Regression check added (section 8). The stage-1 35M policy, unchanged, reaches about
+    1.0 m drift by 2–2.5 s, so 1.0 m is tight.
+  - Launched (jobs 28742–28745): warm start from stage-1 35M at 250° and 270° with drift 1.5 m;
+    warm 250° with drift 1.0 m; from scratch 250° with drift 1.5 m.
+- Stage 1 (27778 T3a, 27880 T4b): at about 39M of 60M steps; pose 0.73–0.74.
