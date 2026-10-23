@@ -250,3 +250,11 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - (3) Add the delivery: ball in the right hand, release, ICC legality from the simulated elbow,
     landing zone and pace. That is the full bowler.
   - (4) Noise on the full bowler.
+- **SAC pilot result** (jobs 27045–27048, run with the *old* long episodes and shaping, 1.5M steps,
+  about 10 h each):
+  - 1 of 4 runs succeeded: 240° 1.5x seed 0 reached 100% good by 1.5M steps with no collapse
+    (checkpoints: 48% → 96% → 100%).
+  - The other 3 never found the zone.
+  - PPO with resolve-at-release gets 9 of 16 in about 25 min per run.
+  - Decision: stay with PPO. SAC was a hedge against the collapse, and the collapse now has a cause
+    and a fix.
