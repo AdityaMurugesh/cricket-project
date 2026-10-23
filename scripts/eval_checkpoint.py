@@ -59,11 +59,13 @@ def main():
     parser.add_argument("--release-mode", default="fixed_angle")
     parser.add_argument("--release-angle", type=float, default=None)
     parser.add_argument("--actuator-scale", type=float, default=1.0)
+    parser.add_argument("--target-range", type=float, nargs=2, default=[6.0, 8.0])
     parser.add_argument("--tag", default="")
     args = parser.parse_args()
 
     env = ThrowEnvGym(speed_weight=args.speed_weight, release_mode=args.release_mode,
-                      release_angle_deg=args.release_angle, actuator_scale=args.actuator_scale)
+                      release_angle_deg=args.release_angle, actuator_scale=args.actuator_scale,
+                      target_range=tuple(args.target_range))
     model = PPO.load(args.model_path)
 
     det = row(rollout(env, model, True, args.seed), env)

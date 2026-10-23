@@ -1,0 +1,61 @@
+#!/bin/bash
+# run11: run10's setup aimed at a real good length on the full-size pitch.
+# Target zone 10.9-12.9 m from release (6-8 m in front of the batter's stumps,
+# assets/pitch.xml) instead of 6-8 m. Everything else as run10 (packed, one
+# single-threaded process per release angle, ent_coef 0.003, speed_weight 0.5).
+#
+# Angles/budgets from a scripted reach check: farthest legal delivery is
+# 8.5 m at 0.75x (cannot reach, not run), 12.0 m at 1.0x (only at 230-250 deg,
+# at full effort), 19.1 m at 1.5x (230-260 deg). These are lofted releases:
+# below 270 deg the ball leaves the hand rising.
+#
+#   qsub -v SCALE=1.5,SEED=0 hpc/train_throw_run11_pack.pbs
+#PBS -N cricket_run11_pack
+#PBS -q cpuq
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=05:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+# one core per run; torch's own thread pool would oversubscribe the node
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+
+: "${SCALE:?pass an actuator scale}"
+: "${SEED:?pass a seed}"
+ENT="${ENT:-0.003}"
+ANGLES="${ANGLES:-230:240:250:260}"
+STEPS="${STEPS:-8000000}"
+ZONE="10.9 12.9"
+S100=$(awk -v s="$SCALE" 'BEGIN { printf "%03d", s * 100 }')
+E=$(echo "$ENT" | tr -d '.')
+
+echo "=== run11 pack: zone=${ZONE} actuator_scale=${SCALE} seed=${SEED} ent_coef=${ENT} steps=${STEPS} angles=${ANGLES} ==="
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+
+run_one() {
+    local ang=$1 tag="a${1}_s${S100}_e${E}_${SEED}"
+    local run="throw_ppo_run11_${tag}"
+    mkdir -p "logs/${run}"
+    {
+        python scripts/train_throw.py --timesteps "${STEPS}" --n-envs 8 \
+            --log-dir "logs/${run}" --model-path "checkpoints/${run}" \
+            --seed "${SEED}" --ent-coef "${ENT}" --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ang}" --actuator-scale "${SCALE}" \
+            --target-range ${ZONE} \
+        && python scripts/summarize_run.py "logs/${run}/episodes.csv" --buckets 10 \
+            --target-range ${ZONE} \
+        && python scripts/eval_checkpoint.py --model-path "checkpoints/${run}" \
+            --out "logs/${run}/eval.json" --episodes 200 --speed-weight 0.5 \
+            --release-mode fixed_angle --release-angle "${ang}" --actuator-scale "${SCALE}" \
+            --target-range ${ZONE} --tag "${tag}"
+    } > "logs/${run}/job.log" 2>&1
+    echo "$(date +%T) ${tag} exit $?"
+}
+
+for ang in ${ANGLES//:/ }; do
+    run_one "$ang" &
+done
+wait
+echo "=== all angles finished ==="

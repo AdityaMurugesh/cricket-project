@@ -88,7 +88,7 @@ class EpisodeLogger(BaseCallback):
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
              speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-             release_angle, actuator_scale):
+             release_angle, actuator_scale, target_range=(6.0, 8.0)):
     def _init():
         # shaping gamma must equal PPO gamma
         return ThrowEnvGym(swing_weight=swing_weight,
@@ -101,6 +101,7 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
                            release_latch=release_latch,
                            release_angle_deg=release_angle,
                            actuator_scale=actuator_scale,
+                           target_range=tuple(target_range),
                            shaping_gamma=gamma)
     return _init
 
@@ -108,11 +109,11 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
         speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-        release_angle, actuator_scale, checkpoint_every=0):
+        release_angle, actuator_scale, checkpoint_every=0, target_range=(6.0, 8.0)):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
                  speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-                 release_angle, actuator_scale)
+                 release_angle, actuator_scale, target_range)
         for _ in range(n_envs)])
     if resume_from:
         # warm start; timestep counter continues from the checkpoint
@@ -179,9 +180,12 @@ if __name__ == "__main__":
                          help="re-sample the release target every step instead of latching it")
     parser.add_argument("--checkpoint-every", type=int, default=1_000_000,
                          help="also save the policy every N timesteps (0 disables)")
+    parser.add_argument("--target-range", type=float, nargs=2, default=[6.0, 8.0],
+                         metavar=("MIN_M", "MAX_M"),
+                         help="landing zone (m from release); 10.9 12.9 is a real good length")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
         args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale,
-        args.checkpoint_every)
+        args.checkpoint_every, args.target_range)
