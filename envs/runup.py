@@ -20,7 +20,12 @@ DELIVERY_STRIDE_DEG = {
 
 def run_cycle_leg_angles_deg(t, stride_freq, swing_amp=28.0, knee_lift=35.0):
     """Simple sagittal-plane running cycle, both legs, in degrees."""
-    phase = 2 * np.pi * stride_freq * t
+    return run_cycle_at_phase_deg(2 * np.pi * stride_freq * t, swing_amp, knee_lift)
+
+
+def run_cycle_at_phase_deg(phase, swing_amp=28.0, knee_lift=35.0):
+    """The running cycle at a given phase (rad). Right foot is in mid-stance
+    (leg vertical and straight) at phase = 0 mod 2*pi, left foot at pi."""
     left_hip = swing_amp * np.sin(phase)
     right_hip = swing_amp * np.sin(phase + np.pi)
     left_knee = -knee_lift * max(0.0, np.sin(phase)) ** 2

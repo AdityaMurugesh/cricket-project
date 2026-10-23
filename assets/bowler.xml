@@ -15,9 +15,14 @@
     <geom name="target_zone" type="box" pos="7.0 0 0.002" size="1.0 0.6 0.002"
           rgba="0.9 0.2 0.2 0.4" contype="0" conaffinity="0"/>
 
-    <!-- root/leg default pos and joint "ref" values are cosmetic only --
-         BowlerEnv drives qpos directly every frame (see envs/runup.py),
-         never relies on these compiled defaults. -->
+    <!-- BowlerEnv drives qpos directly every frame (see envs/runup.py).
+         Leg joint convention, as envs/runup.py and the ranges below assume:
+         hip > 0 swings the leg FORWARD (+x, the run-up direction), knee < 0
+         flexes it (shin back), with 0 = straight down. Hence axis 0 -1 0 on
+         the legs, and no "ref": MuJoCo draws a hinge rotated by (qpos - ref),
+         so the ref="25"/"-25"... values that used to sit here made the
+         delivery-stride pose (which equals them) draw as two straight,
+         overlapping legs, and skewed the running cycle by the same amounts. -->
     <body name="root" pos="0 0 0.80">
       <freejoint name="root_free"/>
       <geom name="pelvis" type="box" size="0.12 0.1 0.08" rgba="0.4 0.4 0.6 1"/>
@@ -55,13 +60,13 @@
 
       <!-- left leg -->
       <body name="left_thigh" pos="0 0.09 0">
-        <joint name="left_hip" type="hinge" axis="0 1 0" range="-60 90" ref="25"/>
+        <joint name="left_hip" type="hinge" axis="0 -1 0" range="-60 90"/>
         <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.05" rgba="0.5 0.5 0.5 1"/>
         <body name="left_shin" pos="0 0 -0.4">
-          <joint name="left_knee" type="hinge" axis="0 1 0" range="-140 0" ref="-10"/>
+          <joint name="left_knee" type="hinge" axis="0 -1 0" range="-140 0"/>
           <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.045" rgba="0.5 0.5 0.5 1"/>
           <body name="left_foot" pos="0 0 -0.4">
-            <joint name="left_ankle" type="hinge" axis="0 1 0" range="-40 40" ref="0"/>
+            <joint name="left_ankle" type="hinge" axis="0 -1 0" range="-40 40"/>
             <geom name="left_foot_geom" type="box" size="0.11 0.045 0.02" pos="0.06 0 -0.02"
                   rgba="0.2 0.2 0.2 1"/>
           </body>
@@ -70,13 +75,13 @@
 
       <!-- right leg -->
       <body name="right_thigh" pos="0 -0.09 0">
-        <joint name="right_hip" type="hinge" axis="0 1 0" range="-60 90" ref="-25"/>
+        <joint name="right_hip" type="hinge" axis="0 -1 0" range="-60 90"/>
         <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.05" rgba="0.5 0.5 0.5 1"/>
         <body name="right_shin" pos="0 0 -0.4">
-          <joint name="right_knee" type="hinge" axis="0 1 0" range="-140 0" ref="-25"/>
+          <joint name="right_knee" type="hinge" axis="0 -1 0" range="-140 0"/>
           <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.045" rgba="0.5 0.5 0.5 1"/>
           <body name="right_foot" pos="0 0 -0.4">
-            <joint name="right_ankle" type="hinge" axis="0 1 0" range="-40 40" ref="10"/>
+            <joint name="right_ankle" type="hinge" axis="0 -1 0" range="-40 40"/>
             <geom name="right_foot_geom" type="box" size="0.11 0.045 0.02" pos="0.06 0 -0.02"
                   rgba="0.2 0.2 0.2 1"/>
           </body>
