@@ -180,3 +180,29 @@ for run13.
 - **run14** (jobs 27470–27473): resolve + no shaping, 6M steps, 1.0x and 1.5x × 4 angles, seeds 2–3.
 - Plan change: the collapse fix took 1 day instead of the week, so the motor-noise work (week 2)
   can start earlier. The noise design still needs the user's review first.
+
+### 24 Oct (early hours)
+- **Before/after figure** for the supervisor: `results/run13b/collapse_fix.png`.
+- **Motor noise implemented, off by default** (`--release-timing-sd-ms`, `--torque-noise-sd`).
+  - Verified: the actual release shift follows the sampled jitter to within about 1 ms (the
+    physics step is 2 ms). The torque noise SD is 0.150 × the command.
+  - With noise off, the six showcase replays are unchanged.
+  - **No training with noise yet:** `docs/noise_design.md` is still waiting for review.
+- **Noise-robustness test (evaluation only, job 27526):** the 14 good run13b policies, which were
+  trained without noise, scored with noise on, 200 deliveries each.
+  See `results/run13b/noise_robustness.png`.
+
+  | noise-free delivery | good, 12 ms timing jitter | landing SD under jitter |
+  |---|---|---|
+  | 37–39 km/h (230–240°) | 64–80% | 1.1–1.3 m |
+  | 40–42 km/h | 33–47% | 1.8–2.2 m |
+  | 50–53 km/h (260°) | 6–10% | 4.1–4.9 m |
+
+  - Timing tolerance falls steeply with pace: the speed–accuracy trade-off from the equifinality
+    papers, measured on our own policies.
+  - Torque noise (15%) sorts them by budget instead:
+    - 1.5x policies hold at 88–100%, because they have spare torque.
+    - 1.0x policies drop to 2–76%. They swing at the torque limit, where noise can only weaken the
+      swing.
+  - So the noise-training experiment (run15) has a clear question: when trained under jitter, do
+    the policies widen the window (equifinal), or slow down?
