@@ -17,15 +17,28 @@ from envs.legality import elbow_extension_deg
 from mocap import identify as idf
 from mocap import signal
 
-# (trial number, approximate release frame, end of the room bowled towards)
-# found from the hand-speed peak where the hand was tracked, and from the
-# synchronised 25 fps Miqus video otherwise. Every trial except 1 holds two
-# deliveries: one towards each end of the room.
+# (name, trial number, approximate release frame) found from the hand-speed
+# peak where the hand was tracked (T1a, T2b, T3a, T4b), and otherwise read off
+# the synchronised 25 fps Miqus video (camera 3) as the frame where the
+# bowling arm passes vertical -- which is where it is at the hand-speed peak
+# in T3a. Video frames are 4 mocap frames apart, so those are +/- 4 frames.
+# Every trial except 1 holds two deliveries: one towards each end of the room.
+#
+# The video-read values were re-read on 2026-10-07. The first reading
+# (FIRST_VIDEO_READING) was 10-61 frames early for six of the seven (T6a's 3
+# is within the reading tolerance); for T3b and T6b it had picked a moment in
+# the gather, before the arm came over. The corrected values are
+# independently consistent with the run-up: the top of the jump falls at the
+# same time before release in all eleven deliveries (mocap/runup.py), as it
+# does in the four with a measured hand-speed peak. REPORT.md recomputes
+# that check from both readings.
 DELIVERIES = [
-    ("T1a", 1, 492), ("T2a", 2, 450), ("T2b", 2, 981), ("T3a", 3, 418),
-    ("T3b", 3, 1040), ("T4a", 4, 405), ("T4b", 4, 1073), ("T5a", 5, 850),
-    ("T5b", 5, 1496), ("T6a", 6, 467), ("T6b", 6, 1065),
+    ("T1a", 1, 492), ("T2a", 2, 468), ("T2b", 2, 981), ("T3a", 3, 418),
+    ("T3b", 3, 1084), ("T4a", 4, 421), ("T4b", 4, 1073), ("T5a", 5, 860),
+    ("T5b", 5, 1516), ("T6a", 6, 470), ("T6b", 6, 1126),
 ]
+FIRST_VIDEO_READING = {"T2a": 450, "T3b": 1040, "T4a": 405, "T5a": 850, "T5b": 1496,
+                       "T6a": 467, "T6b": 1065}
 
 PRE, POST = 60, 40          # analysis window around release, frames
 MAX_GAP_ARM = 5             # frames; arm moves too fast to bridge longer gaps
