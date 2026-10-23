@@ -344,3 +344,14 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     trajectory, its equifinality (Müller & Loosch), and training under noise selects flatter
     trajectories where that matters. Caveat: legality is taken from the actual release, not each
     hypothetical one.
+- **Drift-limited stage-3 runs at ~50M** (warm runs started from stage-1 35M, so +15M):
+  - warm 250° drift 1.5 m: 31% good in training, pose 0.47 (from scratch without the limit: 61%
+    good but pose 0.20). Deterministic at 45M: 3/8 starts bowl, 1/8 good, at 38–40 km/h,
+    extension 5–8°. It releases about 0.25 s before the captured release.
+  - warm 250° drift 1.0 m: 16% good and climbing fast (0.2% two million steps earlier).
+  - warm 270° drift 1.5 m: about 10% released, no good yet; holding the ball is creeping up (13–18%).
+  - from scratch 250° drift 1.5 m (15M): 7% good, but pose 0.18. The drift limit alone doesn't
+    bring the run-up back, so the warm start does the work.
+  - Stage 1 alone is nearly done: T3a 57M, pose 0.71; T4b 56M, pose 0.63.
+  - Local viewer copies: `checkpoints/runup_bowl_a250_T3a_0_ckpts/step_45000000_steps.zip`
+    (no run-up, fast) and `..._warm_d1.5_ckpts/step_45000000_steps.zip` (keeps the run-up).
