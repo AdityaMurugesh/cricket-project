@@ -10,6 +10,9 @@ Exits non-zero if anything fails. No torch needed unless --train is given.
      moves by the sampled delta; same seed -> same delta
   5. torque noise: applied SD = sd x command; off means exactly the command
   6. (--train) a short PPO run with every flag on trains and saves
+  7. physics bowler (run-up imitation): the model builds with every joint
+     actuated; reward is 1 on the reference; open-loop PD falls (skipped
+     without data/mocap/ref_T3a.npz)
 
     python scripts/check_regressions.py          # ~1 min
     python scripts/check_regressions.py --train  # + PPO smoke run
@@ -173,6 +176,27 @@ def main():
                   f"train_throw.py exit {r.returncode}, model + episode log written")
             if r.returncode:
                 print(r.stderr[-1500:])
+
+    print("7. physics bowler")
+    from envs.humanoid_bowler import MOCAP_DIR, build_model
+    hm = build_model()
+    check(hm.nu == 34 and hm.nq == 47 and abs(hm.body_mass.sum() - 89.3) < 0.5,
+          f"model: nq {hm.nq}, {hm.nu} motors, {hm.body_mass.sum():.1f} kg")
+    if (MOCAP_DIR / "ref_T3a.npz").exists():
+        from envs.runup_imitation_env import RunupImitationEnv
+        env = RunupImitationEnv(rsi=False, seed=0)
+        env.reset(seed=0)
+        r0 = env._reward(env.d.qpos.copy(), env.ref["qvel"][0])[0]
+        check(abs(r0 - 1.0) < 1e-6, f"reward is 1 on the reference itself ({r0:.6f})")
+        n = 0
+        while True:
+            _, r, te, tr, info = env.step(np.zeros(env.n_act))
+            n += 1
+            if te or tr:
+                break
+        check(info["fell"] and 5 < n < 100, f"open-loop PD falls, as it must ({n} steps)")
+    else:
+        print("  skip  no data/mocap/ref_T3a.npz here")
 
     print(f"\n{'ALL PASSED' if not FAILS else f'{len(FAILS)} FAILED'}")
     sys.exit(1 if FAILS else 0)

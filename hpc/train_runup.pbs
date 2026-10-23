@@ -1,0 +1,26 @@
+#!/bin/bash
+# Run-up imitation: PPO learns the captured run-up and trunk motion on the
+# physics bowler (envs/runup_imitation_env.py). Needs data/mocap/ref_<D>.npz on
+# the cluster (joint angles only; copied by hand, never committed).
+#   qsub -v DELIVERY=T3a,SEED=0 hpc/train_runup.pbs
+#PBS -N cricket_runup
+#PBS -q cpuq
+#PBS -l select=1:ncpus=20:mem=32gb
+#PBS -l walltime=14:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+# 16 single-threaded env processes; the learner gets the rest
+export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
+
+: "${DELIVERY:?pass a delivery, e.g. T3a}"
+: "${SEED:?pass a seed}"
+STEPS="${STEPS:-60000000}"
+run="runup_ppo_${DELIVERY}_${SEED}"
+mkdir -p "logs/${run}"
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
+python scripts/train_runup.py --delivery "${DELIVERY}" --seed "${SEED}" --timesteps "${STEPS}" \
+    --n-envs 16 --log-dir "logs/${run}" --model-path "checkpoints/${run}" > "logs/${run}/job.log" 2>&1
+echo "train exit $?"

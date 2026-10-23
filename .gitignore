@@ -25,3 +25,7 @@ data/mocap/plots/video3d_*
 data/mocap/plots/labels_*.png
 data/mocap/plots/whatsapp/
 *.mp4
+
+# Everything derived from the capture (fits, marker tracks, reference motions,
+# reports) is participant data and the repo is public -- never commit
+data/mocap/
