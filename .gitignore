@@ -19,3 +19,9 @@ Aditya Bowling/
 *.c3d
 *.qtm
 *.avi
+
+# Rendered mocap output that embeds camera footage of the participant -- never commit
+data/mocap/plots/video3d_*
+data/mocap/plots/labels_*.png
+data/mocap/plots/whatsapp/
+*.mp4
