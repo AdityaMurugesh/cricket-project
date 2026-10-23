@@ -64,8 +64,10 @@ def measure(acts, frame_skip, ang, scale, zone):
             rel = i
         if rel is not None and i - rel >= k:
             break
-    out = {"legal": bool(info.get("legal")), "land_x": None, "window_ms": 0.0, "sd_40ms": None,
-           "early_40ms": None, "late_40ms": None}
+    # window_early_ms / window_late_ms: how far before / after the actual release the
+    # in-zone window reaches (late side capped at 40 ms: the replay stops there)
+    out = {"legal": bool(info.get("legal")), "land_x": None, "window_ms": 0.0, "window_early_ms": 0.0,
+           "window_late_ms": 0.0, "sd_40ms": None, "early_40ms": None, "late_40ms": None}
     while not (env.landed or env.spent or info.get("timeout")):
         _, _, done, info = env.step(acts[-1])
     if rel is None or info.get("landing_pos") is None:
@@ -81,6 +83,8 @@ def measure(acts, frame_skip, ang, scale, zone):
         while b < len(L) - 1 and inz[b + 1]:
             b += 1
         out["window_ms"] = (b - a + 1) * dt * 1000
+        out["window_early_ms"] = (rel - a) * dt * 1000
+        out["window_late_ms"] = (b - rel) * dt * 1000
     out.update(land_x=actual, sd_40ms=float(w.std()), early_40ms=float(w[0]), late_40ms=float(w[-1]))
     return out
 
