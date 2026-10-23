@@ -146,3 +146,16 @@ for run13.
   16 runs (jobs 27336–27339). It runs at about 1,800 steps/s, so about 20 min per run.
   - If run13 keeps the zone where run11 lost it, this becomes the default and run11/run12 are
     explained.
+- **run13 result: all 16 runs stalled.** By 25% of training, 100% of episodes time out with the arm
+  hanging at about 105°. The task reward is −13, and not one ball is released.
+  - Likely reason: with the episode ending at release, the shaping's whole drop to 0 (up to −36)
+    now lands on the decision that triggers the release.
+  - A timeout is treated as a cut-off, so SB3 bootstraps it with V and the stall escapes that drop.
+    This is the same trap family as the earlier episodic-discounting stall.
+  - So resolve-at-release can't simply be added on top of the current shaping.
+- **run13b** (jobs 27374–27381): resolve at release plus one of two changes, 1.0x and 1.5x ×
+  4 angles × 2 seeds each, 2M steps:
+  - `noshape`: shaping off. With episodes now about 25 decisions long, the shaping may not be
+    needed.
+  - `toterm`: shaping on, with the timeout counted as a terminal failed delivery
+    (`--timeout-terminal`).
