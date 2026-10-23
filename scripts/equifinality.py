@@ -66,8 +66,12 @@ def measure(acts, frame_skip, ang, scale, zone):
             break
     # window_early_ms / window_late_ms: how far before / after the actual release the
     # in-zone window reaches (late side capped at 40 ms: the replay stops there)
+    # p_jitter_12ms: chance of landing in the zone with release jitter N(0, 12 ms), from the
+    # whole +/-40 ms landing curve (the window above is only the unbroken stretch);
+    # slope_m_per_10ms: how fast the landing moves with release time, at the release
     out = {"legal": bool(info.get("legal")), "land_x": None, "window_ms": 0.0, "window_early_ms": 0.0,
-           "window_late_ms": 0.0, "sd_40ms": None, "early_40ms": None, "late_40ms": None}
+           "window_late_ms": 0.0, "p_jitter_12ms": 0.0, "slope_m_per_10ms": None,
+           "sd_40ms": None, "early_40ms": None, "late_40ms": None}
     while not (env.landed or env.spent or info.get("timeout")):
         _, _, done, info = env.step(acts[-1])
     if rel is None or info.get("landing_pos") is None:
@@ -85,6 +89,12 @@ def measure(acts, frame_skip, ang, scale, zone):
         out["window_ms"] = (b - a + 1) * dt * 1000
         out["window_early_ms"] = (rel - a) * dt * 1000
         out["window_late_ms"] = (b - rel) * dt * 1000
+    lo = max(rel - k, 0)
+    t = (np.arange(lo, lo + len(w)) - rel) * dt
+    g = np.exp(-0.5 * (t / 0.012) ** 2)
+    out["p_jitter_12ms"] = float((g * inz[lo: lo + len(w)]).sum() / g.sum()) if out["legal"] else 0.0
+    if 0 < rel < len(L) - 1:
+        out["slope_m_per_10ms"] = float((L[rel + 1] - L[rel - 1]) / (2 * dt) * 0.010)
     out.update(land_x=actual, sd_40ms=float(w.std()), early_40ms=float(w[0]), late_40ms=float(w[-1]))
     return out
 
