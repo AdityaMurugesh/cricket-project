@@ -1,4 +1,4 @@
-"""PPO training loop for ThrowEnvGym, logging every episode to a CSV."""
+"""PPO (or SAC) training loop for ThrowEnvGym, logging every episode to a CSV."""
 import argparse
 import csv
 import sys
@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 
@@ -23,6 +23,8 @@ class ActionStdLogger(BaseCallback):
 
     def _on_rollout_end(self):
         import numpy as np
+        if not hasattr(self.model.policy, "log_std"):
+            return  # SAC: state-dependent std, logged by SB3 as train/ent_coef instead
         std = np.exp(self.model.policy.log_std.detach().cpu().numpy())
         for name, value in zip(["shoulder", "elbow", "release"], std):
             self.logger.record(f"action_std/{name}", float(value))
@@ -88,10 +90,10 @@ class EpisodeLogger(BaseCallback):
 
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
              speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-             release_angle, actuator_scale, target_range=(6.0, 8.0)):
+             release_angle, actuator_scale, target_range=(6.0, 8.0), use_shaping=True):
     def _init():
         # shaping gamma must equal PPO gamma
-        return ThrowEnvGym(swing_weight=swing_weight,
+        return ThrowEnvGym(use_shaping=use_shaping, swing_weight=swing_weight,
                            straight_arm_weight=straight_arm_weight,
                            release_window_deg=tuple(release_window),
                            max_release_elbow_deg=max_release_elbow,
@@ -109,20 +111,45 @@ def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbo
 def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_from,
         swing_weight, straight_arm_weight, release_window, max_release_elbow,
         speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-        release_angle, actuator_scale, checkpoint_every=0, target_range=(6.0, 8.0)):
+        release_angle, actuator_scale, checkpoint_every=0, target_range=(6.0, 8.0),
+        algo="ppo", use_shaping=True, lr=3e-4, lr_decay=False, target_kl=None,
+        freeze_log_std=False):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
                  speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-                 release_angle, actuator_scale, target_range)
+                 release_angle, actuator_scale, target_range, use_shaping)
         for _ in range(n_envs)])
+    Algo = SAC if algo == "sac" else PPO
     if resume_from:
         # warm start; timestep counter continues from the checkpoint
-        model = PPO.load(resume_from, env=vec_env)
-        model.ent_coef = ent_coef
+        model = Algo.load(resume_from, env=vec_env)
+        if algo == "ppo":
+            model.ent_coef = ent_coef
         print(f"resumed from {resume_from} at num_timesteps={model.num_timesteps}")
+    elif algo == "sac":
+        # ent_coef stays "auto" (SAC tunes its own entropy target); one gradient
+        # step per transition collected
+        model = SAC("MlpPolicy", vec_env, verbose=1, seed=seed, gamma=gamma,
+                    learning_rate=lr, gradient_steps=-1)
     else:
         model = PPO("MlpPolicy", vec_env, verbose=1, seed=seed, ent_coef=ent_coef,
-                    gamma=gamma)
+                    gamma=gamma, learning_rate=lr)
+    if lr_decay:
+        # linear to 0 over this call's timesteps, starting at lr even when resumed
+        start, end = model.num_timesteps, model.num_timesteps + total_timesteps
+        p0 = 1.0 - start / end
+        model.learning_rate = lambda p: lr * max(p, 0.0) / p0
+        model._setup_lr_schedule()
+    elif resume_from:
+        model.learning_rate = lr
+        model._setup_lr_schedule()
+    if target_kl is not None and algo == "ppo":
+        model.target_kl = target_kl
+    if freeze_log_std and algo == "ppo":
+        # exploration noise stays where it starts (1.0 fresh, or the checkpoint's)
+        model.policy.log_std.requires_grad_(False)
+    print(f"algo={algo} shaping={use_shaping} lr={lr} lr_decay={lr_decay} "
+          f"target_kl={target_kl} freeze_log_std={freeze_log_std}")
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = [EpisodeLogger(csv_path), ActionStdLogger()]
@@ -183,9 +210,19 @@ if __name__ == "__main__":
     parser.add_argument("--target-range", type=float, nargs=2, default=[6.0, 8.0],
                          metavar=("MIN_M", "MAX_M"),
                          help="landing zone (m from release); 10.9 12.9 is a real good length")
+    parser.add_argument("--algo", default="ppo", choices=["ppo", "sac"])
+    parser.add_argument("--no-shaping", action="store_true",
+                         help="task reward only; shaping is policy-invariant, so this is safe on --resume-from")
+    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate (SB3 default 3e-4)")
+    parser.add_argument("--lr-decay", action="store_true", help="decay the learning rate linearly to 0")
+    parser.add_argument("--target-kl", type=float, default=None,
+                         help="PPO: stop an update's epochs early once KL to the old policy passes this")
+    parser.add_argument("--freeze-log-std", action="store_true",
+                         help="PPO: keep exploration noise fixed instead of learning it")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
         args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale,
-        args.checkpoint_every, args.target_range)
+        args.checkpoint_every, args.target_range, args.algo, not args.no_shaping, args.lr,
+        args.lr_decay, args.target_kl, args.freeze_log_std)

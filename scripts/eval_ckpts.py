@@ -1,9 +1,10 @@
-"""Evaluate every periodic checkpoint of one run10 run; write ckpt_eval.json in its log dir.
+"""Evaluate every periodic checkpoint of one run; write ckpt_eval.json in its log dir.
 
 The deterministic delivery decides "best": legal and in zone first, then
 release speed. Stochastic stats are recorded alongside so a lucky
 deterministic point can be told apart from a policy that has the zone.
   python scripts/eval_ckpts.py --run throw_ppo_run10_a260_s075_e0003_2 --episodes 50
+  python scripts/eval_ckpts.py --run throw_ppo_run11_a240_s150_e0003_0 --target-range 10.9 12.9
 """
 import argparse
 import json
@@ -15,13 +16,14 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC
 
 from envs.throw_env_gym import ThrowEnvGym
 from scripts.eval_checkpoint import rollout, row
 
 ROOT = Path(__file__).resolve().parent.parent
-TAG_RE = re.compile(r"throw_ppo_run10_a(?P<ang>[\d.]+)_s(?P<s100>\d+)_e\d+_\d+$")
+# throw_ppo_run10_a260_s075_e0003_2, throw_sac_run12_..., with optional suffixes
+TAG_RE = re.compile(r"throw_(?P<algo>ppo|sac)_run\d+\w*?_a(?P<ang>[\d.]+)_s(?P<s100>\d+)_")
 
 
 def main():
@@ -30,11 +32,13 @@ def main():
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--speed-weight", type=float, default=0.5)
     parser.add_argument("--root", default=str(ROOT), help="dir holding checkpoints/ and logs/")
+    parser.add_argument("--target-range", type=float, nargs=2, default=[6.0, 8.0])
     args = parser.parse_args()
 
     m = TAG_RE.match(args.run)
     if not m:
-        sys.exit(f"not a run10 run name: {args.run}")
+        sys.exit(f"not a sweep run name: {args.run}")
+    algo = SAC if m["algo"] == "sac" else PPO
     ang, scale = float(m["ang"]), int(m["s100"]) / 100.0
     root = Path(args.root)
     ckpt_dir = root / "checkpoints" / f"{args.run}_ckpts"
@@ -47,10 +51,11 @@ def main():
         sys.exit(f"no checkpoints for {args.run}")
 
     env = ThrowEnvGym(speed_weight=args.speed_weight, release_mode="fixed_angle",
-                      release_angle_deg=ang, actuator_scale=scale)
+                      release_angle_deg=ang, actuator_scale=scale,
+                      target_range=tuple(args.target_range))
     results = []
     for p in paths:
-        model = PPO.load(p)
+        model = algo.load(p)
         det = row(rollout(env, model, True, 0), env)
         stoch = [row(rollout(env, model, False, 1000 + i), env) for i in range(args.episodes)]
         good = [r for r in stoch if r["good"]]
@@ -67,7 +72,7 @@ def main():
     good_det = [r for r in results if r["deterministic"]["good"]]
     best = max(good_det, key=lambda r: r["deterministic"]["speed_kmh"]) if good_det else None
     out = {"run": args.run, "release_angle_deg": ang, "actuator_scale": scale,
-           "checkpoints": results, "best": best}
+           "target_range": args.target_range, "checkpoints": results, "best": best}
     (root / "logs" / args.run).mkdir(parents=True, exist_ok=True)
     (root / "logs" / args.run / "ckpt_eval.json").write_text(json.dumps(out, indent=1))
 

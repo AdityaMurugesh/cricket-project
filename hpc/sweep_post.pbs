@@ -1,0 +1,29 @@
+#!/bin/bash
+# Post-processing for any sweep once its training jobs have finished: every
+# periodic checkpoint of every run evaluated (ckpt_eval.json in each log dir),
+# plus the reward-term buckets. run10_post.pbs is the run10-only original.
+#   qsub -v PREFIX=throw_ppo_run11,ZONE="10.9 12.9" hpc/sweep_post.pbs
+#PBS -N cricket_sweep_post
+#PBS -q cpuq
+#PBS -l select=1:ncpus=12:mem=24gb
+#PBS -l walltime=03:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${PREFIX:?pass a run prefix, e.g. throw_ppo_run11}"
+ZONE="${ZONE:-6.0 8.0}"
+git -C "$PBS_O_WORKDIR" rev-parse --short HEAD
+
+echo "=== reward terms ==="
+SWEEP=$(echo "$PREFIX" | sed -E 's/^throw_[a-z]+_//')
+python scripts/reward_terms.py summarize logs/${PREFIX}_* --out results/${SWEEP}/reward_terms \
+    --target-range ${ZONE} | tail -1
+
+echo "=== periodic checkpoints ==="
+ls -d checkpoints/${PREFIX}_*_ckpts 2>/dev/null \
+    | sed -E 's#checkpoints/(.*)_ckpts#\1#' \
+    | xargs -P 12 -I{} sh -c "python scripts/eval_ckpts.py --run {} --episodes 50 --target-range ${ZONE} > logs/{}/ckpt_eval.log 2>&1; echo \"{} exit \$?\""
+echo "=== done ==="
