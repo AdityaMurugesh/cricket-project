@@ -1,15 +1,14 @@
 """The equifinal window predicts robustness to release-timing jitter (run15).
 
 x: good % under 12 ms jitter predicted from the noise-free delivery alone --
-P(early edge <= delta <= late edge), delta ~ N(0, 12 ms), from scripts/equifinality.py's
-in-zone window around the actual release. y: good % measured over 200 jittered
-episodes (scripts/noise_robustness.py). Final policies whose noise-free delivery is good.
+scripts/equifinality.py's p_jitter_12ms, the N(0, 12 ms)-weighted share of release
+instants within +/-40 ms whose landing is in the zone. y: good % measured over 200
+jittered episodes (scripts/noise_robustness.py). Every final policy that releases.
 
     python scripts/plot_window_vs_noise.py results/run15
 """
 import csv
 import sys
-from math import erf, sqrt
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,11 +17,6 @@ import numpy as np
 SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 TRAIN = {"none": ("#2a78d6", "trained without noise"), "timing": ("#eb6834", "trained with timing jitter"),
          "torque": ("#1f9e89", "trained with torque noise"), "both": ("#8a5cd0", "trained with both")}
-SD_MS = 12.0
-
-
-def phi(x):
-    return 0.5 * (1 + erf(x / sqrt(2)))
 
 
 def key(run):
@@ -35,8 +29,8 @@ def main():
     win = {}
     for f in sorted((d / "equifinality").glob("*.csv")):
         r = list(csv.DictReader(open(f)))[-1]
-        if float(r["window_ms"]) > 0:
-            win[key(r["run"])] = (float(r["window_early_ms"]), float(r["window_late_ms"]))
+        if r["land_x"]:
+            win[key(r["run"])] = 100 * float(r["p_jitter_12ms"])
     meas = {}
     for f in sorted((d / "noise_robustness").glob("*.csv")):
         for r in csv.DictReader(open(f)):
@@ -44,10 +38,9 @@ def main():
                 meas[key(r["run"])] = float(r["good_pct"])
     fig, ax = plt.subplots(figsize=(5.6, 5.0), facecolor=SURFACE)
     xs, ys = [], []
-    for k, (e, l) in sorted(win.items()):
+    for k, x in sorted(win.items()):
         if k not in meas:
             continue
-        x = 100 * (phi(l / SD_MS) - phi(-e / SD_MS))
         xs.append(x)
         ys.append(meas[k])
         ax.scatter(x, meas[k], s=56, color=TRAIN[k[0]][0], edgecolor=SURFACE, linewidth=2, zorder=3)
@@ -57,7 +50,7 @@ def main():
     ax.set_title("the equifinal window predicts robustness to jitter", loc="left", color=INK, fontsize=10.5, pad=22)
     ax.text(0, 1.02, f"{len(xs)} final policies: r = {r:.2f}, mean error {mae:.1f} points",
             transform=ax.transAxes, color=INK_2, fontsize=8.5)
-    ax.set_xlabel("predicted from the noise-free delivery's release window (%)", color=INK_2)
+    ax.set_xlabel("predicted from the noise-free landing curve (%)", color=INK_2)
     ax.set_ylabel("measured, 200 episodes with 12 ms jitter (%)", color=INK_2)
     ax.set_xlim(-3, 103)
     ax.set_ylim(-3, 103)

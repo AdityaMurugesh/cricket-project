@@ -326,3 +326,21 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Caveats: 2 seeds per cell, only pairs where both runs release, and 1.0x is thin (1–3 pairs).
   - Next: equifinality windows of the noise-trained policies (do they widen the in-zone release
     window, or only aim at the zone centre?), and more seeds if the meeting wants a firm claim.
+- **Equifinality explains the noise robustness** (`scripts/equifinality.py` on every run15
+  checkpoint, `hpc/equifinality.pbs` jobs 28759/28774/28787; figure
+  `results/run15/window_vs_noise.png`):
+  - New measure `p_jitter_12ms`: from the *noise-free* deterministic delivery, the share of
+    release instants within ±40 ms that land in the zone, weighted by N(0, 12 ms). It predicts the
+    measured good % under 12 ms jitter for all 45 released final policies with **r = 0.98, mean
+    error 4.5 points**.
+  - The older "unbroken window" measure gave r = 0.95 for policies with a good noise-free
+    delivery, but under-predicted several noise-trained ones (in-zone release instants need not
+    be one stretch around the release).
+  - Noise training does not widen the window across the board (median margins unchanged). At the
+    fast angles it **flattens the landing curve at release**, |dLanding/dt| in m per 10 ms:
+    260°: 4.5 → 2.5 (timing) and 4.5 → 3.0 (both); 250°: 1.7 → 1.5. At 230–240° the curve is already
+    flat (~0.5) and nothing changes.
+  - For the meeting: the policy's robustness to motor noise is a property of its noise-free
+    trajectory, its equifinality (Müller & Loosch), and training under noise selects flatter
+    trajectories where that matters. Caveat: legality is taken from the actual release, not each
+    hypothetical one.
