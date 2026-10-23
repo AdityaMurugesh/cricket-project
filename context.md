@@ -396,15 +396,152 @@ What it gives now:
   - hand tracked through release in 3 deliveries (+1 lower bound):
     peak hand/wrist MARKER speed 68.4 +/- 7.7 km/h (60.5-76.0); no ball
     marker, so ball speed is not measured
-  - approach speed 11.4 +/- 1.0 km/h over all 11 (short indoor run-up)
+  - the whole RUN-UP, label-free, all 11 (`mocap/runup.py`, added
+    2026-10-07): starts from standstill ~2.7 s before release, ~6 m,
+    peak 13.6 km/h, ~11 km/h just before the delivery; ~4 running steps
+    with a clear body bob, take-off ~0.72 s and top of a ~0.23 m jump
+    ~0.48 s before release, the same in every delivery. Legs and pelvis
+    are NOT measured -- this is whole-body (marker median) motion.
+  - release times of the 7 video-timed deliveries were re-read on
+    2026-10-07; the first reading was up to 0.6 s early (T3b, T6b had
+    picked the gather). The jump timing now agrees with the 4 hand-timed
+    ones, which is the cross-check (`mocap/delivery.py` DELIVERIES).
   - release arm angle ~300 deg in ThrowEnv's convention (vs 270 vertical)
   - human elbow extension, HUMAN COMPARISON ONLY: T3a 5.3 deg endpoint /
     5.5 max; T4b -2.0 / 0.0. Legality for the robot stays simulated.
-  - reference motion for the ARM only (`reference_motion_T3a/T4b.npz`,
-    `scripts/demo_mocap.py`): trunk/leg style term NOT possible from this
-    export. Played on bowler.xml at ~300 deg the ball lands ~3 m -- the
-    same "late release throws into the ground" seen in ThrowEnv; the human
-    gets distance from wrist and trunk, which the model lacks.
+  - reference motion (`reference_motion_T3a/T4b.npz`,
+    `scripts/demo_mocap.py [--view]`) now plays the whole run-up: measured
+    travel, step bob and jump drive the root; the legs are ANIMATED (run
+    cycle locked to the measured steps), the arm is measured only over the
+    delivery. The replay draws every exported marker as an orange dot
+    (`markers_<D>.npz`, same frame) so measured vs animated is visible --
+    added after the user said the run-up "seems generated": the legs ARE
+    generated (T3a has one foot for 0.56 s of the run-up, T4b none; no
+    delivery has both feet). Trunk/leg style term still NOT possible from
+    this export.
+    Release is played exactly as before (T3a 58.8, T4b 64.1 km/h). Played
+    on bowler.xml at ~300 deg the ball lands ~3 m -- the same "late
+    release throws into the ground" seen in ThrowEnv; the human gets
+    distance from wrist and trunk, which the model lacks.
+  - FULL-BODY 3D REPLAY (2026-10-07, user asked for "a realistic full 3d
+    humanoid ... ensure the markers fit them", no relabelling possible):
+    LocoMuJoCo's Hamner-2010 skeleton (`mocap/skeleton3d.py`, assets in
+    `assets/skeleton3d/`, ball joints for hips/shoulders/lumbar) fitted to
+    the raw markers (`mocap/fit3d.py`, `scripts/fit_mocap3d.py`, minutes per
+    delivery; replay `scripts/demo_mocap3d.py --view`). Identity is NOT from
+    QTM labels: tracks attach to the bone they move rigidly with, near one
+    of its landmarks, alternating with the pose solve. Hard-won rules (each
+    fixed a visible failure): a bone with no marker of its own (or further
+    down the limb) cannot take a track by bending to it; leg tracks stay on
+    their side of the pelvis; rigid partners decide first; no upper-arm
+    marker within 8 cm of the shoulder (acromion slides on the scapula,
+    which the rigid torso lacks); prefer the bone that needs least pose
+    change; floor + measured-step foot contacts + level pelvis; gap-fill
+    limbs <= 0.8 s; 12 Hz joint low-pass, 20 Hz on the bowling arm (QTM's re-identification swaps the
+    exported marker set wholesale, e.g. at -1170 and -600 ms in T3a). The
+    markers worn do NOT match the AIM model: the video shows markers down
+    the vest front. Validated against camera-3 video (scratch compare
+    script), incl. the ~45-60 deg lateral trunk lean at release -- which I
+    first wrongly called a fit error. Legs are mostly prior-driven (few leg markers;
+    T3a does have both feet briefly) and drawn translucent.
+    Robustness, added last: the first match is judged on run-up frames only
+    (RUNUP_JUDGE_S; rescued T1a 4->12, T5b 2->10 markers/frame), with an
+    automatic retry judging whole tracks when a fit uses < 60 % of the
+    visible markers (fit_mocap3d.best_fit; that version cost T4a 8->4);
+    identify.py's arm/spine tracks are pinned only in T1a/T2b/T3a/T4b. Do
+    NOT use them elsewhere, even as hints: with the bowling hand lost before
+    release, identify.py's "fastest point near release" can be the FRONT
+    (left) arm pulling down -- in T5a its "bowling wrist" sits on the left.
+    So in the other 7 deliveries the bowling arm around release has no
+    marker and is prior-driven (translucent; the replay shows no ball and
+    the report no hand speed there).
+    Front arm and head (2026-10-08, user: "why is the left arm not moving
+    ... head markers as well"): both were unplaced in the delivery. The
+    guessed left arm starts 20-40 cm off its markers so none latch on, and
+    the head was welded to the torso. Added a neck (ball joint, head body)
+    and `data/mocap/labels.json` ({delivery: {track id: "left elbow"}},
+    parts in fit_mocap3d.PART_BONES), whose tracks are pinned to those
+    bones. Labels for T3a/T1a/T2b/T4b were worked out without the user:
+    the front-arm chain is shoulder -> upper arm -> elbow -> wrist, spaced
+    ~0.17 / 0.13-0.18 / 0.25 m, each neighbouring pair rigid (sd <= ~15 mm),
+    arm-high in the gather and hip-high at release; head markers are a
+    rigid pair 13-19 cm apart above the shoulders, not rigid with the
+    torso. QTM's names inside the delivery window often group the chain
+    right but SWAP left/right (T1a and T4b call the front arm R_*), so
+    names are hints and rigidity decides. Labels that then fit badly were
+    dropped (T3a track 3 as head: 11 cm; T4b 67 as forearm: 16 cm).
+    Overnight 2026-10-08 (user: "whatever you can run overnight just do
+    it"): all 11 deliveries labelled the same way (labels.json), refitted,
+    each label's FINAL-pose residual checked, and every delivery checked
+    against camera 3. Lessons, each from a visible failure:
+      - in the run-up the bowler holds both arms against the body, so arm
+        and trunk markers look rigid together; trust rigidity only when the
+        pair also turns > 30 deg (pelvis markers sat on the arms in T3b, T6a)
+      - QTM's re-identification instants swap the markers behind a long
+        track (T4a, -750 ms: spacings jump 4-6 cm); a track that spans one
+        cannot be labelled whole -- leave it to the fit
+      - a label pins the track near ITS landmark (fit_mocap3d.PART_SITE,
+        fit3d.SITE_LABEL_M 4 cm): with any humerus landmark allowed, the
+        upper-arm markers went in front, the arm rolled half a turn and
+        the elbow jammed at -15 deg with the hand 28-42 cm off (T4a)
+      - an elbow/knee at its straight stop with the markers beyond > 4 cm
+        off is a wrong branch: fit3d.unjam_limbs restarts it bent (T3a's
+        left foot 39 -> 0.4 cm; T1a/T5a wrists)
+      - a shin with <= 1 marker hangs (T3b's back leg kicked up behind)
+      - a label that fits badly is wrong: drop it (T5a 3 is a vest marker,
+        not the acromion: 30 cm; second elbow markers ~11 cm from the
+        lateral one conflict with HLE -- T4a 8, T6a 1 left unlabelled)
+    T6a's bowling ELBOW is tracked through release (hand not). T1a's fitted
+    hand speed went 69.4 -> 61.0 km/h (its wrist markers: 60.5; T1a has
+    no hand marker, so that number leans on the wrist prior); T2b's went
+    64.8 -> 87.8 (its hand marker, same +/-10 ms difference, 80.0 at release:
+    the new fit follows the marker's speed profile, the old one undershot).
+    `scripts/label_mocap.py` makes a camera + 3D sheet for asking a human.
+    Second night 2026-10-09 (user: "half of them are weird ... make it
+    perfect, don't commit"): the 7 deliveries without a tracked release
+    released with the arm hanging -- "not bowling". Now LIMB TEMPLATES
+    (fit_mocap3d.limb_templates -> data/mocap/limb_template.npz): per arm and
+    leg, the mean fitted pose at each instant from release over the
+    deliveries where that limb was tracked then (bowling arm: the 4 tracked
+    releases; spread between them 10-40 deg = ~20 ms of timing). Where a
+    limb lacks markers (fit3d.limb_seen) inside fit3d.TEMPLATE_S it is held
+    to the template (TEMPLATE_SD 15 deg, ramped over 10 rows) and is not
+    linearly infilled (a straight-line fill through the arm's circle is
+    wrong). Built from the fits on disk, so run fit_mocap3d.py twice from
+    scratch. Drawn translucent; the video caption says so. Also: run-up
+    trunk with < 3 markers held near a 15 deg lean (T2a started 50 deg
+    sideways); thigh markers must have median height >= 0.46 m (T4b's
+    right-shin cluster and single shin markers in T2b/T4a/T6a were on the
+    femur, freeing the knee: splayed and kicking legs). T4a's labels 0 and 2
+    (19 frames of evidence) were wrong and pulled the trunk; its post-release
+    trunk tracks after the -110 ms QTM swap are labelled instead.
+    Every delivery was checked again on run-up and delivery strips vs camera.
+    T1a still leans 40-60 deg early in the run-up; its own chest column
+    says ~38 deg at -1.5 s, so some of it is real.
+    Fitted hand speeds at release after this night: T1a 66.9, T2b 81.4,
+    T3a 69.6, T4b 68.5 km/h (model grip point; not measurements -- the
+    marker speeds in REPORT.md are the numbers to quote).
+    Inner elbow (2026-10-11): the static trial's camera-3 frame shows a
+    marker on the inside of each elbow, and the user's Qualisys Sports
+    Marker Set PDF is NOT the set worn (the video matches IOR: 5-6 spine
+    markers + 2 PSIS on the belt, 2 sternum markers). New label part
+    "inner elbow" -> HME. Test before using it: the track must sit LEVEL
+    with the lateral elbow marker along the humerus (shoulder = fitted joint
+    centre), ~11 cm across. T6a track 1 passes (+0.2 cm along, 11.0 across,
+    sd 0.4 cm over 294 frames through release) and is labelled: upper-arm
+    roll changed ~10 deg (max 19) in the last 0.5 s, right-wrist p90
+    residual 5.4 -> 2.7 cm, elbow angle unchanged (no forearm marker after
+    -1.25 s). T4a track 8 FAILS (+6.7 cm up the bone, its wrist distance
+    varies with flexion): it stays a free humerus marker.
+    To refresh: `python scripts/fit_mocap3d.py` (~45-60 min), then
+    `python scripts/mocap_process.py`, then check each delivery with
+    `scripts/compare_mocap3d_video.py`. Nothing of the mocap work is
+    committed; assets/skeleton3d/ holds LocoMuJoCo/OpenSim meshes -- check
+    their licence before pushing to the public repo.
+  - bowler.xml leg joints were wrong until 2026-10-07: `ref` offsets made
+    the delivery stride draw as straight overlapping legs, and the hinge
+    axis bent the legs backwards. Fixed (axis 0 -1 0, no ref); purely
+    visual, demo_bowler.py's numbers are unchanged.
 
 ## On LocoMuJoCo
 Checked 2026-09-16, before trying to use it to fix the bowling action.
