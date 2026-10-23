@@ -40,6 +40,8 @@ def load(name, replay_dir):
         "frame_skip": int(z["frame_skip"]),
         "label": str(z["label"]),
         "recorded": json.loads(str(z["outcome"])),
+        # older replays (run10) were all aimed at 6-8 m
+        "zone": tuple(float(x) for x in z["target_range"]) if "target_range" in z.files else (6.0, 8.0),
     }
 
 
@@ -47,7 +49,7 @@ def replay(rec, viewer=None, display=None, slow=1.0, hold_s=1.5):
     """Simulate in this delivery's own env (its actuator budget); mirror the state
     onto the viewer's display model, which shares the geometry."""
     env = ThrowEnv(release_mode="fixed_angle", release_angle_deg=rec["angle"],
-                   actuator_scale=rec["scale"], speed_weight=0.5)
+                   actuator_scale=rec["scale"], speed_weight=0.5, target_range=rec["zone"])
     env.reset()
     dt = env.model.opt.timestep
     status = "swinging"
@@ -95,7 +97,9 @@ def overlay(viewer, rec, status, info):
         (mujoco.mjtFontScale.mjFONTSCALE_150, mujoco.mjtGridPos.mjGRID_TOPLEFT,
          rec["label"], f"actuator budget {rec['scale']:g}x | release fixed at {rec['angle']:.0f} deg"),
         (mujoco.mjtFontScale.mjFONTSCALE_150, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
-         status, "target zone: red box, 6-8 m | close the window to stop"),
+         status, (f"target: {rec['zone'][0]:g}-{rec['zone'][1]:g} m from release"
+                  + (" (good length, shaded on the pitch)" if rec["zone"][0] > 10 else " (red box)")
+                  + " | close the window to stop")),
     ])
 
 
