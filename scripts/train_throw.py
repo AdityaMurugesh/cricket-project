@@ -91,10 +91,11 @@ class EpisodeLogger(BaseCallback):
 def make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
              speed_weight, gamma, illegal_penalty, release_mode, release_latch,
              release_angle, actuator_scale, target_range=(6.0, 8.0), use_shaping=True,
-             resolve_at_release=False):
+             resolve_at_release=False, timeout_terminal=False):
     def _init():
         # shaping gamma must equal PPO gamma
         return ThrowEnvGym(use_shaping=use_shaping, resolve_at_release=resolve_at_release,
+                           timeout_terminal=timeout_terminal,
                            swing_weight=swing_weight,
                            straight_arm_weight=straight_arm_weight,
                            release_window_deg=tuple(release_window),
@@ -115,11 +116,13 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
         speed_weight, gamma, illegal_penalty, release_mode, release_latch,
         release_angle, actuator_scale, checkpoint_every=0, target_range=(6.0, 8.0),
         algo="ppo", use_shaping=True, lr=3e-4, lr_decay=False, target_kl=None,
-        freeze_log_std=False, resolve_at_release=False):
+        freeze_log_std=False, resolve_at_release=False,
+        timeout_terminal=False):
     vec_env = DummyVecEnv([
         make_env(swing_weight, straight_arm_weight, release_window, max_release_elbow,
                  speed_weight, gamma, illegal_penalty, release_mode, release_latch,
-                 release_angle, actuator_scale, target_range, use_shaping, resolve_at_release)
+                 release_angle, actuator_scale, target_range, use_shaping, resolve_at_release,
+                 timeout_terminal)
         for _ in range(n_envs)])
     Algo = SAC if algo == "sac" else PPO
     if resume_from:
@@ -153,7 +156,7 @@ def run(total_timesteps, n_envs, log_dir, model_path, seed, ent_coef, resume_fro
         model.policy.log_std.requires_grad_(False)
     print(f"algo={algo} shaping={use_shaping} lr={lr} lr_decay={lr_decay} "
           f"target_kl={target_kl} freeze_log_std={freeze_log_std} "
-          f"resolve_at_release={resolve_at_release}")
+          f"resolve_at_release={resolve_at_release} timeout_terminal={timeout_terminal}")
 
     csv_path = Path(log_dir) / "episodes.csv"
     callback = [EpisodeLogger(csv_path), ActionStdLogger()]
@@ -225,10 +228,13 @@ if __name__ == "__main__":
                          help="PPO: keep exploration noise fixed instead of learning it")
     parser.add_argument("--resolve-at-release", action="store_true",
                          help="simulate the ball's flight inside the releasing step and end the episode there")
+    parser.add_argument("--timeout-terminal", action="store_true",
+                         help="treat the time limit as a failed delivery (terminal), not a bootstrapped cut-off")
     args = parser.parse_args()
     run(args.timesteps, args.n_envs, args.log_dir, args.model_path, args.seed, args.ent_coef,
         args.resume_from, args.swing_weight, args.straight_arm_weight, args.release_window,
         args.max_release_elbow, args.speed_weight, args.gamma, args.illegal_penalty,
         args.release_mode, not args.no_release_latch, args.release_angle, args.actuator_scale,
         args.checkpoint_every, args.target_range, args.algo, not args.no_shaping, args.lr,
-        args.lr_decay, args.target_kl, args.freeze_log_std, args.resolve_at_release)
+        args.lr_decay, args.target_kl, args.freeze_log_std, args.resolve_at_release,
+        args.timeout_terminal)

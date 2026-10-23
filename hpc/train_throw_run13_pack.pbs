@@ -36,22 +36,25 @@ ENT="${ENT:-0.003}"
 ANGLES="${ANGLES:-230:240:250:260}"
 STEPS="${STEPS:-2000000}"
 ZONE="10.9 12.9"
+# VARIANT names the run (run13, run13b_noshape, ...); EXTRA adds train_throw.py flags
+VARIANT="${VARIANT:-run13}"
+EXTRA="${EXTRA:-}"
 S100=$(awk -v s="$SCALE" 'BEGIN { printf "%03d", s * 100 }')
 E=$(echo "$ENT" | tr -d '.')
 
-echo "=== run13 pack (resolve at release): zone=${ZONE} actuator_scale=${SCALE} seed=${SEED} ent_coef=${ENT} steps=${STEPS} angles=${ANGLES} ==="
+echo "=== run13 pack (resolve at release): zone=${ZONE} actuator_scale=${SCALE} seed=${SEED} ent_coef=${ENT} steps=${STEPS} angles=${ANGLES} variant=${VARIANT} extra=${EXTRA} ==="
 git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
 
 run_one() {
     local ang=$1 tag="a${1}_s${S100}_e${E}_${SEED}"
-    local run="throw_ppo_run13_${tag}"
+    local run="throw_ppo_${VARIANT}_${tag}"
     mkdir -p "logs/${run}"
     {
         python scripts/train_throw.py --timesteps "${STEPS}" --n-envs 8 \
             --log-dir "logs/${run}" --model-path "checkpoints/${run}" \
             --seed "${SEED}" --ent-coef "${ENT}" --speed-weight 0.5 \
             --release-mode fixed_angle --release-angle "${ang}" --actuator-scale "${SCALE}" \
-            --target-range ${ZONE} --resolve-at-release --checkpoint-every 250000 \
+            --target-range ${ZONE} --resolve-at-release --checkpoint-every 250000 ${EXTRA} \
         && python scripts/summarize_run.py "logs/${run}/episodes.csv" --buckets 10 \
             --target-range ${ZONE} \
         && python scripts/eval_checkpoint.py --model-path "checkpoints/${run}" \
@@ -67,3 +70,8 @@ for ang in ${ANGLES//:/ }; do
 done
 wait
 echo "=== all angles finished ==="
+
+# run13 (shaping on, timeout bootstrapped) stalled: every policy stopped swinging
+# within 0.5M steps. Follow-ups:
+#   qsub -v SCALE=1.5,SEED=0,ANGLES=240:250,VARIANT=run13b_noshape,EXTRA=--no-shaping hpc/train_throw_run13_pack.pbs
+#   qsub -v SCALE=1.5,SEED=0,ANGLES=240:250,VARIANT=run13b_toterm,EXTRA=--timeout-terminal hpc/train_throw_run13_pack.pbs

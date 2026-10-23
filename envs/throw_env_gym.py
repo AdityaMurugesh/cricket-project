@@ -13,6 +13,7 @@ class ThrowEnvGym(gym.Env):
 
     def __init__(self, frame_skip=5, use_shaping=True, shaping_gamma=0.9999,
                  swing_weight=30.0, straight_arm_weight=6.0, resolve_at_release=False,
+                 timeout_terminal=False,
                  **throw_env_kwargs):
         super().__init__()
         self._env = ThrowEnv(**throw_env_kwargs)
@@ -28,6 +29,9 @@ class ThrowEnvGym(gym.Env):
         # ball. With this on, the flight is simulated inside the releasing step and
         # the episode ends there: same physics, same reward, no post-release steps.
         self.resolve_at_release = resolve_at_release
+        # Holding the ball to the time limit is a failed delivery, not a cut-off:
+        # with this on, a timeout is terminal and SB3 does not bootstrap past it.
+        self.timeout_terminal = timeout_terminal
         self.observation_space = spaces.Box(low=-_OBS_BOUND, high=_OBS_BOUND, dtype=np.float32)
         # fixed_angle mode has no release decision, so torques only
         n_act = 2 if self._env.release_mode == "fixed_angle" else 3
@@ -93,7 +97,8 @@ class ThrowEnvGym(gym.Env):
             self._episode_len += 1
 
             # a spent delivery is a real outcome, not a cut-off
-            terminated = bool(self._env.landed or self._env.spent)
+            terminated = bool(self._env.landed or self._env.spent
+                              or (self.timeout_terminal and info["timeout"]))
             truncated = bool(info["timeout"] and not terminated)
             if terminated or truncated:
                 break
@@ -106,7 +111,8 @@ class ThrowEnvGym(gym.Env):
                 self._episode_len += 1
                 if done:
                     break
-            terminated = bool(self._env.landed or self._env.spent)
+            terminated = bool(self._env.landed or self._env.spent
+                              or (self.timeout_terminal and info["timeout"]))
             truncated = bool(info["timeout"] and not terminated)
 
         self._episode_reward += total_reward
