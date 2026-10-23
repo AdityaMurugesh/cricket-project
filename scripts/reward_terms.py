@@ -47,7 +47,7 @@ def decompose(r, zone):
         t["miss"], cls = reward, ("short" if land is not None and land < zone[0] else "long")
     else:
         t["illegal"], t["miss"] = -ILLEGAL_PENALTY, reward + ILLEGAL_PENALTY
-        cls = "no_release" if land is None else "illegal"
+        cls = "no_release" if land is None else "illegal_cls"
     return t, cls, reward
 
 
@@ -61,7 +61,7 @@ def summarize(run_dirs, out_dir, buckets, zone):
         steps_end = int(rows[-1]["timesteps"])
         acc = [dict(n=0, reward=0.0, speed=0.0, n_speed=0, land=0.0, n_land=0, ext=0.0, n_ext=0,
                     pace_err=0.0, **dict.fromkeys(TERMS, 0.0),
-                    **dict.fromkeys(["good", "short", "long", "illegal", "no_release"], 0))
+                    **dict.fromkeys(["good", "short", "long", "illegal_cls", "no_release"], 0))
                for _ in range(buckets)]
         for r in rows:
             b = acc[min(buckets - 1, int(int(r["timesteps"]) * buckets / (steps_end + 1)))]
@@ -93,7 +93,7 @@ def summarize(run_dirs, out_dir, buckets, zone):
                 n = max(b["n"], 1)
                 w.writerow([i, int((i + 1) * (steps_end + 1) / buckets), b["n"],
                             *(round(b[k] / n, 4) for k in ["reward", *TERMS]),
-                            *(round(100 * b[k] / n, 2) for k in ["good", "short", "long", "illegal", "no_release"]),
+                            *(round(100 * b[k] / n, 2) for k in ["good", "short", "long", "illegal_cls", "no_release"]),
                             round(b["speed"] / b["n_speed"], 2) if b["n_speed"] else "",
                             round(b["land"] / b["n_land"], 3) if b["n_land"] else "",
                             round(b["ext"] / b["n_ext"], 2) if b["n_ext"] else "",
