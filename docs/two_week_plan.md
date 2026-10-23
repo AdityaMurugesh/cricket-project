@@ -99,3 +99,29 @@ for run13.
     - (c) add the ball state and a released flag to the observation.
 - Replication submitted: no-shaping vs control on all 10 rescued run11 checkpoints, seed 1
   (jobs 27060–27067, plus 2 more queued behind the per-user job limit).
+- **Replication (seed 1, all 10 rescued checkpoints, jobs 27060–27067, 27216, 27217): the no-shaping
+  fix does not hold up.** The table gives good deliveries (%) under normal noise at the end, and
+  where the deterministic delivery lands.
+
+  | source | control | no shaping |
+  |---|---|---|
+  | a230 1.0x s2 | 0% (9.0 m) | 0% (3.4 m, 18 km/h) |
+  | a230 1.5x s0 | 0% (5.0 m) | 0% (no landing) |
+  | a230 1.5x s1 | 0% | 0% (no landing) |
+  | a230 1.5x s2 | 0.5% (9.4 m) | 0% (14.6 m) |
+  | a240 1.5x s0 | 5.5% (10.4 m) | 1% (15.7 m) |
+  | a240 1.5x s2 | 0% (6.0 m) | 0% (18.2 m) |
+  | a250 1.5x s0 | 0% (7.3 m) | 9.5% (14.0 m) |
+  | a250 1.5x s1 | 0% (7.6 m) | 4.5% (14.2 m) |
+  | a250 1.5x s2 | 0% (6.8 m) | 36.5% (10.6 m) |
+  | a260 1.5x s1 | 0% (5.6 m) | 74.5% (13.5 m, 53 km/h) |
+
+  - **Revised reading:** the shaping sets the *direction* of the drift but is not the whole cause.
+    - With shaping (control), runs drift slow and short: 10 out of 10, again.
+    - Without it, they mostly drift fast and long (14–18 m, 41–53 km/h) and still leave the zone.
+  - The seed-0 result (2 of 3 kept) was partly luck. Either way, PPO isn't holding a narrow target.
+  - Next suspects:
+    - the reward cliff at the zone edges (+1 + pace inside, −distance just outside);
+    - PPO itself, which the SAC pilot tests.
+  - Not yet checked: what "no landing" means in the two no-shaping runs (no release, or still in
+    the air at timeout).
