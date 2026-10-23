@@ -33,7 +33,7 @@ output is, and what it showed. Job IDs are PBS jobs on the IITD-AD cluster (`cpu
 |---|---|---|
 | 23 Oct (running) | run11 checkpoint eval: finds the best checkpoint of each run (job 27040) | `logs/throw_ppo_run11_*/ckpt_eval.json` |
 | 23 Oct (running) | SAC pilot: 240° 1.5x and 230° 1.0x, 2 seeds each, 1.5M steps (jobs 27045–27048) | `logs/throw_sac_run12_*` |
-| 23 Oct (running) | run12 resume diagnosis: from run11 peak checkpoints, 4 arms (control / no shaping / stable lr + target_kl / frozen noise) | `logs/throw_ppo_run12{arm}_*` |
+| 23 Oct (running) | run12 resume diagnosis: 4 arms (control / no shaping / stable lr + target_kl / frozen noise) x 3 run11 peak checkpoints, 4M steps each (jobs 27049�27051, about 40 min) | `logs/throw_ppo_run12{arm}_*` |
 | 24–25 Oct | Read run12 and SAC. Whichever arm keeps the zone names the cause. | figures in `results/run12/` |
 | 26–27 Oct | run13: a full sweep with the fix, from scratch, on the good length (and on 6–8 m, for comparison with run10) | `logs/throw_*_run13_*` |
 | 28–29 Oct | Equifinality script (`scripts/equifinality.py`): Reiser's ±40 ms window and the in-zone release window for every checkpoint. Measures whether windows widen or narrow over training. | `results/*/equifinality.csv` |
