@@ -9,6 +9,7 @@
 #   frozen   exploration noise frozen at the checkpoint's level (tests the
 #            shrinking-noise / noise-robustness explanations)
 #   qsub -v SRC=throw_ppo_run11_a230_s100_e0003_2,CKPT=step_1000000_steps,SEED=0 hpc/train_throw_run12_resume.pbs
+# ARMS=noshape (colon-separated) runs a subset.
 #PBS -N cricket_run12_resume
 #PBS -q cpuq
 #PBS -l select=1:ncpus=4:mem=16gb
@@ -52,9 +53,14 @@ run_arm() {
     echo "$(date +%T) ${arm} exit $?"
 }
 
-run_arm control &
-run_arm noshape --no-shaping &
-run_arm stable --lr 1e-4 --lr-decay --target-kl 0.02 &
-run_arm frozen --freeze-log-std &
+ARMS="${ARMS:-control:noshape:stable:frozen}"
+for arm in ${ARMS//:/ }; do
+    case "$arm" in
+        control) run_arm control & ;;
+        noshape) run_arm noshape --no-shaping & ;;
+        stable)  run_arm stable --lr 1e-4 --lr-decay --target-kl 0.02 & ;;
+        frozen)  run_arm frozen --freeze-log-std & ;;
+    esac
+done
 wait
 echo "=== all arms finished ==="
