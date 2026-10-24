@@ -41,14 +41,16 @@ def replay(env, model, i0):
         if te or tr:
             break
     o = dict(info["outcome"])
-    q_ref = ref_at(env.ref, min(env.t, env.t_ref_release), env.m)[0]
+    q_ref = ref_at(env.ref, min(env.t, env.t_ref_last), env.m)[0]
     arm = np.array(env._arm_hist)
     return {"start_t": round(i0 / env.ref["rate"], 2), "end_t": round(env.t, 2),
             "released": o["released"], "why": o.get("why", ""),
             "speed_kmh": round(o["speed_m_s"] * 3.6, 1), "land_x": o["land_x"] and round(o["land_x"], 2),
+            "lateral_m": o.get("lateral_m") and round(o["lateral_m"], 2),
             "legal": o["legal"], "good": o["good"],
             "extension_deg": o["extension_deg"] and round(o["extension_deg"], 1),
             "release_height_m": o.get("release_height_m") and round(o["release_height_m"], 2),
+            "arm_out_of_plane_deg": o.get("arm_out_of_plane_deg") and round(o["arm_out_of_plane_deg"], 0),
             "arm_turned_deg": round(float(arm[-1] - arm.min()), 0),
             "mean_pose": round(float(np.mean(pose)), 3),
             "pelvis_err_m": round(float(np.linalg.norm(env.d.qpos[:3] - q_ref[:3])), 2)}

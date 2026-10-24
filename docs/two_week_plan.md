@@ -394,3 +394,22 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     3. "good" and the task reward ignore line.
     4. The run-up itself is a hunched shuffle (pose 0.4), not a run with a gather jump.
   - Fixes proposed to the user before any retraining.
+- **Stage-3 release rules fixed** (`envs/runup_bowl_env.py`, regression checks in section 8):
+  - Release window ±0.15 s around the captured release (was 0.6 s before to 0.3 s after).
+  - A release is a no ball unless the bowler is in a bowling position: pelvis within 20° and 15 cm of
+    the capture, and the upper arm within 50° of the bowling plane. The captured arm is at 41–44°
+    as it passes 250–270°, leaning away; the toppling policies were at 52–75°.
+  - Follow-through: the episode runs 0.3 s past release, tracking the captured follow-through. A fall
+    there voids the delivery. The task reward is paid at its end.
+  - Line: "good" needs |lateral| ≤ 0.5 m from the stump line, and the task distance is to the nearest
+    point of the length × line box.
+  - Re-scored under these rules, the old "good" policies give **0/8**: warm 65M falls, scratch final is
+    "off balance at release" every time.
+- **Stage 1 can't run the run-up either** (`checkpoints/runup_ppo_T3a_0.zip`, 10 starts): it falls
+  0.5–1.5 s after every start before 2.4 s. It only reaches release from the last 0.7 s. The 68%
+  "reached" in training came from those late starts.
+  - Cause found in the reference (T3a): feet penetrate the floor in 51–63% of frames (up to 5.4 cm),
+    and while in contact they slide at a median 1.1–1.4 m/s. A physics body can't follow a skating
+    reference, which matches the 1–4 m root drift.
+  - Options: clean the reference (lock stance feet, lift penetration), add a residual root force, or a
+    kinematic run-up with only the bowling arm physical (the v1 design). Decision with the user.

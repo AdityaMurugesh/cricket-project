@@ -14,6 +14,7 @@ Exits non-zero if anything fails. No torch needed unless --train is given.
      actuated; reward is 1 on the reference; open-loop PD falls (skipped
      without data/mocap/ref_T3a.npz)
   8. full bowler: captured arm angle at release, no ball never beats a release,
+     bowling position / line / follow-through rules,
      episodes start >= 1 s before release, the pelvis drift limit
 
     python scripts/check_regressions.py          # ~1 min
@@ -241,6 +242,45 @@ def main():
             why = info["outcome"]["why"] if te else None
             check(why == want and (not te or abs(info["task_reward"] - held) < 1e-9),
                   f"drift limit {drift_limit}: 1.5 m behind -> {why or 'carries on'} ({info['drift_m']:.2f} m)")
+        # a release is only a delivery from a bowling position, and must survive the follow-through
+        ri = ref["release_index"]
+        be.reset(seed=0)
+        oop = []
+        for i in range(ri + 1):    # out of plane where the captured arm passes 230-300 deg
+            be.d.qpos[:] = ref["qpos"][i]
+            mujoco.mj_kinematics(be.m, be.d)
+            be._track_arm() if i else be.start_arm_tracking()
+            if 230 <= be._arm_hist[-1] <= 300:
+                oop.append(be._arm_out_of_plane_deg())
+        check(oop and max(oop) <= be.max_arm_out_of_plane_deg,
+              f"captured arm passes the release angles within {be.max_arm_out_of_plane_deg:g} deg of the "
+              f"bowling plane (max {max(oop):.0f})")
+        be.reset(seed=0)
+        be.t = ri / ref["rate"]
+        be.d.qpos[:] = ref["qpos"][ri]
+        mujoco.mj_forward(be.m, be.d)
+        upright = be._bowling_position()
+        tip = np.zeros(4)
+        mujoco.mju_axisAngle2Quat(tip, np.array([0, 1.0, 0]), np.radians(30))   # pitched forward
+        mujoco.mju_mulQuat(be.d.qpos[3:7], tip, ref["qpos"][ri][3:7].copy())
+        mujoco.mj_forward(be.m, be.d)
+        toppled = be._bowling_position()
+        check(upright is None and toppled == "off balance at release",
+              f"bowling position: captured pose -> {upright or 'ok'}, tilted 30 deg -> {toppled}")
+        be._outcome = {"speed_m_s": 20.0}
+        on, wide = be._task_reward(11.9, True, 0.3), be._task_reward(11.9, True, 1.5)
+        check(on > 0 > wide, f"line: 0.3 m off scores {on:+.1f}, 1.5 m off {wide:+.1f}")
+        for ft, drop, want in ((0.3, 0.5, "fell in the follow-through"), (0.005, 0.0, None)):
+            fe = RunupBowlEnv(rsi=False, follow_through_s=ft)
+            fe.reset(seed=0)
+            fe._outcome, fe._pending, fe._t_release = {"released": True, "good": True}, 7.0, fe.t
+            fe.d.qpos[2] -= drop
+            mujoco.mj_forward(fe.m, fe.d)
+            _, r, te, tr, info = fe.step(np.zeros(fe.n_act))
+            got = info["outcome"].get("why") if te else "carries on"
+            ok = te and (abs(info["task_reward"] - held) < 1e-9 if want else info["task_reward"] == 7.0)
+            check(ok and got == want, f"follow-through {ft:g} s, pelvis {drop:g} m down -> "
+                                      f"{got or 'delivery paid'} ({info['task_reward']:.1f})")
     else:
         print("  skip  no data/mocap/ref_T3a.npz here")
 
