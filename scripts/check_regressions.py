@@ -15,6 +15,7 @@ Exits non-zero if anything fails. No torch needed unless --train is given.
      without data/mocap/ref_T3a.npz)
   8. full bowler: captured arm angle at release, no ball never beats a release,
      bowling position / line / follow-through rules,
+  9. kinematic run-up: the arm feels the captured body exactly, the body ignores the arm,
      episodes start >= 1 s before release, the pelvis drift limit
 
     python scripts/check_regressions.py          # ~1 min
@@ -281,6 +282,45 @@ def main():
             ok = te and (abs(info["task_reward"] - held) < 1e-9 if want else info["task_reward"] == 7.0)
             check(ok and got == want, f"follow-through {ft:g} s, pelvis {drop:g} m down -> "
                                       f"{got or 'delivery paid'} ({info['task_reward']:.1f})")
+        print("9. kinematic run-up (captured body, physics bowling arm)")
+        from envs.humanoid_bowler import ref_at
+        from envs.kinematic_bowl_env import KinematicBowlEnv
+        ke = KinematicBowlEnv(rsi=False)
+        ke.reset(seed=0)
+        rng = np.random.default_rng(0)
+        err = 0.0
+        for _ in range(20):
+            # the arm's acceleration must be the exact prescribed-motion one: M_aa qacc_a = f_a - M_ab qacc_ref
+            ke._full_action[:] = 0.0
+            ke._full_action[ke._arm_action] = rng.uniform(-1, 1, len(ke._arm_action))
+            target = ke._targets(ke._full_action)
+            ke._drive_body(ke.t)
+            ctrl = ke.J.pd_torques(ke.d, target)
+            ke.d.ctrl[:] = 0.0
+            ke.d.ctrl[ke._arm_acts] = ctrl[ke._arm_acts]
+            mujoco.mj_forward(ke.m, ke.d)
+            M = np.zeros((ke.m.nv, ke.m.nv))
+            mujoco.mj_fullM(ke.m, ke.d, M)
+            A, B = ke._arm_dofs, ke._body_dofs
+            acc_b = ke._ref_acc[int(ke.t * ke.ref["rate"]), B]
+            f = ke.d.qfrc_actuator + ke.d.qfrc_passive - ke.d.qfrc_bias + ke.d.qfrc_constraint
+            exact = np.linalg.solve(M[np.ix_(A, A)], f[A] - M[np.ix_(A, B)] @ acc_b)
+            err = max(err, np.abs(ke.d.qacc[A] - exact).max() / (np.abs(exact).max() + 1e-9))
+            ke.step(ke._full_action[ke._arm_action])
+        check(err < 1e-4, f"bowling arm feels the captured body's motion exactly (rel err {err:.1e})")
+        ke.reset(seed=0)
+        for _ in range(30):
+            ke.step(np.ones(len(ke._arm_action)))
+        q, _ = ref_at(ke.ref, ke.t, ke.m)
+        dev = np.abs(ke.d.qpos[ke._body_q] - q[ke._body_q]).max()
+        check(dev < 1e-2, f"full arm torque leaves the body on the capture (max qpos error {dev:.1e}, reset each 2 ms)")
+        ke.reset(seed=0)
+        while True:
+            _, r, te, tr, info = ke.step(np.zeros(len(ke._arm_action)))
+            if te or tr:
+                break
+        check(info["outcome"]["why"] == "still holding the ball" and abs(r - ke.task_weight * held) < 1e-9,
+              f"arm left alone: {info['outcome']['why']} ({r:.1f})")
     else:
         print("  skip  no data/mocap/ref_T3a.npz here")
 

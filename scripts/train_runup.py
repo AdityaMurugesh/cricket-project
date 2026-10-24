@@ -2,6 +2,7 @@
 
   --task imitate  RunupImitationEnv: learn the captured run-up and trunk motion (stage 1)
   --task bowl     RunupBowlEnv: the same, plus bowling with the right arm (stage 3)
+  --task kinematic  KinematicBowlEnv: the captured body exactly, only the bowling arm learned
 
     python scripts/train_runup.py --delivery T3a --timesteps 50000000 --n-envs 16 \
         --log-dir logs/runup_ppo_r1 --model-path checkpoints/runup_ppo_r1
@@ -21,6 +22,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
+from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs.runup_bowl_env import RunupBowlEnv
 from envs.runup_imitation_env import RunupImitationEnv
 
@@ -80,7 +82,7 @@ class EpisodeLogger(BaseCallback):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--task", default="imitate", choices=["imitate", "bowl"])
+    p.add_argument("--task", default="imitate", choices=["imitate", "bowl", "kinematic"])
     p.add_argument("--delivery", default="T3a")
     p.add_argument("--release-angle", type=float, default=250.0, help="bowl: arm angle at release (deg)")
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9],
@@ -101,6 +103,10 @@ def main():
     a = p.parse_args()
 
     def make(rank):
+        if a.task == "kinematic":
+            return lambda: KinematicBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
+                                            release_angle_deg=a.release_angle,
+                                            target_range=tuple(a.target_range), task_weight=a.task_weight)
         if a.task == "bowl":
             return lambda: RunupBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                         release_angle_deg=a.release_angle,
@@ -113,6 +119,11 @@ def main():
     if a.resume_from:
         model = PPO.load(a.resume_from, env=venv)
         model.set_random_seed(a.seed)
+    elif a.task == "kinematic":
+        # ThrowEnv's settings (run10-run15): one sparse reward per delivery, so no discounting
+        # (the policy sets the episode length: episodic_discounting_trap), entropy 0.003
+        model = PPO("MlpPolicy", venv, verbose=1, seed=a.seed, learning_rate=3e-4, gamma=0.9999,
+                    ent_coef=0.003, target_kl=0.03)
     else:
         # DeepMimic-like settings: short horizon (gamma 0.95), wide nets, small initial noise
         model = PPO("MlpPolicy", venv, verbose=1, seed=a.seed, learning_rate=a.lr,

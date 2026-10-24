@@ -8,6 +8,8 @@ visible at a glance. Starts from the first frame of the run-up, or from
     python scripts/watch_runup.py --model-path checkpoints/runup_ppo_T3a_0_ckpts/step_5000000_steps.zip
     python scripts/watch_runup.py --model-path ... --check     # no window: print how far it gets
     python scripts/watch_runup.py --task bowl --model-path checkpoints/runup_bowl_a250_T3a_0.zip
+    python scripts/watch_runup.py --task kinematic --model-path checkpoints/kin_bowl_a250_T3a_0.zip
+      (the captured body, only the bowling arm is the policy's; --start-s defaults to 1 s before release)
       (stage 3: the ball is drawn in the hand, then its flight; the caption gives the delivery)
 """
 import argparse
@@ -24,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stable_baselines3 import PPO
 
 from envs.humanoid_bowler import ref_at
+from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs.runup_bowl_env import BALL_R, G, RunupBowlEnv
 from envs.runup_imitation_env import FIRST_START_INDEX, RunupImitationEnv
 
@@ -60,7 +63,10 @@ def caption(env, r):
 
 def run(env, model, viewer=None, slow=2.0, start_s=0.0):
     obs, _ = env.reset(seed=0)
-    if start_s > 0:
+    if isinstance(env, KinematicBowlEnv):
+        if start_s > 0:
+            obs, _ = env.reset(seed=0, options={"before_s": env.t_ref_release - start_s})
+    elif start_s > 0:
         i0 = max(int(start_s * env.ref["rate"]), FIRST_START_INDEX)
         env.t = env._start_t = i0 / env.ref["rate"]
         env.d.qpos[:] = env.ref["qpos"][i0]
@@ -113,14 +119,18 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model-path", required=True)
     p.add_argument("--delivery", default="T3a")
-    p.add_argument("--task", default="imitate", choices=["imitate", "bowl"])
+    p.add_argument("--task", default="imitate", choices=["imitate", "bowl", "kinematic"])
     p.add_argument("--release-angle", type=float, default=250.0)
     p.add_argument("--slow", type=float, default=2.0, help="slow-motion factor")
     p.add_argument("--check", action="store_true", help="no viewer: print the outcome")
     p.add_argument("--start-s", type=float, default=0.0, help="start this far into the run-up")
     a = p.parse_args()
-    env = (RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle)
-           if a.task == "bowl" else RunupImitationEnv(delivery=a.delivery, rsi=False))
+    if a.task == "kinematic":
+        env = KinematicBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle)
+    elif a.task == "bowl":
+        env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle)
+    else:
+        env = RunupImitationEnv(delivery=a.delivery, rsi=False)
     model = PPO.load(a.model_path)
     if a.check:
         print(run(env, model, start_s=a.start_s))

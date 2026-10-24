@@ -21,18 +21,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stable_baselines3 import PPO
 
 from envs.humanoid_bowler import ref_at
+from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs.runup_bowl_env import RunupBowlEnv
 from envs.runup_imitation_env import FIRST_START_INDEX
 
 
-def replay(env, model, i0):
-    env.reset(seed=0)
-    env.t = env._start_t = i0 / env.ref["rate"]
-    env.d.qpos[:] = env.ref["qpos"][i0]
-    env.d.qvel[:] = env.ref["qvel"][i0]
-    mujoco.mj_forward(env.m, env.d)
-    env.start_arm_tracking()
-    obs = env._obs(env.t)
+def replay(env, model, i0=None, before_s=None):
+    """From reference frame i0 (run-up envs), or before_s ahead of the captured release (kinematic)."""
+    if before_s is not None:
+        obs, _ = env.reset(seed=0, options={"before_s": before_s})
+        i0 = int(round(env.t * env.ref["rate"]))
+    else:
+        env.reset(seed=0)
+        env.t = env._start_t = i0 / env.ref["rate"]
+        env.d.qpos[:] = env.ref["qpos"][i0]
+        env.d.qvel[:] = env.ref["qvel"][i0]
+        mujoco.mj_forward(env.m, env.d)
+        env.start_arm_tracking()
+        obs = env._obs(env.t)
     pose = []
     while True:
         a, _ = model.predict(obs, deterministic=True)
@@ -60,15 +66,20 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model-path", required=True)
     p.add_argument("--delivery", default="T3a")
+    p.add_argument("--task", default="bowl", choices=["bowl", "kinematic"])
     p.add_argument("--release-angle", type=float, default=250.0)
     p.add_argument("--max-pelvis-drift", type=float, default=None, help="as in training (m)")
     p.add_argument("--starts", type=int, default=8, help="start times spread over the allowed range")
     p.add_argument("--out", default=None)
     a = p.parse_args()
-    env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle,
-                       max_pelvis_drift_m=a.max_pelvis_drift)
     model = PPO.load(a.model_path, device="cpu")
-    rows = [replay(env, model, int(i)) for i in np.linspace(FIRST_START_INDEX, env.rsi_last_index, a.starts)]
+    if a.task == "kinematic":
+        env = KinematicBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle)
+        rows = [replay(env, model, before_s=b) for b in np.linspace(*env.start_range, a.starts)]
+    else:
+        env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle,
+                           max_pelvis_drift_m=a.max_pelvis_drift)
+        rows = [replay(env, model, int(i)) for i in np.linspace(FIRST_START_INDEX, env.rsi_last_index, a.starts)]
     for r in rows:
         print(r)
     good = sum(r["good"] for r in rows)
