@@ -355,3 +355,18 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Stage 1 alone is nearly done: T3a 57M, pose 0.71; T4b 56M, pose 0.63.
   - Local viewer copies: `checkpoints/runup_bowl_a250_T3a_0_ckpts/step_45000000_steps.zip`
     (no run-up, fast) and `..._warm_d1.5_ckpts/step_45000000_steps.zip` (keeps the run-up).
+- **Stage-3 at 60M (warm runs +25M), deterministic, 8 start times** (`scripts/eval_runup.py`,
+  outcomes in `results/stage3/`):
+  - warm 250° drift 1.5 m: **4/8 good, 5/8 released, 40–44 km/h**, extension 2–7°, pose 0.26–0.57
+    (45M: 1/8 good). Training: 44% good at 60M. The 61M bucket dipped (45% released, falls 45%),
+    so it's worth watching for a collapse.
+  - warm 250° drift 1.0 m: **4/8 good, 37–39 km/h**, extension 8–9°, pose 0.25–0.55. Training 33% good.
+  - warm 270° drift 1.5 m: 1/8 released (28 km/h, 4.3 m), none good. Training: 0% good, falls ~50%.
+    270° doesn't come out of the warm start; it would need its own fix (curriculum from 250°?).
+  - from scratch 250° drift 1.5 m (25M): **4/8 good, 7/8 released, 40–47 km/h**, but pose 0.05–0.30.
+    It bowls more reliably than the warm runs but doesn't look like the captured bowler.
+  - Every policy falls within 0.22 s when started at t = 0 (the first frame of the reference). Looks
+    like a reset artefact at the very start of the clip, not a policy problem; not yet checked.
+  - The warm runs end at 95M (35M + 60M) in about 6 h; the scratch d1.5 run ends at 60M.
+  - Stage 1 finished at 60M: T3a pose 0.66, reaches release 68%; T4b pose 0.61, 47%.
+    Final models are `checkpoints/runup_ppo_{T3a,T4b}_0.zip` (copied locally).
