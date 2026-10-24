@@ -22,6 +22,7 @@ from stable_baselines3 import PPO
 
 from envs.humanoid_bowler import ref_at
 from envs.runup_bowl_env import RunupBowlEnv
+from envs.runup_imitation_env import FIRST_START_INDEX
 
 
 def replay(env, model, i0):
@@ -65,7 +66,7 @@ def main():
     env = RunupBowlEnv(delivery=a.delivery, rsi=False, release_angle_deg=a.release_angle,
                        max_pelvis_drift_m=a.max_pelvis_drift)
     model = PPO.load(a.model_path, device="cpu")
-    rows = [replay(env, model, int(i)) for i in np.linspace(0, env.rsi_last_index, a.starts)]
+    rows = [replay(env, model, int(i)) for i in np.linspace(FIRST_START_INDEX, env.rsi_last_index, a.starts)]
     for r in rows:
         print(r)
     good = sum(r["good"] for r in rows)

@@ -25,7 +25,7 @@ from stable_baselines3 import PPO
 
 from envs.humanoid_bowler import ref_at
 from envs.runup_bowl_env import BALL_R, G, RunupBowlEnv
-from envs.runup_imitation_env import RunupImitationEnv
+from envs.runup_imitation_env import FIRST_START_INDEX, RunupImitationEnv
 
 GHOST_RGBA = (0.35, 0.65, 1.0, 0.30)
 BALL_RGBA = (0.8, 0.1, 0.1, 1.0)
@@ -61,7 +61,7 @@ def caption(env, r):
 def run(env, model, viewer=None, slow=2.0, start_s=0.0):
     obs, _ = env.reset(seed=0)
     if start_s > 0:
-        i0 = int(start_s * env.ref["rate"])
+        i0 = max(int(start_s * env.ref["rate"]), FIRST_START_INDEX)
         env.t = env._start_t = i0 / env.ref["rate"]
         env.d.qpos[:] = env.ref["qpos"][i0]
         env.d.qvel[:] = env.ref["qvel"][i0]

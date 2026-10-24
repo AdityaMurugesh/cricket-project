@@ -185,11 +185,13 @@ def main():
     check(hm.nu == 34 and hm.nq == 47 and abs(hm.body_mass.sum() - 89.3) < 0.5,
           f"model: nq {hm.nq}, {hm.nu} motors, {hm.body_mass.sum():.1f} kg")
     if (MOCAP_DIR / "ref_T3a.npz").exists():
-        from envs.runup_imitation_env import RunupImitationEnv
+        from envs.runup_imitation_env import FIRST_START_INDEX, RunupImitationEnv
         env = RunupImitationEnv(rsi=False, seed=0)
         env.reset(seed=0)
-        r0 = env._reward(env.d.qpos.copy(), env.ref["qvel"][0])[0]
+        r0 = env._reward(env.d.qpos.copy(), env.ref["qvel"][FIRST_START_INDEX])[0]
         check(abs(r0 - 1.0) < 1e-6, f"reward is 1 on the reference itself ({r0:.6f})")
+        v0, vs = (np.linalg.norm(env.ref["qvel"][i, :3]) for i in (0, FIRST_START_INDEX))
+        check(vs < 1.0 < v0, f"episodes start after the fit transient (pelvis {v0:.1f} -> {vs:.1f} m/s)")
         n = 0
         while True:
             _, r, te, tr, info = env.step(np.zeros(env.n_act))

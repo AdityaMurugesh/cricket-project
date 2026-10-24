@@ -22,8 +22,8 @@ Reward per control step, as in DeepMimic (Peng et al. 2018), each term in (0, 1]
     0.10 root   exp(-10 * (pelvis position error^2 + 0.5 * orientation error^2))
 The lumbar joint is weighted 2x ("trunk reference").
 
-Episodes start at a random reference frame (reference state initialisation)
-and end at release (terminal: there is nothing after it to bootstrap), or
+Episodes start at a random reference frame (reference state initialisation),
+never in the first FIRST_START_INDEX frames, and end at release (terminal: there is nothing after it to bootstrap), or
 early if the pelvis drops/rises 0.3 m away from the reference or tilts more
 than 1 rad from it (a fall).
 """
@@ -40,6 +40,11 @@ POSE_WEIGHT = {"lumbar": 2.0, "neck": 0.5, "hip": 1.0, "knee_angle": 1.0, "ankle
 END_BODIES = ("calcn_r", "calcn_l", "hand_l", "head")
 FALL_HEIGHT_M = 0.3
 FALL_TILT_RAD = 1.0
+# the marker fit converges from its initial guess over the first ~4 frames (3 markers
+# seen, residual 7 cm -> 0.4 cm), so the pose jumps there and the finite-difference
+# velocity is bogus (T3a frame 0: pelvis 3.5 m/s sideways, 13 rad/s): starting on it
+# falls within 0.2 s whatever the policy does
+FIRST_START_INDEX = 5
 
 
 def _base(name):
@@ -103,7 +108,7 @@ class RunupImitationEnv(gym.Env):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         last = getattr(self, "rsi_last_index", self.ref["release_index"] - 10)
-        i0 = int(self.rng.integers(0, last)) if self.rsi else 0
+        i0 = int(self.rng.integers(FIRST_START_INDEX, last)) if self.rsi else FIRST_START_INDEX
         self.t = i0 / self.ref["rate"]
         mujoco.mj_resetData(self.m, self.d)
         self.d.qpos[:] = self.ref["qpos"][i0]
