@@ -413,3 +413,14 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     reference, which matches the 1–4 m root drift.
   - Options: clean the reference (lock stance feet, lift penetration), add a residual root force, or a
     kinematic run-up with only the bowling arm physical (the v1 design). Decision with the user.
+- **Decision (user): kinematic run-up.** `envs/kinematic_bowl_env.py`, commit 2f2354c:
+  - The whole body except the right arm follows the capture exactly. Each non-arm DoF has armature
+    1e6 and force 1e6·q̈_ref, reset to the capture every 2 ms.
+  - The arm feels the body's acceleration exactly: checked against the prescribed-motion solution,
+    relative error 2e-6, and full arm torque leaves the body on the capture. This is unlike the v1
+    weld/teleport, which distorted the arm.
+  - Obs 21 (phase, arm angles/velocities, hand vs shoulder), action 7 (the arm's PD targets), reward
+    only the delivery. PPO as in ThrowEnv (γ 0.9999, entropy 0.003, target_kl 0.03).
+  - Release rules, legality from the simulated elbow, line and arm plane are all RunupBowlEnv's.
+  - Runs 29243–29248: release angle 250 / 270 / 290° (the capture releases at 290°) × seeds 0, 1,
+    30M steps each. Before believing any number: render the delivery and check the state at release.
