@@ -19,7 +19,8 @@ per-step teleport alone does neither: both distorted the arm in the v1 demo
 floor in a way that matters, it just follows the capture.
 
 Observation: phase, bowling-arm joint angles and velocities, hand relative to
-the shoulder. Action: the arm's PD targets (RunupImitationEnv's absolute mapping).
+the shoulder. Action: the arm's PD targets (RunupImitationEnv's absolute mapping),
+or with arm_control="torque" its motor commands, as ThrowEnv's arm.
 Reward: only the delivery (task_weight * RunupBowlEnv's task reward), at its end.
 Episodes start 0.8-1.2 s before the captured release (fixed 1.0 s with rsi=False, or
 reset(options={"before_s": x})),
@@ -36,7 +37,7 @@ BODY_ARMATURE = 1e6
 
 
 class KinematicBowlEnv(RunupBowlEnv):
-    def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), **kw):
+    def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), arm_control="pd", arm_top_speed=40.0, **kw):
         kw.setdefault("follow_through_s", 0.0)     # the body cannot fall
         super().__init__(delivery=delivery, **kw)
         m = self.m
@@ -51,6 +52,17 @@ class KinematicBowlEnv(RunupBowlEnv):
         self._body_q = np.setdiff1d(np.arange(m.nq), arm_q)
         m.dof_armature[self._body_dofs] = BODY_ARMATURE
         m.dof_damping[self._body_dofs] = 0.0
+        # the skeleton's PD damping (0.2 x peak torque: 50 N m s/rad at the shoulder)
+        # caps the arm at ~5 rad/s, far short of a bowling arm's ~20: even PD-tracking
+        # the captured arm path only reached 124 deg. Here each arm joint's damping is
+        # its peak torque / arm_top_speed (rad/s): fast enough to bowl, but bounded
+        # (ThrowEnv-like 0.3 let random actions spin the light arm to NaN)
+        for j in arm_j:
+            da = m.jnt_dofadr[j]
+            n = 3 if m.jnt_type[j] == 1 else 1
+            acts = [a for a in range(m.nu) if m.actuator_trnid[a, 0] == j]
+            m.dof_damping[da:da + n] = np.abs(m.actuator_gear[acts, :3]).max() / arm_top_speed
+        self.arm_control = arm_control
         self._arm_acts = np.array([a for a in range(m.nu) if m.actuator_trnid[a, 0] in arm_j])
         # reference acceleration of every DoF, per frame (velocity is a forward difference,
         # so this is constant between frames i and i + 1)
@@ -99,16 +111,20 @@ class KinematicBowlEnv(RunupBowlEnv):
         return self._kin_obs(), {}
 
     def step(self, action):
-        self._full_action[:] = 0.0
-        self._full_action[self._arm_action] = np.clip(action, -1.0, 1.0)
-        target = self._targets(self._full_action)
+        a = np.clip(action, -1.0, 1.0)
+        if self.arm_control == "pd":
+            self._full_action[:] = 0.0
+            self._full_action[self._arm_action] = a
+            target = self._targets(self._full_action)
         task = None
         h = self.m.opt.timestep
         for k in range(self.frame_skip):
             self._drive_body(self.t + k * h)
-            ctrl = self.J.pd_torques(self.d, target)
             self.d.ctrl[:] = 0.0
-            self.d.ctrl[self._arm_acts] = ctrl[self._arm_acts]
+            if self.arm_control == "pd":
+                self.d.ctrl[self._arm_acts] = self.J.pd_torques(self.d, target)[self._arm_acts]
+            else:                       # ThrowEnv's: the action is the arm's torques
+                self.d.ctrl[self._arm_acts] = a
             mujoco.mj_step(self.m, self.d)
             self._track_arm()
             if self.t >= self.t_window and self._arm_hist[-1] >= self.release_angle_deg:

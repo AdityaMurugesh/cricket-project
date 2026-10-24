@@ -82,6 +82,7 @@ class RunupBowlEnv(RunupImitationEnv):
         self._shoulder = self.m.body("humerus_r").id
         self._elbow_body = self.m.body("ulna_r").id
         self._elbow_q = self.m.jnt_qposadr[self.m.joint("elbow_flex_r").id]
+        self._ref_arm = self._captured_arm_angles()
 
     # -- bowling-arm geometry ----------------------------------------------
     def _arm_angle_raw(self):
@@ -105,10 +106,32 @@ class RunupBowlEnv(RunupImitationEnv):
         self.start_arm_tracking()
         return obs, info
 
+    def _captured_arm_angles(self):
+        """The capture's arm angle per frame, unwrapped, on the branch that is in [0, 360) at release.
+
+        Before the delivery the captured arm rises in front to overhead (-100 unwrapped,
+        0.7 s before release) and comes back down through hanging (90) before circling
+        up to release (~290). A start's angle must be put on this branch: taking the raw
+        [0, 360) value made an arm raised in front (320-400) count as already past the
+        release angle, so it 'released' as soon as the window opened, with no circle.
+        """
+        d = mujoco.MjData(self.m)
+        out = []
+        for q in self.ref["qpos"]:
+            d.qpos[:] = q
+            mujoco.mj_kinematics(self.m, d)
+            v = d.xpos[self._elbow_body] - d.xpos[self._shoulder]
+            out.append((90.0 + np.degrees(np.arctan2(-v[0], -v[2]))) % 360.0)
+        out = np.degrees(np.unwrap(np.radians(out)))
+        ri = self.ref["release_index"]
+        return out - 360.0 * np.floor(out[ri] / 360.0)
+
     def start_arm_tracking(self):
         """Begin the shoulder/elbow history (for legality) at the current state."""
         a = self._arm_angle_raw()
-        self._arm_hist = [a if a > 45.0 else a + 360.0]   # hanging (~90) is the start of the circle
+        i = int(np.clip(round(self.t * self.ref["rate"]), 0, len(self._ref_arm) - 1))
+        a += 360.0 * np.round((self._ref_arm[i] - a) / 360.0)   # the capture's branch at this time
+        self._arm_hist = [a]
         self._elbow_hist = [float(np.degrees(self.d.qpos[self._elbow_q]))]
         self._outcome = None
         self._pending = None      # task reward of a release, paid after the follow-through

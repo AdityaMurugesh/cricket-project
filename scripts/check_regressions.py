@@ -321,6 +321,45 @@ def main():
                 break
         check(info["outcome"]["why"] == "still holding the ball" and abs(r - ke.task_weight * held) < 1e-9,
               f"arm left alone: {info['outcome']['why']} ({r:.1f})")
+        # the start's arm angle is on the capture's branch: the arm raised in front
+        # (0.8-0.95 s before release) once read as 320-400, past the release angle,
+        # and 'released' the moment the window opened
+        gap, past = 0.0, []
+        for b in np.linspace(*ke.start_range, 9):
+            ke.reset(options={"before_s": b})
+            i = int(round(ke.t * ke.ref["rate"]))
+            gap = max(gap, abs(ke._arm_hist[0] - ke._ref_arm[i]))
+            if ke._arm_hist[0] >= ke.release_angle_deg:
+                past.append(round(b, 2))
+        check(gap < 1.0 and not past, f"every start's arm is on the capture's branch, below the release angle "
+                                      f"(max gap {gap:.1f} deg, starts already past it: {past})")
+        # the arm can bowl: PD-tracking the captured arm path (a feasibility test,
+        # never a training target) must reach the release angle. The skeleton's PD
+        # damping capped it at 124 deg
+        ke.reset(options={"before_s": 1.0})
+        h = ke.m.opt.timestep
+        while ke.t < ke.t_end:
+            for k in range(ke.frame_skip):
+                ke._drive_body(ke.t + k * h)
+                q_ref, _ = ref_at(ke.ref, ke.t + ke.dt, ke.m)
+                ke.d.ctrl[:] = 0.0
+                ke.d.ctrl[ke._arm_acts] = ke.J.pd_torques(ke.d, q_ref)[ke._arm_acts]
+                mujoco.mj_step(ke.m, ke.d)
+                ke._track_arm()
+            ke.t += ke.dt
+        check(max(ke._arm_hist) >= 250, f"PD tracking the captured arm path circles it to "
+                                          f"{max(ke._arm_hist):.0f} deg (needs the release angle, 250+)")
+        # random torques stay finite (too little arm damping spun the light arm to NaN)
+        te_ = KinematicBowlEnv(rsi=True, arm_control="torque")
+        ok = True
+        for ep in range(5):
+            te_.reset(seed=ep)
+            while True:
+                _, r, te, tr, info = te_.step(rng.uniform(-1, 1, te_.action_space.shape))
+                ok &= bool(np.isfinite(te_.d.qpos).all() and np.isfinite(r))
+                if te or tr:
+                    break
+        check(ok, "random arm torques keep the simulation finite")
     else:
         print("  skip  no data/mocap/ref_T3a.npz here")
 

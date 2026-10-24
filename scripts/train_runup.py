@@ -88,6 +88,8 @@ def main():
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9],
                    help="bowl: landing zone, metres from the release point")
     p.add_argument("--task-weight", type=float, default=10.0, help="bowl: weight of the delivery reward")
+    p.add_argument("--arm-control", default="pd", choices=["pd", "torque"],
+                   help="kinematic: the arm action is PD targets or (ThrowEnv's) torques")
     p.add_argument("--max-pelvis-drift", type=float, default=None,
                    help="bowl: drifting this far (m) from the captured pelvis path counts as a fall")
     p.add_argument("--timesteps", type=int, default=50_000_000)
@@ -106,7 +108,8 @@ def main():
         if a.task == "kinematic":
             return lambda: KinematicBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                             release_angle_deg=a.release_angle,
-                                            target_range=tuple(a.target_range), task_weight=a.task_weight)
+                                            target_range=tuple(a.target_range), task_weight=a.task_weight,
+                                            arm_control=a.arm_control)
         if a.task == "bowl":
             return lambda: RunupBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                         release_angle_deg=a.release_angle,

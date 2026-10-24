@@ -8,7 +8,7 @@
 #   ... RESUME=checkpoints/runup_ppo_T3a_0.zip  warm-starts from a stage-1 policy
 #   ... DRIFT=1.0  drifting 1 m from the captured pelvis path counts as a fall
 # The captured body exactly, only the bowling arm learned (envs/kinematic_bowl_env.py)
-#   qsub -v DELIVERY=T3a,SEED=0,TASK=kinematic,ANGLE=250 hpc/train_runup.pbs
+#   qsub -v DELIVERY=T3a,SEED=0,TASK=kinematic,ANGLE=250,ARMCTL=torque hpc/train_runup.pbs
 #PBS -N cricket_runup
 #PBS -q cpuq
 #PBS -l select=1:ncpus=20:mem=32gb
@@ -27,7 +27,8 @@ STEPS="${STEPS:-60000000}"
 TASK="${TASK:-imitate}"
 ANGLE="${ANGLE:-250}"
 if [ "$TASK" = kinematic ]; then
-    run="kin_bowl_a${ANGLE}_${DELIVERY}_${SEED}"
+    ARMCTL="${ARMCTL:-pd}"
+    run="kin_bowl_${ARMCTL}_a${ANGLE}_${DELIVERY}_${SEED}"
 elif [ "$TASK" = bowl ]; then
     run="runup_bowl_a${ANGLE}_${DELIVERY}_${SEED}${RESUME:+_warm}${DRIFT:+_d${DRIFT}}"
 else
@@ -37,6 +38,6 @@ mkdir -p "logs/${run}"
 git -C "$PBS_O_WORKDIR" rev-parse --short HEAD && echo "(commit above is the code this run used)"
 python scripts/train_runup.py --task "${TASK}" --release-angle "${ANGLE}" --delivery "${DELIVERY}" \
     --seed "${SEED}" --timesteps "${STEPS}" ${RESUME:+--resume-from "${RESUME}"} \
-    ${DRIFT:+--max-pelvis-drift "${DRIFT}"} \
+    ${DRIFT:+--max-pelvis-drift "${DRIFT}"} ${ARMCTL:+--arm-control "${ARMCTL}"} \
     --n-envs 16 --log-dir "logs/${run}" --model-path "checkpoints/${run}" > "logs/${run}/job.log" 2>&1
 echo "train exit $?"
