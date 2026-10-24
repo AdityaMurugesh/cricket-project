@@ -458,4 +458,16 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     real action.
   - Release is 0.04–0.14 s before the captured release (a270 s1: 0.04 s after).
   - Same seed-to-seed spread as ThrowEnv: a290 s0 settled on a slow 46 km/h delivery.
-  - Still running: pd × 3, torque a250 s0.
+- **The last four finals, scored the same way:**
+
+  | run | good | speed | median length | median / max off line | note |
+  |---|---|---|---|---|---|
+  | torque a250 s0 | **21/21** | 60–62 km/h | 11.8 m | 0.26 / 0.32 m | rendered: arm held out behind, then over the top |
+  | pd a250 s0 | 3/21 | 47–76 km/h | 12.5 m | 0.68 / 2.81 m | |
+  | pd a270 s0 | 0/21 | 30–106 km/h | 10.4 m | 1.03 / 2.02 m | one illegal (30.8° extension) |
+  | pd a290 s0 | 7/21 | 61–80 km/h | 12.3 m | 0.38 / 1.08 m | |
+
+  - Torque control clearly beats PD targets: 3 of 6 torque runs are 18–21/21 good, against none of
+    the PD runs.
+  - Best so far: torque a270 s0 (21/21 at 67 km/h), torque a250 s0 (21/21 at 61 km/h), and torque
+    a290 s1 (12/21 at 91 km/h, the most natural-looking arm path).
