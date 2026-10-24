@@ -424,3 +424,18 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Release rules, legality from the simulated elbow, line and arm plane are all RunupBowlEnv's.
   - Runs 29243–29248: release angle 250 / 270 / 290° (the capture releases at 290°) × seeds 0, 1,
     30M steps each. Before believing any number: render the delivery and check the state at release.
+- **Runs 29243–29248 cancelled at ~8M steps: two bugs, found by replaying the 5M checkpoint per start
+  time** (commit 9a93b9f):
+  - Arm angle on the wrong branch. Between 0.8 and 0.95 s before release, the captured arm is raised
+    in front (unwrapped −40 to 42°). The tracker started it at 320–400°, already past the release
+    angle, so it "released" the moment the window opened, with no arm circle. All the 2–3% "good"
+    came from these starts; from the others (61%) the arm never circled ("still holding"). Starts now
+    take the capture's unwrapped arm angle at that time.
+  - Arm too damped to bowl. The skeleton's PD damping (0.2 × peak torque = 50 N·m·s/rad at the
+    shoulder) caps the arm near 5 rad/s. Even PD-tracking the captured arm path only got to 124°.
+    Arm damping is now peak torque / 40 rad/s; the captured path then bowls at 83 km/h. Random
+    actions reach a release 4% (PD) / 10% (torque) of the time, instead of 0/150.
+    0.3 (ThrowEnv's value) spun the light arm to NaN.
+  - The same damping is in stage-3 RunupBowlEnv: its bowling arm was capped too.
+  - New runs 29271–29279, 30M steps: `arm_control=torque` (ThrowEnv's action) at 250/270/290 × seeds
+    0, 1, and `pd` at 250/270/290 × seed 0.
