@@ -374,3 +374,7 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - The warm runs end at 95M (35M + 60M) in about 6 h; the scratch d1.5 run ends at 60M.
   - Stage 1 finished at 60M: T3a pose 0.66, reaches release 68%; T4b pose 0.61, 47%.
     Final models are `checkpoints/runup_ppo_{T3a,T4b}_0.zip` (copied locally).
+- **Stage-3 from scratch without the drift limit, final at 60M** (the loophole runs; starts from 0.05 s):
+  250°: 6/8 good at 47–49 km/h; 270°: 6/8 good at 51–60 km/h. But pelvis error 1.1–4.4 m and pose
+  0.04–0.54: they bowl well by leaving the captured run-up. That is the case for the drift limit, not a
+  result. Finals copied to `checkpoints/runup_bowl_a{250,270}_T3a_0.zip`.
