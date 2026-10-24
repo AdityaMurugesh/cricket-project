@@ -33,7 +33,7 @@ output is, and what it showed. Job IDs are PBS jobs on the IITD-AD cluster (`cpu
 |---|---|---|
 | 23 Oct (running) | run11 checkpoint eval: finds the best checkpoint of each run (job 27040) | `logs/throw_ppo_run11_*/ckpt_eval.json` |
 | 23 Oct (running) | SAC pilot: 240° 1.5x and 230° 1.0x, 2 seeds each, 1.5M steps (jobs 27045–27048) | `logs/throw_sac_run12_*` |
-| 23 Oct (running) | run12 resume diagnosis: 4 arms (control / no shaping / stable lr + target_kl / frozen noise) x 3 run11 peak checkpoints, 4M steps each (jobs 27049�27051, about 40 min) | `logs/throw_ppo_run12{arm}_*` |
+| 23 Oct (running) | run12 resume diagnosis: 4 arms (control / no shaping / stable lr + target_kl / frozen noise) x 3 run11 peak checkpoints, 4M steps each (jobs 27049–27051, about 40 min) | `logs/throw_ppo_run12{arm}_*` |
 | 24–25 Oct | Read run12 and SAC. Whichever arm keeps the zone names the cause. | figures in `results/run12/` |
 | 26–27 Oct | run13: a full sweep with the fix, from scratch, on the good length (and on 6–8 m, for comparison with run10) | `logs/throw_*_run13_*` |
 | 28–29 Oct | Equifinality script (`scripts/equifinality.py`): Reiser's ±40 ms window and the in-zone release window for every checkpoint. Measures whether windows widen or narrow over training. | `results/*/equifinality.csv` |
@@ -365,8 +365,12 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     270° doesn't come out of the warm start; it would need its own fix (curriculum from 250°?).
   - from scratch 250° drift 1.5 m (25M): **4/8 good, 7/8 released, 40–47 km/h**, but pose 0.05–0.30.
     It bowls more reliably than the warm runs but doesn't look like the captured bowler.
-  - Every policy falls within 0.22 s when started at t = 0 (the first frame of the reference). Looks
-    like a reset artefact at the very start of the clip, not a policy problem; not yet checked.
+  - Every policy fell within 0.22 s when started at t = 0. Cause: the marker fit converges from its
+    initial guess over the first ~4 frames (3 markers, residual 7 cm → 0.4 cm), so the reference
+    velocity there is bogus (pelvis 3.8 m/s, 13 rad/s). Episodes now start at frame 5 or later
+    (`FIRST_START_INDEX`, commit 5b0a935; reference times unchanged). That cost about 2% of training
+    starts. Re-run with starts shifted 30–40 ms, warm d1.5 60M gives 3/8 good instead of 4/8, with
+    landings near the zone edges (10.7–13.2 m), so the delivery is still sensitive to start time.
   - The warm runs end at 95M (35M + 60M) in about 6 h; the scratch d1.5 run ends at 60M.
   - Stage 1 finished at 60M: T3a pose 0.66, reaches release 68%; T4b pose 0.61, 47%.
     Final models are `checkpoints/runup_ppo_{T3a,T4b}_0.zip` (copied locally).
