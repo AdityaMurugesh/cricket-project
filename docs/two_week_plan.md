@@ -378,3 +378,19 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   250°: 6/8 good at 47–49 km/h; 270°: 6/8 good at 51–60 km/h. But pelvis error 1.1–4.4 m and pose
   0.04–0.54: they bowl well by leaving the captured run-up. That is the case for the drift limit, not a
   result. Finals copied to `checkpoints/runup_bowl_a{250,270}_T3a_0.zip`.
+- **Correction (2026-10-24, after watching the replays): the stage-3 "good" counts above are not real
+  deliveries.** The user watched them: no proper release, the bowler falls over and a trajectory appears.
+  Measured at the release instant (8 starts, deterministic):
+  - warm d1.5 65M: releases at 2.78–2.82 s, **0.3 s before the captured release (3.12 s)**, while
+    toppling: pelvis tilted 35–52° from the mocap, 12–21 cm low, trunk lean 31–58° (mocap 17°). The
+    bowling arm is **52–75° out of the bowling plane** (a sideways sling).
+  - scratch d1.5 final: releases at the right time (3.08–3.12 s) with the arm in plane (4–20°), but
+    crouched (pelvis 20 cm low, tilt 23–46°).
+  - Line: median |lateral| of the "good" training deliveries is 1.0–1.3 m; replays miss by up to 4 m.
+  - Causes, all in `envs/runup_bowl_env.py`:
+    1. Release is automatic when the arm's x-z projection passes 250°. A sideways arm can cross that.
+    2. The episode ends at release and the fall test comes after it, so a release mid-fall counts in
+       full and nothing after it is simulated.
+    3. "good" and the task reward ignore line.
+    4. The run-up itself is a hunched shuffle (pose 0.4), not a run with a gather jump.
+  - Fixes proposed to the user before any retraining.
