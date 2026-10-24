@@ -439,3 +439,23 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - The same damping is in stage-3 RunupBowlEnv: its bowling arm was capped too.
   - New runs 29271–29279, 30M steps: `arm_control=torque` (ThrowEnv's action) at 250/270/290 × seeds
     0, 1, and `pd` at 250/270/290 × seed 0.
+- **Kinematic bowler, torque finals (30M steps).** Replayed without noise from 21 starts (0.8–1.2 s before
+  the captured release); outcomes in `results/kinematic/`. Every delivery was released and legal
+  (elbow extension ≤ 1.2°):
+
+  | run | good (length + line) | speed | median length | median / max off line |
+  |---|---|---|---|---|
+  | torque a250 s1 | 4/21 | 58–68 km/h | 11.4 m | 0.50 / 0.84 m |
+  | torque a270 s0 | **21/21** | 66–69 km/h | 11.8 m | 0.14 / 0.35 m |
+  | torque a270 s1 | 18/21 | 71–76 km/h | 11.6 m | 0.12 / 0.18 m |
+  | torque a290 s0 | 0/21 | 46–47 km/h | 12.9 m | 0.84 / 0.85 m |
+  | torque a290 s1 | 12/21 | 89–97 km/h | 11.7 m | 0.18 / 0.29 m |
+
+  - Rendered (side view and from the batter's end, with the ball): a real overarm circle, released
+    near vertical, with the flight starting at the hand.
+  - The a270 s0 policy takes the arm back early and holds it out behind for ~0.4 s before whipping
+    over. The a290 s1 policy keeps it by the hip, then swings it back and over, which is closer to a
+    real action.
+  - Release is 0.04–0.14 s before the captured release (a270 s1: 0.04 s after).
+  - Same seed-to-seed spread as ThrowEnv: a290 s0 settled on a slow 46 km/h delivery.
+  - Still running: pd × 3, torque a250 s0.
