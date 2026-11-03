@@ -37,7 +37,8 @@ BODY_ARMATURE = 1e6
 
 
 class KinematicBowlEnv(RunupBowlEnv):
-    def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), arm_control="pd", arm_top_speed=40.0, **kw):
+    def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), arm_control="pd", arm_top_speed=40.0,
+                 torque_noise_sd=0.0, release_timing_sd_ms=0.0, **kw):
         kw.setdefault("follow_through_s", 0.0)     # the body cannot fall
         super().__init__(delivery=delivery, **kw)
         m = self.m
@@ -63,6 +64,17 @@ class KinematicBowlEnv(RunupBowlEnv):
             acts = [a for a in range(m.nu) if m.actuator_trnid[a, 0] == j]
             m.dof_damping[da:da + n] = np.abs(m.actuator_gear[acts, :3]).max() / arm_top_speed
         self.arm_control = arm_control
+        # signal-dependent torque noise (ThrowEnvGym's, Harris & Wolpert): with torque control,
+        # each decision's command u becomes u * (1 + sd * N(0, 1)) per joint; off by default
+        if torque_noise_sd > 0 and arm_control != "torque":
+            raise ValueError("torque_noise_sd needs arm_control='torque'")
+        self.torque_noise_sd = torque_noise_sd
+        # release-timing jitter (ThrowEnv's, Muller & Loosch): each delivery draws delta ~ N(0, sd);
+        # the ball goes delta after the arm passes the release angle, or for delta < 0 once the
+        # arm is predicted to get there within |delta|. The policy never sees delta
+        self.release_timing_sd_ms = release_timing_sd_ms
+        self._noise_rng = np.random.default_rng(kw.get("seed"))
+        self.release_delay_s = 0.0
         self._arm_acts = np.array([a for a in range(m.nu) if m.actuator_trnid[a, 0] in arm_j])
         # reference acceleration of every DoF, per frame (velocity is a forward difference,
         # so this is constant between frames i and i + 1)
@@ -96,6 +108,7 @@ class KinematicBowlEnv(RunupBowlEnv):
     def reset(self, *, seed=None, options=None):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
+            self._noise_rng = np.random.default_rng(seed + 7_919)
         lo, hi = self.start_range
         before = self.rng.uniform(lo, hi) if self.rsi else 1.0
         if options and "before_s" in options:       # eval / viewer: start this long before release
@@ -108,10 +121,30 @@ class KinematicBowlEnv(RunupBowlEnv):
         self._drive_body(self.t)
         mujoco.mj_forward(self.m, self.d)
         self.start_arm_tracking()
+        self.release_delay_s = (float(self._noise_rng.normal(0.0, self.release_timing_sd_ms)) / 1000.0
+                                if self.release_timing_sd_ms > 0 else 0.0)
+        self._cross_t = None
         return self._kin_obs(), {}
+
+    def _release_due(self, t):
+        """Is the ball let go at time t (just after a physics step)? Window applies to the intended release."""
+        a, angle = self._arm_hist[-1], self.release_angle_deg
+        if self.release_delay_s == 0.0:
+            return self.t >= self.t_window and a >= angle
+        if self._cross_t is None and a >= angle:
+            self._cross_t = t
+        if self._cross_t is not None:
+            return self._cross_t >= self.t_window and t >= self._cross_t + self.release_delay_s
+        if self.release_delay_s < 0 and len(self._arm_hist) > 1:
+            rate = (a - self._arm_hist[-2]) / self.m.opt.timestep
+            if rate > 0 and (angle - a) / rate <= -self.release_delay_s:
+                return t + (angle - a) / rate >= self.t_window
+        return False
 
     def step(self, action):
         a = np.clip(action, -1.0, 1.0)
+        if self.torque_noise_sd > 0:
+            a = a * (1.0 + self.torque_noise_sd * self._noise_rng.standard_normal(a.shape))
         if self.arm_control == "pd":
             self._full_action[:] = 0.0
             self._full_action[self._arm_action] = a
@@ -127,7 +160,7 @@ class KinematicBowlEnv(RunupBowlEnv):
                 self.d.ctrl[self._arm_acts] = a
             mujoco.mj_step(self.m, self.d)
             self._track_arm()
-            if self.t >= self.t_window and self._arm_hist[-1] >= self.release_angle_deg:
+            if self._release_due(self.t + (k + 1) * h):
                 why = ("bent arm at the release angle" if abs(self._elbow_hist[-1]) > self.max_release_elbow_deg
                        else self._bowling_position())
                 task = self._no_ball(why) if why else self._release()

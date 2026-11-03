@@ -1,0 +1,42 @@
+{
+ "run": "kin_bowl_torque_a250_T3a_1",
+ "model": "checkpoints/kin_bowl_torque_a250_T3a_1.zip",
+ "none": {
+  "deliveries": 21,
+  "released": 21,
+  "good": 4,
+  "legal": 21,
+  "good_with_timing_jitter_pct": 6.5151514086918185,
+  "median_window_ms": 0.0,
+  "median_abs_slope_m_per_10ms": 2.134664534443429,
+  "n": 21,
+  "sd_length_m": 0.5964510702999094,
+  "sd_length_shuffled_m": 0.6910248044129783,
+  "covar_ratio": 1.158560758496946,
+  "sd_release_t_ms": 3.593897574116828,
+  "cv_speed": 0.04515408137746353,
+  "cv_circle": 0.3680232247050699,
+  "mean_speed_kmh": 63.62680639056797,
+  "corr_speed_elevation": -0.23985302286772514,
+  "corr_speed_height": -0.6073482276479495
+ },
+ "torque": {
+  "deliveries": 210,
+  "released": 210,
+  "good": 67,
+  "legal": 210,
+  "good_with_timing_jitter_pct": 8.876830255939968,
+  "median_window_ms": 0.0,
+  "median_abs_slope_m_per_10ms": 1.4348661095549087,
+  "n": 210,
+  "sd_length_m": 0.8657518608971316,
+  "sd_length_shuffled_m": 1.1244823715305439,
+  "covar_ratio": 1.2988506549270409,
+  "sd_release_t_ms": 3.9390941325429085,
+  "cv_speed": 0.048693247928858825,
+  "cv_circle": 0.25103889574022253,
+  "mean_speed_kmh": 61.966502237019846,
+  "corr_speed_elevation": -0.42373874709170034,
+  "corr_speed_height": -0.3650694554096431
+ }
+}

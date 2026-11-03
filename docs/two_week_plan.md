@@ -471,3 +471,42 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     the PD runs.
   - Best so far: torque a270 s0 (21/21 at 67 km/h), torque a250 s0 (21/21 at 61 km/h), and torque
     a290 s1 (12/21 at 91 km/h, the most natural-looking arm path).
+
+### 3 Nov: equifinality of the kinematic bowler
+- Back after a break. Meeting on Fri 6 Nov. Before this, the noise and equifinality work (run15) had only
+  been done on the two-joint arm. Two measures from the papers had never been computed: Müller & Loosch's
+  covariation (Δcovar) and the Andrews et al. 2024 timing-vs-speed variability. Lindsay 2024 has not
+  been used.
+- `KinematicBowlEnv`: added `torque_noise_sd` (torque control only) and `release_timing_sd_ms`, the same
+  noise as ThrowEnv. Both are off by default, and regressions all pass. `train_runup.py` and
+  `hpc/train_runup.pbs` take them as `TIMING=` / `TORQUE=`.
+- `scripts/kin_equifinality.py`: for each of 21 starts, the delivery is replayed once as trained and
+  once with release switched off. Every release instant within ±40 ms of the actual one is then scored
+  by the env's own rules: elbow at that instant, arm plane, window, length × line. Under release-timing
+  jitter the arm path stays the same and only the release moves along it, so the Gaussian-weighted
+  share is the *expected* good rate under 12 ms jitter. Checked on torque a270 s0: real 12 ms jitter in
+  the env gives 12.1% good over 630 deliveries, against 15.1% from the curve. Covariation: release speed,
+  elevation and height are shuffled across deliveries; ratio = SD(length, shuffled) / SD(length, actual).
+  Outputs are in `results/kinematic/equifinality/`.
+
+  | run | km/h | good | + 12 ms timing | torque noise 0.15 | + both | landing slope, m per 10 ms | covar ratio (torque) | release-time SD (torque) |
+  |---|---|---|---|---|---|---|---|---|
+  | torque a250 s0 | 61 | 100% | 13.5% | 71% | 10.0% | 4.9 | 1.08 | 2.9 ms |
+  | torque a250 s1 | 64 | 19% | 6.5% | 32% | 8.9% | 2.1 | 1.30 | 3.9 ms |
+  | torque a270 s0 | 67 | 100% | 15.1% | 98% | 15.3% | 3.5 | 1.16 | 2.2 ms |
+  | torque a270 s1 | 74 | 86% | 11.1% | 66% | 8.2% | 8.5 | 1.37 | 6.0 ms |
+  | torque a290 s1 | 92 | 57% | 4.7% | 56% | 4.8% | 12.5 | 1.05 | 6.5 ms |
+  | pd a250 / a270 / a290 s0 | 65 / 84 / 68 | 14 / 0 / 33% | 7.6 / 0.6 / 6.5% | – | – | 6.0 / 8.2 / 6.6 | – | – |
+
+  - **The kinematic bowler is accurate but not equifinal.** The length moves 2–12 m per 10 ms of release
+    timing; the two-joint arm moved 0.5–4.5 m. The good window is 0–4 ms, and 12 ms timing jitter drops
+    every policy to 5–15% good. It gets steeper with pace: 3.5 m at 67 km/h, 12.5 m at 92 km/h.
+  - Torque noise (0.15) is tolerable for the best policy (a270 s0: 98% good) and costs the others
+    20–70 points.
+  - Covariation ratio 1.05–1.37 under torque noise: speed, elevation and height co-vary a little to keep
+    the length in place (Müller & Loosch's compensation), but only weakly.
+  - torque a290 s0 is excluded: the arm passes 290° before the window opens, and it releases the instant
+    the window opens (2.982 s in all 231 deliveries, release-time SD 0). Its timing is the rule's, not the
+    bowler's.
+  - The arm-circle CV (0.10–0.25, arm hanging → release) is in the summaries but not trusted yet: the
+    "hanging" crossing moves with how the policy holds the arm back.
