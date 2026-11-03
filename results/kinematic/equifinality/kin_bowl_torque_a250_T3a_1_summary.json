@@ -16,6 +16,8 @@
   "sd_release_t_ms": 3.593897574116828,
   "cv_speed": 0.04515408137746353,
   "cv_circle": 0.3680232247050699,
+  "mean_horiz_to_release_ms": 119.71428571428571,
+  "cv_horiz_to_release": 0.10263454843513216,
   "mean_speed_kmh": 63.62680639056797,
   "corr_speed_elevation": -0.23985302286772514,
   "corr_speed_height": -0.6073482276479495
@@ -35,6 +37,8 @@
   "sd_release_t_ms": 3.9390941325429085,
   "cv_speed": 0.048693247928858825,
   "cv_circle": 0.25103889574022253,
+  "mean_horiz_to_release_ms": 115.90476190476193,
+  "cv_horiz_to_release": 0.09380117795241974,
   "mean_speed_kmh": 61.966502237019846,
   "corr_speed_elevation": -0.42373874709170034,
   "corr_speed_height": -0.3650694554096431

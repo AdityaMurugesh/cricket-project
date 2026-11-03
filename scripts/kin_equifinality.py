@@ -151,6 +151,10 @@ def delivery(env, model, before_s, seed):
     r["elevation_deg"] = float(np.degrees(np.arctan2(v[2], v[0])))
     hang = [i for i in range(1, rel + 1) if arm[i - 1] < 90.0 <= arm[i]]
     r["circle_s"] = (rel + 1 - hang[-1]) * h if hang else None
+    # Andrews et al.'s timing: the arm's last horizontal (a multiple of 180) before release -> release
+    s = np.sin(np.radians(arm[: rel + 2]))
+    horiz = [i for i in range(len(s) - 1) if s[i] * s[i + 1] < 0 or s[i] == 0]
+    r["horiz_to_release_s"] = (rel + 1 - horiz[-1]) * h if horiz else None
     return r, curve
 
 
@@ -173,10 +177,13 @@ def covariation(rows, n_perm=500, seed=0):
     t = np.array([r["release_instant_s"] for r in rel])
     speed = np.array([r["speed_m_s"] for r in rel])
     circ = np.array([r["circle_s"] for r in rel if r["circle_s"]])
+    hz = np.array([r["horiz_to_release_s"] for r in rel if r.get("horiz_to_release_s")])
     return {"n": len(rel), "sd_length_m": float(actual.std()), "sd_length_shuffled_m": float(np.mean(sh)),
             "covar_ratio": float(np.mean(sh) / actual.std()) if actual.std() > 0 else None,
             "sd_release_t_ms": float(t.std() * 1000), "cv_speed": float(speed.std() / speed.mean()),
             "cv_circle": float(circ.std() / circ.mean()) if len(circ) > 1 else None,
+            "mean_horiz_to_release_ms": float(hz.mean() * 1000) if len(hz) else None,
+            "cv_horiz_to_release": float(hz.std() / hz.mean()) if len(hz) > 1 else None,
             "mean_speed_kmh": float(speed.mean() * 3.6), "corr_speed_elevation": float(np.corrcoef(s, e)[0, 1]),
             "corr_speed_height": float(np.corrcoef(s, z)[0, 1])}
 

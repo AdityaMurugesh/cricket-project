@@ -16,6 +16,8 @@
   "sd_release_t_ms": 11.79953494606078,
   "cv_speed": 0.08072387178750849,
   "cv_circle": 0.11722029541287457,
+  "mean_horiz_to_release_ms": 262.76190476190476,
+  "cv_horiz_to_release": 0.13217857275872685,
   "mean_speed_kmh": 68.43058197056423,
   "corr_speed_elevation": -0.7221191410877509,
   "corr_speed_height": -0.27566406992447523

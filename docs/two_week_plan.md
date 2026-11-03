@@ -547,3 +547,14 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     for this arm; nothing in noise-free training selects it.
   - **a250 s1 collapses at the end:** 76% good at 25M, 5% at 30M. This is the find-then-lose pattern again
     (the final model scored 4/21). Not followed up yet.
+- **The two cricket papers he sent, now used.**
+  - Lindsay et al. 2024 (J Sports Sci 42:708): skilled swing bowlers keep the pelvis and trunk stable and
+    vary the bowling arm, which controls the seam. The kinematic bowler has that structure by construction.
+    Its arm variation under torque noise is only weakly functional (covariation 1.05–1.37). The sim has no
+    seam, swing or wrist.
+  - Andrews et al. 2024 (Eur J Sport Sci; 92 bowlers): stride timing varies more than delivery speed. Our
+    analogue (`kin_equifinality.py`, `horiz_to_release_s`): under torque noise, the CV of the arm's
+    horizontal → release time is 1.6–3.4× the CV of release speed in every policy (a270 s0: 0.044 vs 0.027).
+    That is the same direction as Andrews; a CV comparison doesn't show the timing variation causes the
+    steady speed.
+- Meeting prep: `docs/meeting_2026-11-06.md` (what to show and say; the user wants no slides).
