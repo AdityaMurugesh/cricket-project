@@ -1,0 +1,25 @@
+{
+ "run": "kin_bowl_torque_t12_a270_T3a_0",
+ "model": "C:\\Users\\ASUS\\documents\\cricket-project\\checkpoints\\kin_bowl_torque_t12_a270_T3a_0_ckpts\\step_10000000_steps.zip",
+ "none": {
+  "deliveries": 21,
+  "released": 21,
+  "good": 5,
+  "legal": 21,
+  "good_with_timing_jitter_pct": 20.646659121711345,
+  "median_window_ms": 0.0,
+  "median_abs_slope_m_per_10ms": 0.5103669292084012,
+  "n": 21,
+  "sd_length_m": 0.2631826860521436,
+  "sd_length_shuffled_m": 0.6956403814250496,
+  "covar_ratio": 2.643184442943273,
+  "sd_release_t_ms": 1.4253932901996176,
+  "cv_speed": 0.02987981796296378,
+  "cv_circle": 0.24396951731694824,
+  "mean_horiz_to_release_ms": 151.1428571428572,
+  "cv_horiz_to_release": 0.03151858601234983,
+  "mean_speed_kmh": 50.35899681227622,
+  "corr_speed_elevation": -0.8997639469251131,
+  "corr_speed_height": -0.5496037868961798
+ }
+}

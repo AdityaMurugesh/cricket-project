@@ -588,3 +588,13 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   limitation, not a finding.
 - `hpc` watcher (scratch script `watch_noise_runs.ps1`): fetches every new noise-run checkpoint, scores it into
   `results/kinematic/noise_training/<N>M/`, and gives finals the full eval in `results/kinematic/equifinality/`.
+- **Noise-trained checkpoints up to 15M** (watcher, before it was stopped; no noise in the eval, 21 starts):
+  - a250 s1, timing only, 10M: 21/21 good, **66%** under 12 ms jitter, 1.1 m per 10 ms, 48 km/h. No noise-free
+    checkpoint of any run passed 19%.
+  - a250 s0, timing + torque, 15M: 21/21, 39%, 0.3 m, 52 km/h. Noise-free at 30M: 21/21, 13%, 5.2 m, 61 km/h.
+  - All noise-trained checkpoints bowl 46–53 km/h against 55–69 for the noise-free runs: part of the tolerance is
+    bought with pace, as on the two-joint arm. They still wobble (a250 s0 t+q: 21 → 0 → 21 / 21 at 5 / 10 / 15M).
+- **Fix test (batch_size 4096), stopped at 10.1M** when Claude Code reaped background jobs under low memory
+  (the watcher too). Mechanically it works: 10.0 / 10 epochs per update in every 3M bucket (baseline:
+  9.0 → 0.3). Explained variance is still ~0 (0.00–0.20), so the critic is a separate problem. Checkpoints at
+  5M and 10M are saved; the run has not been resumed.
