@@ -531,3 +531,8 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - The human straightens the elbow by 5° in the last 70 ms (legal). The learned arms lock the elbow
     (±0.2°): legal, but by never using the elbow at all.
   - Release height matches to within 5 cm (all policies 1.93–1.98 m, human 1.95 m).
+- **Delivery videos** (`scripts/render_kinematic.py`, `results/kinematic/videos/`): torque a250 s0, a270 s0 and
+  a290 s1, start 1.0 s before release, 4x slow motion. Left: side view following the bowler. Right: down
+  the pitch with the good-length zone drawn in. Every frame is captioned: body = mocap replay, arm = learned
+  policy, ball = simulated (drawn 2.5x size in the pitch view). After release the arm carries on under the
+  policy; the body holds its last captured frame once the capture ends.
