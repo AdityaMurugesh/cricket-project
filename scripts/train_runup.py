@@ -100,6 +100,7 @@ def main():
     p.add_argument("--n-envs", type=int, default=16)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--batch-size", type=int, default=64, help="kinematic: PPO minibatch size (64 = SB3 default)")
     p.add_argument("--log-dir", default=str(ROOT / "logs" / "runup_ppo"))
     p.add_argument("--model-path", default=str(ROOT / "checkpoints" / "runup_ppo"))
     p.add_argument("--checkpoint-every", type=int, default=5_000_000)
@@ -131,8 +132,10 @@ def main():
     elif a.task == "kinematic":
         # ThrowEnv's settings (run10-run15): one sparse reward per delivery, so no discounting
         # (the policy sets the episode length: episodic_discounting_trap), entropy 0.003
+        # batch_size: SB3's default 64 makes target_kl's per-minibatch KL check so noisy that from
+        # ~15M steps 73-98% of updates stop inside their first epoch (two_week_plan.md, 3 Nov)
         model = PPO("MlpPolicy", venv, verbose=1, seed=a.seed, learning_rate=3e-4, gamma=0.9999,
-                    ent_coef=0.003, target_kl=0.03)
+                    ent_coef=0.003, target_kl=0.03, batch_size=a.batch_size)
     else:
         # DeepMimic-like settings: short horizon (gamma 0.95), wide nets, small initial noise
         model = PPO("MlpPolicy", venv, verbose=1, seed=a.seed, learning_rate=a.lr,

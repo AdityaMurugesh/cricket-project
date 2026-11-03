@@ -558,3 +558,17 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     That is the same direction as Andrews; a CV comparison doesn't show the timing variation causes the
     steady speed.
 - Meeting prep: `docs/meeting_2026-11-06.md` (what to show and say; the user wants no slides).
+- **Why a250 s1 collapses late, and why the kinematic checkpoints wobble** (job.log of the a250 runs;
+  both seeds look the same):
+  - `target_kl = 0.03` early-stops 27–36% of updates in the first 3M steps, and 100% from 3M on. From 15M,
+    73–98% stop inside the first epoch: on average 0.0–0.4 of 10 epochs are done. SB3 checks KL per minibatch
+    of 64 samples (`batch_size` default), so a noisy estimate trips the limit almost at once.
+  - Explained variance is 0.01–0.13 the whole run (the two-joint arm's was ~0.98). The critic predicts almost
+    nothing, so the advantages are mostly noise.
+  - So learning is nearly frozen after ~15M, apart from a few noisy minibatch steps per iteration. Because the
+    delivery is knife-edge (3–12 m per 10 ms), that small drift is enough to lose the zone. a250 s1 goes
+    76% → 5% at 30M; a270 s1 and a290 s1 wobble too (e.g. 15 → 5 → 10 → 17 / 21).
+  - Link: the delivery that is brittle to motor noise is also brittle to the policy's own parameter drift.
+  - Candidate fixes, not run yet: larger minibatches (`batch_size` 2048–4096, a stable KL estimate), a scaled
+    reward (the delivery reward ranges about −130 to +100, value loss ~550), keep-best-checkpoint by eval.
+    The noise runs 32086–32097 use the same settings.
