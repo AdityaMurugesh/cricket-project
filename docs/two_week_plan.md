@@ -572,3 +572,12 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Candidate fixes, not run yet: larger minibatches (`batch_size` 2048–4096, a stable KL estimate), a scaled
     reward (the delivery reward ranges about −130 to +100, value loss ~550), keep-best-checkpoint by eval.
     The noise runs 32086–32097 use the same settings.
+- **First noise-trained checkpoint (5M, timing 12 ms + torque 0.15, a250; `results/kinematic/noise_training/5M/`):**
+  - s0: 21/21 good, 25.4% under 12 ms jitter, slope 1.1 m per 10 ms, window 8 ms, 48 km/h.
+    The noise-free run at 30M: 21/21, 13.0%, 5.2 m, 4 ms, 61 km/h.
+  - s1: 9/21, 27.0%, 0.5 m, 51 km/h. The noise-free run at 30M: 1/21, 4.0%, 1.0 m, 62 km/h.
+  - Already 5x flatter and twice the jitter tolerance, but ~12 km/h slower, and pace alone buys
+    tolerance (`results/kinematic/tolerance_vs_pace.png`). The slope is still below the two-joint arm's
+    at 46–48 km/h (2–3 m), so it isn't only pace. Early: wait for 10–30M.
+- Local fix test running: `kin_bowl_torque_b4096_a250_T3a_1` (batch_size 4096, otherwise as a250 s1,
+  14 envs instead of 16), ~3,900 steps/s on the laptop (twice the HPC's speed today).
