@@ -536,3 +536,14 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   the pitch with the good-length zone drawn in. Every frame is captioned: body = mocap replay, arm = learned
   policy, ball = simulated (drawn 2.5x size in the pitch view). After release the arm carries on under the
   policy; the body holds its last captured frame once the capture ends.
+- **Equifinality over training** (each 5M checkpoint of the five torque runs, no noise, 21 starts;
+  `results/kinematic/equifinality_training/`, figure `results/kinematic/equifinality_training.png`):
+  - Noise-free accuracy climbs: a250 s0 38 → 100%, a270 s0 57 → 100%.
+  - Good under 12 ms timing jitter levels off at 13–19% and never rises.
+  - The landing slope does not flatten: a290 s1 stays at 10–13 m per 10 ms throughout.
+  - Without noise, training sharpens the aim but never widens the window. This is the same as the two-joint
+    arm (its window stayed flat over training too).
+  - a250 s1 has the flattest landing curve (1–2 m per 10 ms) but the worst aim. A tolerant trajectory exists
+    for this arm; nothing in noise-free training selects it.
+  - **a250 s1 collapses at the end:** 76% good at 25M, 5% at 30M. This is the find-then-lose pattern again
+    (the final model scored 4/21). Not followed up yet.

@@ -1,0 +1,23 @@
+{
+ "run": "kin_bowl_torque_a270_T3a_0",
+ "model": "checkpoints/kin_bowl_torque_a270_T3a_0_ckpts/step_25000000_steps.zip",
+ "none": {
+  "deliveries": 21,
+  "released": 21,
+  "good": 21,
+  "legal": 21,
+  "good_with_timing_jitter_pct": 14.151969784054396,
+  "median_window_ms": 4.0,
+  "median_abs_slope_m_per_10ms": 3.726416567303912,
+  "n": 21,
+  "sd_length_m": 0.3070812268251177,
+  "sd_length_shuffled_m": 0.5894478740927722,
+  "covar_ratio": 1.9195177777131323,
+  "sd_release_t_ms": 1.4443572274383163,
+  "cv_speed": 0.026500181381802712,
+  "cv_circle": 0.15619968288901503,
+  "mean_speed_kmh": 70.83695619457848,
+  "corr_speed_elevation": -0.799499381466148,
+  "corr_speed_height": 0.05385005917784237
+ }
+}
