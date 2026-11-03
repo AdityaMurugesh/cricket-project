@@ -1,0 +1,28 @@
+#!/bin/bash
+# Equifinality evaluation (scripts/kin_equifinality.py) of kinematic-bowler runs, in parallel:
+# every 5M checkpoint (no noise) into results/kinematic/noise_training/<N>M/, and each final model
+# (with torque noise too) into results/kinematic/equifinality/.
+#   qsub -v RUNS="kin_bowl_torque_t12_a250_T3a_0 kin_bowl_torque_t12_a250_T3a_1" hpc/kin_eval.pbs
+#PBS -N kin_eval
+#PBS -q cpuq
+#PBS -l select=1:ncpus=24:mem=48gb
+#PBS -l walltime=03:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${RUNS:?pass RUNS=\"run1 run2 ...\"}"
+git rev-parse --short HEAD && echo "(commit above is the code this eval used)"
+{
+for r in $RUNS; do
+    for z in checkpoints/${r}_ckpts/step_*_steps.zip; do
+        [ -f "$z" ] || continue
+        n=$(basename "$z" | cut -d_ -f2)
+        echo "--run $r --model-path $z --noise-seeds 0 --out results/kinematic/noise_training/$((n / 1000000))M"
+    done
+    [ -f "checkpoints/$r.zip" ] && echo "--run $r --out results/kinematic/equifinality"
+done
+} | xargs -P 22 -L 1 python scripts/kin_equifinality.py 2>&1 | grep -v Warning
+echo "eval exit $?"

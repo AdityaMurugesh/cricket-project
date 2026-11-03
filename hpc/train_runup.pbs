@@ -10,6 +10,7 @@
 # The captured body exactly, only the bowling arm learned (envs/kinematic_bowl_env.py)
 #   qsub -v DELIVERY=T3a,SEED=0,TASK=kinematic,ANGLE=250,ARMCTL=torque hpc/train_runup.pbs
 #   ... TIMING=12,TORQUE=0.15  motor noise in training (release-timing jitter SD in ms, torque noise SD)
+#   ... BATCH=4096  PPO minibatch size (default 64); with RESUME=<ckpt> STEPS= is the extra steps
 #PBS -N cricket_runup
 #PBS -q cpuq
 #PBS -l select=1:ncpus=20:mem=32gb
@@ -29,7 +30,7 @@ TASK="${TASK:-imitate}"
 ANGLE="${ANGLE:-250}"
 if [ "$TASK" = kinematic ]; then
     ARMCTL="${ARMCTL:-pd}"
-    run="kin_bowl_${ARMCTL}${TIMING:+_t${TIMING}}${TORQUE:+_q${TORQUE}}_a${ANGLE}_${DELIVERY}_${SEED}"
+    run="kin_bowl_${ARMCTL}${BATCH:+_b${BATCH}}${TIMING:+_t${TIMING}}${TORQUE:+_q${TORQUE}}_a${ANGLE}_${DELIVERY}_${SEED}"
 elif [ "$TASK" = bowl ]; then
     run="runup_bowl_a${ANGLE}_${DELIVERY}_${SEED}${RESUME:+_warm}${DRIFT:+_d${DRIFT}}"
 else
@@ -41,5 +42,6 @@ python scripts/train_runup.py --task "${TASK}" --release-angle "${ANGLE}" --deli
     --seed "${SEED}" --timesteps "${STEPS}" ${RESUME:+--resume-from "${RESUME}"} \
     ${DRIFT:+--max-pelvis-drift "${DRIFT}"} ${ARMCTL:+--arm-control "${ARMCTL}"} \
     ${TIMING:+--release-timing-sd-ms "${TIMING}"} ${TORQUE:+--torque-noise-sd "${TORQUE}"} \
+    ${BATCH:+--batch-size "${BATCH}"} \
     --n-envs 16 --log-dir "logs/${run}" --model-path "checkpoints/${run}" > "logs/${run}/job.log" 2>&1
 echo "train exit $?"
