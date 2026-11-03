@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
-COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]          # categorical slots 1-3 (validated)
+COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   # categorical slots 1-4 (validated; markers differ too)
 INK, INK2, GRID, SURFACE = "#1f1f1e", "#6b6a64", "#e4e3de", "#fcfcfb"
 
 
@@ -41,24 +41,26 @@ def two_joint():
     return pts
 
 
-def kinematic():
+def kinematic(pattern="kin_bowl_torque_a*_summary.json"):
+    """Final models that release; noise-free a290 s0 is left out (window-edge releases)."""
     out = []
-    for f in sorted((ROOT / "results" / "kinematic" / "equifinality").glob("kin_bowl_torque_a*_summary.json")):
+    for f in sorted((ROOT / "results" / "kinematic" / "equifinality").glob(pattern)):
         s = json.load(open(f))
-        if s["run"] == "kin_bowl_torque_a290_T3a_0":
-            continue
         n = s["none"]
+        if s["run"] == "kin_bowl_torque_a290_T3a_0" or not n["released"]:
+            continue
         out.append((n["mean_speed_kmh"], n["median_abs_slope_m_per_10ms"], s["run"][16:].replace("_T3a_", " s")))
     return out
 
 
 def main():
-    tj, kin = two_joint(), kinematic()
+    tj, kin, kin_noise = two_joint(), kinematic(), kinematic("kin_bowl_torque_t12*_summary.json")
     fig, ax = plt.subplots(figsize=(9, 6), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
     series = [(tj["free"], "two-joint arm, trained without noise", "o"),
               (tj["noise"], "two-joint arm, trained with noise", "s"),
-              ([(x, y) for x, y, _ in kin], "full-body bowler (learned arm)", "D")]
+              ([(x, y) for x, y, _ in kin], "full-body bowler, trained without noise", "D"),
+              ([(x, y) for x, y, _ in kin_noise], "full-body bowler, trained with noise", "^")]
     for (pts, label, mk), c in zip(series, COLORS):
         ax.plot([p[0] for p in pts], [p[1] for p in pts], mk, ms=9, color=c, mec=SURFACE, mew=1.5,
                 ls="none", label=f"{label} (n = {len(pts)})")

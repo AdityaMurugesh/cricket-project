@@ -598,3 +598,20 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   (the watcher too). Mechanically it works: 10.0 / 10 epochs per update in every 3M bucket (baseline:
   9.0 → 0.3). Explained variance is still ~0 (0.00–0.20), so the critic is a separate problem. Checkpoints at
   5M and 10M are saved; the run has not been resumed.
+- **Noise-trained kinematic bowler, all 12 runs done** (they finished early once the queue cleared; scored on the
+  HPC by `hpc/kin_eval.pbs`, job 32100, 22 in parallel). Gotcha: SB3 saved the `q0.15` finals without `.zip`
+  (it read `.15_a250_T3a_0` as an extension). `.zip` copies were made on the HPC.
+  - Finals, good / good under 12 ms jitter / km/h:
+    - timing + torque, a250 s0: 21/21, 67%, 50 km/h
+    - timing, a250 s1: 21/21, 72%, 46 km/h
+    - timing, a290 s1: 19/21, 68%, 49 km/h
+    - best noise-free: 21/21 with only 14–15%
+    - Good under jitter is higher than the noise-free twin in 9 of 12 matched pairs.
+  - Best checkpoints: timing a250 s1 at 30M 21/21 82%; timing a290 s0 at 15M 20/21 70%.
+  - Many finals are inaccurate (0–9 / 21): the late drift from the frozen PPO updates. The 30M checkpoint and
+    the final (one update apart) can differ by 7 / 21.
+  - Every noise-trained final: 0.2–1.9 m per 10 ms at 46–60 km/h. At ~50 km/h the two-joint arms are at 3–5 m,
+    so **it isn't only pace**: noise training finds flatter (equifinal) deliveries at the same speed
+    (`results/kinematic/tolerance_vs_pace.png`, now with four groups).
+- Fix test moved to the HPC (job 32099, resumed from 10M, BATCH=4096, 16 envs); the laptop runs were killed
+  twice by Claude Code's low-memory reaper.

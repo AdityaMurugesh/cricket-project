@@ -1,0 +1,25 @@
+{
+ "run": "kin_bowl_torque_t12_q0.15_a250_T3a_0",
+ "model": "checkpoints/kin_bowl_torque_t12_q0.15_a250_T3a_0_ckpts/step_20000000_steps.zip",
+ "none": {
+  "deliveries": 21,
+  "released": 21,
+  "good": 18,
+  "legal": 21,
+  "good_with_timing_jitter_pct": 46.4231976496734,
+  "median_window_ms": 8.0,
+  "median_abs_slope_m_per_10ms": 0.41508100273931703,
+  "n": 21,
+  "sd_length_m": 0.06399122767915588,
+  "sd_length_shuffled_m": 0.14020713121893055,
+  "covar_ratio": 2.1910367452537685,
+  "sd_release_t_ms": 0.6998542122237399,
+  "cv_speed": 0.006286798611704689,
+  "cv_circle": 0.20193302989159975,
+  "mean_horiz_to_release_ms": 117.14285714285714,
+  "cv_horiz_to_release": 0.019410303067176112,
+  "mean_speed_kmh": 48.27716256945303,
+  "corr_speed_elevation": -0.7954774882853812,
+  "corr_speed_height": 0.8535062259553875
+ }
+}

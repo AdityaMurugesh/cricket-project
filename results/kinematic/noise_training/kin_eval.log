@@ -1,0 +1,112 @@
+Loading python/3.14.0-gcc-12.5.0-4km4ttx
+  Loading requirement: glibc/2.34-none-none-ppxsf4c
+    gcc-runtime/11.5.0-none-none-7vgrrum bzip2/1.0.8-gcc-11.5.0-3kxpqq4
+    gcc-runtime/12.5.0-none-none-of3rcdm libmd/1.1.0-gcc-12.5.0-he3hbve
+    libbsd/0.12.2-gcc-12.5.0-d5fxx77 expat/2.7.3-gcc-12.5.0-vftcugp
+    ncurses/6.5-20250705-gcc-11.5.0-yq6tjea readline/8.3-gcc-11.5.0-5mynowt
+    gdbm/1.25-gcc-11.5.0-xxzhozp libiconv/1.18-gcc-11.5.0-tetgn7i
+    xz/5.6.3-gcc-11.5.0-fxvxcob zlib/1.2.13-gcc-11.5.0-53opvyf
+    libxml2/2.13.5-gcc-11.5.0-zpkpf76 pigz/2.8-gcc-11.5.0-ivjoony
+    zstd/1.5.7-gcc-11.5.0-t5tyekd tar/1.35-gcc-11.5.0-mb3wczy
+    gettext/0.23.1-gcc-11.5.0-2xyhh3w libffi/3.5.2-gcc-12.5.0-p5bwus5
+    openssl/3.6.0-gcc-11.5.0-4nbgyad sqlite/3.50.4-gcc-12.5.0-5itg6w3
+    util-linux-uuid/2.41-gcc-12.5.0-wuhhqf7
+0f73a74
+(commit above is the code this eval used)
+kin_bowl_torque_t12_a250_T3a_0 none   good 0/21  +jitter   5.8%  window 0.0 ms  covar 1.6836458628666389
+kin_bowl_torque_t12_a270_T3a_0 none   good 9/21  +jitter  21.7%  window 0.0 ms  covar 2.8650549895276662
+kin_bowl_torque_t12_a250_T3a_0 none   good 11/21  +jitter  11.0%  window 4.0 ms  covar 6.296764487961566
+kin_bowl_torque_t12_a250_T3a_0 none   good 0/21  +jitter  12.0%  window 0.0 ms  covar 11.981188324378655
+kin_bowl_torque_t12_a270_T3a_0 none   good 13/21  +jitter  39.2%  window 12.0 ms  covar 2.4602704872000034
+kin_bowl_torque_t12_a270_T3a_0 none   good 9/21  +jitter  44.8%  window 0.0 ms  covar 1.3796319406019804
+kin_bowl_torque_t12_a250_T3a_0 none   good 1/21  +jitter  20.3%  window 0.0 ms  covar 1.2131652198017453
+kin_bowl_torque_t12_a270_T3a_1 none   good 1/21  +jitter   6.7%  window 0.0 ms  covar 1.1501494546160256
+kin_bowl_torque_t12_a270_T3a_0 none   good 0/21  +jitter  31.9%  window 0.0 ms  covar 1.2121828549222333
+kin_bowl_torque_t12_a250_T3a_0 none   good 0/21  +jitter   7.6%  window 0.0 ms  covar 2.4363290486231617
+kin_bowl_torque_t12_a270_T3a_0 none   good 0/21  +jitter   6.8%  window 0.0 ms  covar 1.6972947235024836
+kin_bowl_torque_t12_a270_T3a_0 none   good 5/21  +jitter  20.6%  window 0.0 ms  covar 2.6478516344626724
+kin_bowl_torque_t12_a250_T3a_1 none   good 4/21  +jitter  16.4%  window 0.0 ms  covar 1.0104326775762196
+kin_bowl_torque_t12_a250_T3a_1 none   good 3/21  +jitter  15.0%  window 0.0 ms  covar 1.0006126383904799
+kin_bowl_torque_t12_a250_T3a_0 none   good 10/21  +jitter  30.0%  window 0.0 ms  covar 1.8326814486207106
+kin_bowl_torque_t12_a250_T3a_1 none   good 21/21  +jitter  72.4%  window 28.0 ms  covar 1.3165400047885023
+kin_bowl_torque_t12_a250_T3a_1 none   good 1/21  +jitter  34.0%  window 0.0 ms  covar 1.0545783760666554
+kin_bowl_torque_t12_a250_T3a_1 none   good 21/21  +jitter  82.3%  window 32.0 ms  covar 1.3605305125714466
+kin_bowl_torque_t12_a270_T3a_0 none   good 1/21  +jitter   8.5%  window 0.0 ms  covar 1.1113895050602092
+kin_bowl_torque_t12_a250_T3a_1 none   good 21/21  +jitter  46.5%  window 18.000000000000004 ms  covar 2.7639767126034
+kin_bowl_torque_t12_a250_T3a_1 none   good 21/21  +jitter  66.3%  window 28.0 ms  covar 1.0284971221203412
+kin_bowl_torque_t12_a250_T3a_0 none   good 3/21  +jitter  10.0%  window 0.0 ms  covar 1.396345181358062
+kin_bowl_torque_t12_a270_T3a_1 none   good 2/21  +jitter  11.1%  window 0.0 ms  covar 2.149763811575195
+kin_bowl_torque_t12_a290_T3a_0 none   good 0/21  +jitter  13.0%  window 0.0 ms  covar 0.8132494808388757
+kin_bowl_torque_t12_a270_T3a_1 none   good 9/21  +jitter  28.9%  window 0.0 ms  covar 1.233733290631234
+kin_bowl_torque_t12_a290_T3a_0 none   good 0/21  +jitter   8.6%  window 0.0 ms  covar 1.2047407156177994
+kin_bowl_torque_t12_a290_T3a_0 none   good 0/21  +jitter  11.8%  window 0.0 ms  covar 1.1016874520007334
+kin_bowl_torque_t12_a270_T3a_1 none   good 5/21  +jitter  22.5%  window 0.0 ms  covar 1.3445465189260561
+kin_bowl_torque_t12_a290_T3a_0 none   good 3/21  +jitter   7.6%  window 0.0 ms  covar 0.7397618109347295
+kin_bowl_torque_t12_a290_T3a_0 none   good 0/21  +jitter   0.0%  window 0.0 ms  covar 3.0221358792253175
+kin_bowl_torque_t12_a270_T3a_1 none   good 3/21  +jitter  18.3%  window 0.0 ms  covar 1.426699395698996
+kin_bowl_torque_t12_a290_T3a_0 none   good 0/21  +jitter   5.4%  window 0.0 ms  covar 1.2731241522447416
+kin_bowl_torque_t12_a290_T3a_0 none   good 20/21  +jitter  69.9%  window 32.0 ms  covar 1.1552451386416125
+kin_bowl_torque_t12_a270_T3a_1 none   good 8/21  +jitter  14.5%  window 0.0 ms  covar 0.8859114379804087
+kin_bowl_torque_t12_a290_T3a_1 none   good 2/21  +jitter  12.9%  window 0.0 ms  covar 1.0281578193876812
+kin_bowl_torque_t12_a270_T3a_1 none   good 8/21  +jitter  16.1%  window 0.0 ms  covar 0.831571840556961
+kin_bowl_torque_t12_a290_T3a_1 none   good 8/21  +jitter  44.4%  window 0.0 ms  covar 1.1285767495420032
+kin_bowl_torque_t12_a290_T3a_1 none   good 3/21  +jitter  28.7%  window 0.0 ms  covar 1.3242950208088577
+kin_bowl_torque_t12_a290_T3a_1 none   good 12/21  +jitter  38.9%  window 10.0 ms  covar 1.522559867117961
+kin_bowl_torque_t12_a290_T3a_1 none   good 12/21  +jitter  47.1%  window 6.0 ms  covar 0.9645012296162302
+kin_bowl_torque_t12_a290_T3a_1 none   good 3/21  +jitter  15.0%  window 0.0 ms  covar 0.7459777092822482
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 13/21  +jitter  42.6%  window 12.0 ms  covar 2.368274722062053
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 21/21  +jitter  66.4%  window 18.000000000000004 ms  covar 0.744962033365962
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 21/21  +jitter  39.0%  window 10.0 ms  covar 1.4685994205025275
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 7/21  +jitter  16.4%  window 0.0 ms  covar 1.2985050305455867
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 21/21  +jitter  44.7%  window 8.0 ms  covar 5.310919471723662
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 4/21  +jitter  22.7%  window 0.0 ms  covar 0.8587894515525828
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 21/21  +jitter  25.4%  window 8.0 ms  covar 1.3277769037874905
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 18/21  +jitter  46.4%  window 8.0 ms  covar 2.1910367452537685
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 10/21  +jitter  27.1%  window 0.0 ms  covar 1.3430411513705576
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 0/21  +jitter  11.9%  window 0.0 ms  covar 1.3094372149100817
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 9/21  +jitter  25.1%  window 0.0 ms  covar 1.0309143794769013
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 9/21  +jitter  27.0%  window 0.0 ms  covar 1.193365950176586
+kin_bowl_torque_t12_q0.15_a250_T3a_0 none   good 21/21  +jitter  66.7%  window 18.000000000000004 ms  covar 1.7916395887482874
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 7/21  +jitter  29.1%  window 0.0 ms  covar 1.008021283621804
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 0/21  +jitter   4.1%  window 0.0 ms  covar 1.4934115425910333
+kin_bowl_torque_t12_q0.15_a250_T3a_1 none   good 9/21  +jitter  24.9%  window 0.0 ms  covar 1.016045406568011
+kin_bowl_torque_t12_a290_T3a_1 none   good 19/21  +jitter  68.2%  window 26.000000000000004 ms  covar 1.3465104943987212
+kin_bowl_torque_t12_a250_T3a_1 torque good 193/210  +jitter  60.2%  window 20.0 ms  covar 1.0327311529990812
+kin_bowl_torque_t12_a250_T3a_0 torque good 34/210  +jitter  15.2%  window 0.0 ms  covar 2.5515403151722618
+kin_bowl_torque_t12_a270_T3a_0 torque good 99/210  +jitter  36.4%  window 0.0 ms  covar 1.7159360631818157
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 4/21  +jitter  11.4%  window 0.0 ms  covar 1.5518569684638215
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 0/21  +jitter   5.6%  window 0.0 ms  covar 2.1220332049939485
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 1/21  +jitter  14.0%  window 0.0 ms  covar 0.965941503441526
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 4/21  +jitter  38.4%  window 0.0 ms  covar 0.9621753879516071
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 2/21  +jitter  12.0%  window 0.0 ms  covar 3.0079890951737474
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 4/21  +jitter  47.1%  window 0.0 ms  covar 0.9317957841826148
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 4/21  +jitter  49.0%  window 0.0 ms  covar 0.9648755708205059
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 3/21  +jitter  17.9%  window 0.0 ms  covar 0.9520031463460334
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 10/21  +jitter  29.8%  window 0.0 ms  covar 2.1192549722344856
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 1/21  +jitter   6.0%  window 0.0 ms  covar 0.9864060283268903
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 16/21  +jitter  31.8%  window 10.0 ms  covar 2.4336387465559572
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 12/21  +jitter  57.7%  window 14.0 ms  covar 1.0461706008065965
+kin_bowl_torque_t12_q0.15_a270_T3a_0 none   good 0/21  +jitter   5.5%  window 0.0 ms  covar 1.950749648085868
+kin_bowl_torque_t12_q0.15_a270_T3a_1 none   good 9/21  +jitter  53.0%  window 0.0 ms  covar 0.8996314037381719
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 12/21  +jitter  27.5%  window 4.0 ms  covar 0.7244172302327491
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 7/21  +jitter  26.9%  window 0.0 ms  covar 1.833199404818228
+kin_bowl_torque_t12_a270_T3a_1 torque good 83/210  +jitter  23.8%  window 0.0 ms  covar 1.3603568797797536
+kin_bowl_torque_t12_a290_T3a_0 torque good 3/210  +jitter  12.4%  window 0.0 ms  covar 1.1895921716791158
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 11/21  +jitter  31.6%  window 6.0 ms  covar 1.130500471985446
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 1/21  +jitter   8.5%  window 0.0 ms  covar 0.9158696359994778
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 3/21  +jitter  24.3%  window 0.0 ms  covar 0.77474081820099
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 1/21  +jitter  16.1%  window 0.0 ms  covar 0.9112424924806485
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 3/21  +jitter  28.3%  window 0.0 ms  covar 0.9970510063306333
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 0/21  +jitter  23.8%  window 0.0 ms  covar 0.904216577702881
+kin_bowl_torque_t12_q0.15_a290_T3a_0 none   good 8/21  +jitter  26.5%  window 0.0 ms  covar 1.3443291902722474
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 2/21  +jitter   7.6%  window 0.0 ms  covar 0.9081042930216212
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 4/21  +jitter  16.4%  window 0.0 ms  covar 1.3651170019666052
+kin_bowl_torque_t12_q0.15_a290_T3a_1 none   good 0/21  +jitter  10.1%  window 0.0 ms  covar 1.6888400224407965
+kin_bowl_torque_t12_q0.15_a250_T3a_0 torque good 201/210  +jitter  60.0%  window 16.0 ms  covar 1.7560011409777116
+kin_bowl_torque_t12_q0.15_a250_T3a_1 torque good 103/210  +jitter  29.8%  window 0.0 ms  covar 1.166520233595446
+kin_bowl_torque_t12_a290_T3a_1 torque good 94/210  +jitter  44.8%  window 0.0 ms  covar 1.1168632855743308
+kin_bowl_torque_t12_q0.15_a270_T3a_0 torque good 31/210  +jitter  12.7%  window 0.0 ms  covar 1.443463657435064
+kin_bowl_torque_t12_q0.15_a270_T3a_1 torque good 69/210  +jitter  45.8%  window 0.0 ms  covar 1.0477672993232527
+kin_bowl_torque_t12_q0.15_a290_T3a_0 torque good 60/210  +jitter  18.3%  window 0.0 ms  covar 1.255041528170557
+kin_bowl_torque_t12_q0.15_a290_T3a_1 torque good 38/210  +jitter  23.5%  window 0.0 ms  covar 0.9362652199482933
+eval exit 0

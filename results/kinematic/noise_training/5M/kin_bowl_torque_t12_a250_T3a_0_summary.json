@@ -1,6 +1,6 @@
 {
  "run": "kin_bowl_torque_t12_a250_T3a_0",
- "model": "C:\\Users\\ASUS\\documents\\cricket-project\\checkpoints\\kin_bowl_torque_t12_a250_T3a_0_ckpts\\step_5000000_steps.zip",
+ "model": "checkpoints/kin_bowl_torque_t12_a250_T3a_0_ckpts/step_5000000_steps.zip",
  "none": {
   "deliveries": 21,
   "released": 21,
@@ -8,18 +8,18 @@
   "legal": 21,
   "good_with_timing_jitter_pct": 5.845520880417937,
   "median_window_ms": 0.0,
-  "median_abs_slope_m_per_10ms": 0.14719556695384384,
+  "median_abs_slope_m_per_10ms": 0.14719572840263595,
   "n": 21,
-  "sd_length_m": 0.09745471979106128,
-  "sd_length_shuffled_m": 0.16408272799661558,
-  "covar_ratio": 1.6836816969809352,
+  "sd_length_m": 0.09745719267261044,
+  "sd_length_shuffled_m": 0.16408339924983747,
+  "covar_ratio": 1.6836458628666389,
   "sd_release_t_ms": 0.42591771000008805,
-  "cv_speed": 0.006706922732634112,
+  "cv_speed": 0.006706853402353417,
   "cv_circle": 0.07480777703958223,
   "mean_horiz_to_release_ms": 130.09523809523807,
   "cv_horiz_to_release": 0.00327389162152239,
-  "mean_speed_kmh": 48.77698489433811,
-  "corr_speed_elevation": -0.669381607582983,
-  "corr_speed_height": 0.6110889047192518
+  "mean_speed_kmh": 48.7769844767307,
+  "corr_speed_elevation": -0.6693600965569303,
+  "corr_speed_height": 0.6109708232598986
  }
 }

@@ -8,18 +8,18 @@
   "legal": 21,
   "good_with_timing_jitter_pct": 26.99433328823116,
   "median_window_ms": 0.0,
-  "median_abs_slope_m_per_10ms": 0.5457108619471951,
+  "median_abs_slope_m_per_10ms": 0.5457096129918115,
   "n": 21,
-  "sd_length_m": 0.8086926362773016,
-  "sd_length_shuffled_m": 0.9650829624411646,
-  "covar_ratio": 1.193386608395228,
+  "sd_length_m": 0.8086275794592017,
+  "sd_length_shuffled_m": 0.9649886197003231,
+  "covar_ratio": 1.193365950176586,
   "sd_release_t_ms": 5.112786869131228,
-  "cv_speed": 0.02433824530094381,
+  "cv_speed": 0.024333072399082636,
   "cv_circle": 0.196707563527539,
   "mean_horiz_to_release_ms": 133.90476190476193,
   "cv_horiz_to_release": 0.06157855141369377,
-  "mean_speed_kmh": 50.53476388453215,
-  "corr_speed_elevation": -0.37410729574626234,
-  "corr_speed_height": -0.24702077099536043
+  "mean_speed_kmh": 50.53484833220002,
+  "corr_speed_elevation": -0.3741290884753359,
+  "corr_speed_height": -0.24734489016806832
  }
 }
