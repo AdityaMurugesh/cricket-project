@@ -581,3 +581,10 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     at 46–48 km/h (2–3 m), so it isn't only pace. Early: wait for 10–30M.
 - Local fix test running: `kin_bowl_torque_b4096_a250_T3a_1` (batch_size 4096, otherwise as a250 s1,
   14 envs instead of 16), ~3,900 steps/s on the laptop (twice the HPC's speed today).
+- **Andrews on the captured bowler** (`data/mocap/delivery_metrics.csv`, 11 deliveries): timing CVs are take-off →
+  release 0.029, jump top → release 0.053, run start → release 0.053. Speed CVs: approach 0.069, run-up peak 0.043,
+  take-off 0.059. Release hand/wrist speed 0.126, but n = 4 with mixed markers, so not usable. The pattern is
+  not Andrews' (timing no more variable than speed). One non-elite bowler on a short indoor run-up, so this is a
+  limitation, not a finding.
+- `hpc` watcher (scratch script `watch_noise_runs.ps1`): fetches every new noise-run checkpoint, scores it into
+  `results/kinematic/noise_training/<N>M/`, and gives finals the full eval in `results/kinematic/equifinality/`.
