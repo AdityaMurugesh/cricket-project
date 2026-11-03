@@ -615,3 +615,10 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     (`results/kinematic/tolerance_vs_pace.png`, now with four groups).
 - Fix test moved to the HPC (job 32099, resumed from 10M, BATCH=4096, 16 envs); the laptop runs were killed
   twice by Claude Code's low-memory reaper.
+- **Fix test result (job 32099, BATCH=4096, a250 s1, 30M):** no collapse. Good: 0/21 (4M), 9 (9M), 21 (14M), 20, 21,
+  19, final 21/21; under torque noise 200/210. The batch-64 run with the same seed went 16/21 at 25M → 1/21 at
+  30M → final 4/21. Epoch-0 early stops fell from 73–98% to ~10% of updates, but explained variance is still ≈ 0.
+  - It converged on a different, faster delivery: 80 km/h (batch 64: ~60), 9 m per 10 ms, 7% good under 12 ms
+    jitter: on the pace-vs-tolerance trend. One seed only.
+  - Checkpoint results sit in `equifinality_training/{4,9,14,19,24,29}M` (step 9,999,976 rounds down to 9M).
+  - Next (launched tonight): BATCH=4096 + TIMING=12, a250/270/290 × seeds 0–1, 30M.
