@@ -621,4 +621,5 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - It converged on a different, faster delivery: 80 km/h (batch 64: ~60), 9 m per 10 ms, 7% good under 12 ms
     jitter: on the pace-vs-tolerance trend. One seed only.
   - Checkpoint results sit in `equifinality_training/{4,9,14,19,24,29}M` (step 9,999,976 rounds down to 9M).
-  - Next (launched tonight): BATCH=4096 + TIMING=12, a250/270/290 × seeds 0–1, 30M.
+  - Next: BATCH=4096 + TIMING=12, a250/270/290 × seeds 0–1, 30M: jobs 32115–32120 (HPC commit 0f73a74, same
+    training code); scoring job 32137 waits on them (`kin_eval.pbs`, afterany). Runs `kin_bowl_torque_b4096_t12_a*`.
