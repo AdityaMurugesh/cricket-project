@@ -1,0 +1,62 @@
+[
+ {
+  "source": "measured markers",
+  "who": "T3a",
+  "speed_kmh": 68.5,
+  "release_height_m": 1.95,
+  "release_vs_capture_s": 0.0,
+  "horizontal_to_release_ms": 80.0,
+  "elbow_extension_deg": 5.3,
+  "note": "hand marker on the back of the hand: a lower bound on ball speed (data/mocap/REPORT.md)"
+ },
+ {
+  "source": "fitted skeleton",
+  "who": "T3a",
+  "speed_kmh": 80.057840969309,
+  "release_height_m": 2.0135509078007363,
+  "release_vs_capture_s": 0.0,
+  "arm_rate_rad_s": 27.175678682646453,
+  "arm_angle_at_release_deg": 289.57256967246747,
+  "horizontal_to_release_ms": 80.0,
+  "elbow_extension_deg": 0.0
+ },
+ {
+  "source": "simulated",
+  "who": "kin_bowl_torque_a250_T3a_0",
+  "speed_kmh": 61.28391236307973,
+  "release_height_m": 1.9317375272273651,
+  "release_vs_capture_s": -0.008000000000000007,
+  "arm_rate_rad_s": 22.907416496079996,
+  "arm_angle_at_release_deg": 250.94631768813557,
+  "horizontal_to_release_ms": 456.0,
+  "elbow_extension_deg": 0.15467774084911667,
+  "land_x": 12.169474212530003,
+  "good": true
+ },
+ {
+  "source": "simulated",
+  "who": "kin_bowl_torque_a270_T3a_0",
+  "speed_kmh": 66.9283867576744,
+  "release_height_m": 1.9824522387296217,
+  "release_vs_capture_s": -0.052000000000000046,
+  "arm_rate_rad_s": 24.803444864595633,
+  "arm_angle_at_release_deg": 271.0143822119546,
+  "horizontal_to_release_ms": 124.0,
+  "elbow_extension_deg": -0.0024499122424295194,
+  "land_x": 11.934756688982484,
+  "good": true
+ },
+ {
+  "source": "simulated",
+  "who": "kin_bowl_torque_a290_T3a_1",
+  "speed_kmh": 91.13386664993622,
+  "release_height_m": 1.9459724668047094,
+  "release_vs_capture_s": -0.04800000000000004,
+  "arm_rate_rad_s": 36.90529218330668,
+  "arm_angle_at_release_deg": 290.6964433481211,
+  "horizontal_to_release_ms": 72.00000000000001,
+  "elbow_extension_deg": -0.21128925026925316,
+  "land_x": 12.335446228986942,
+  "good": true
+ }
+]

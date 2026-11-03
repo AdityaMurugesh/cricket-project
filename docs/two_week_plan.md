@@ -510,3 +510,24 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
     bowler's.
   - The arm-circle CV (0.10–0.25, arm hanging → release) is in the summaries but not trusted yet: the
     "hanging" crossing moves with how the policy holds the arm back.
+- **Learned arm vs the captured bowler (T3a)** (`scripts/compare_kinematic_mocap.py`, `results/kinematic/vs_mocap.{png,json}`).
+  The figure shows three sources, each labelled: measured markers, the skeleton fitted to them, and the learned arm.
+  Every policy starts 1.0 s before release, deterministic.
+
+  | | speed km/h | height m | release vs capture | arm-horizontal → release | elbow extension |
+  |---|---|---|---|---|---|
+  | human, hand marker | 68.5 (lower bound for the ball) | 1.95 | 0 | 80 ms | 5.3° |
+  | human, fitted skeleton | 80 (finite difference, spiky) | 2.01 | 0 | 80 ms | 0.0° (the fit doesn't reproduce it) |
+  | torque a250 s0 | 61 | 1.93 | −8 ms | 456 ms | 0.2° |
+  | torque a270 s0 | 67 | 1.98 | −52 ms | 124 ms | 0.0° |
+  | torque a290 s1 | 91 | 1.95 | −48 ms | **72 ms** | −0.2° |
+
+  - The hand-marker speed and the fitted skeleton's grip speed agree through the last 0.4 s, which checks
+    the fit. Peaks: markers 68.5, fit 80–86 km/h.
+  - The human's arm makes one accelerating circle from in front (~0° at −0.45 s) to release. The policies
+    take the arm back early and wait: a250 s0 holds it horizontal behind for ~0.4 s, a270 s0 at 140–160°.
+    a290 s1 is closest to the human: its arm-horizontal → release time is 72 ms against the human's 80 ms,
+    but it is 22 km/h faster than the marker.
+  - The human straightens the elbow by 5° in the last 70 ms (legal). The learned arms lock the elbow
+    (±0.2°): legal, but by never using the elbow at all.
+  - Release height matches to within 5 cm (all policies 1.93–1.98 m, human 1.95 m).
