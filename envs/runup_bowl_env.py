@@ -49,7 +49,7 @@ G = 9.81
 
 class RunupBowlEnv(RunupImitationEnv):
     def __init__(self, delivery="T3a", release_angle_deg=250.0, target_range=(10.9, 12.9),
-                 task_weight=10.0, speed_weight=0.5, illegal_penalty=2.0, max_release_elbow_deg=40.0,
+                 task_weight=10.0, speed_weight=0.5, speed_power=0.0, speed_target_kmh=68.0, illegal_penalty=2.0, max_release_elbow_deg=40.0,
                  window_before_s=0.15, late_s=0.15, rsi_before_release_s=1.0, max_pelvis_drift_m=None,
                  max_arm_out_of_plane_deg=50.0, max_release_tilt_deg=20.0, max_release_height_err_m=0.15,
                  follow_through_s=0.3, line_tol_m=0.5, **kw):
@@ -63,6 +63,11 @@ class RunupBowlEnv(RunupImitationEnv):
         self.target_min, self.target_max = target_range
         self.task_weight = task_weight
         self.speed_weight = speed_weight
+        # speed_power k > 0 replaces 1 + w*s on a good delivery: top * min(s / target, 1)^k, where top is what
+        # 1 + w*s pays at the target. 1 + w*s is nearly proportional to s at bowling speeds, so raising w hardly
+        # changes the trade-off; k does. Capped, so the reward scale (no VecNormalize) stays where it was
+        self.speed_power = speed_power
+        self.speed_target_m_s = speed_target_kmh / 3.6
         self.illegal_penalty = illegal_penalty
         self.max_release_elbow_deg = max_release_elbow_deg
         # the fall test only looks at height and tilt, so a policy can stop running
@@ -171,7 +176,11 @@ class RunupBowlEnv(RunupImitationEnv):
             # better than any release, even one thrown backwards
             dist = min(dist, self.target_min)
         if legal and in_zone:
-            return 1.0 + self.speed_weight * self._outcome["speed_m_s"]
+            s = self._outcome["speed_m_s"]
+            if self.speed_power > 0:
+                top = 1.0 + self.speed_weight * self.speed_target_m_s
+                return top * min(s / self.speed_target_m_s, 1.0) ** self.speed_power
+            return 1.0 + self.speed_weight * s
         if legal:
             return -dist
         return -dist - self.illegal_penalty

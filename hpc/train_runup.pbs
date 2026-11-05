@@ -13,6 +13,7 @@
 #   ... BATCH=4096  PPO minibatch size (default 64); with RESUME=<ckpt> STEPS= is the extra steps
 #   ... SPEEDW=1.5,TASKW=4  speed reward (default 0.5), overall reward scale (default 10); 1.5 is w1p5 in the
 #       run name, because SB3 would read ".5_a250_T3a_0" as a file extension and not add .zip
+#   ... SPEEDP=8  a good delivery pays in proportion to min(speed / 68 km/h, 1)^8; p8 in the run name
 #PBS -N cricket_runup
 #PBS -q cpuq
 #PBS -l select=1:ncpus=20:mem=32gb
@@ -32,7 +33,7 @@ TASK="${TASK:-imitate}"
 ANGLE="${ANGLE:-250}"
 if [ "$TASK" = kinematic ]; then
     ARMCTL="${ARMCTL:-pd}"
-    run="kin_bowl_${ARMCTL}${BATCH:+_b${BATCH}}${TIMING:+_t${TIMING}}${TORQUE:+_q${TORQUE}}${SPEEDW:+_w${SPEEDW/./p}}_a${ANGLE}_${DELIVERY}_${SEED}"
+    run="kin_bowl_${ARMCTL}${BATCH:+_b${BATCH}}${TIMING:+_t${TIMING}}${TORQUE:+_q${TORQUE}}${SPEEDW:+_w${SPEEDW/./p}}${SPEEDP:+_p${SPEEDP}}_a${ANGLE}_${DELIVERY}_${SEED}"
 elif [ "$TASK" = bowl ]; then
     run="runup_bowl_a${ANGLE}_${DELIVERY}_${SEED}${RESUME:+_warm}${DRIFT:+_d${DRIFT}}"
 else
@@ -45,6 +46,6 @@ python scripts/train_runup.py --task "${TASK}" --release-angle "${ANGLE}" --deli
     ${DRIFT:+--max-pelvis-drift "${DRIFT}"} ${ARMCTL:+--arm-control "${ARMCTL}"} \
     ${TIMING:+--release-timing-sd-ms "${TIMING}"} ${TORQUE:+--torque-noise-sd "${TORQUE}"} \
     ${BATCH:+--batch-size "${BATCH}"} \
-    ${SPEEDW:+--speed-weight "${SPEEDW}"} ${TASKW:+--task-weight "${TASKW}"} \
+    ${SPEEDW:+--speed-weight "${SPEEDW}"} ${TASKW:+--task-weight "${TASKW}"} ${SPEEDP:+--speed-power "${SPEEDP}"} \
     --n-envs 16 --log-dir "logs/${run}" --model-path "checkpoints/${run}" > "logs/${run}/job.log" 2>&1
 echo "train exit $?"

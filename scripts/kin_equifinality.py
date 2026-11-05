@@ -51,7 +51,7 @@ from envs.runup_bowl_env import BALL_R, G
 ROOT = Path(__file__).resolve().parent.parent
 HALF_WINDOW_S = 0.040
 JITTER_SD_S = 0.012
-RUN_RE = re.compile(r"kin_bowl_(?P<ctl>torque|pd)(?:_b\d+)?(?:_t[\d.]+)?(?:_q[\d.]+)?(?:_w[\dp]+)?_a(?P<ang>\d+)_(?P<delivery>\w+?)_(?P<seed>\d+)$")
+RUN_RE = re.compile(r"kin_bowl_(?P<ctl>torque|pd)(?:_b\d+)?(?:_t[\d.]+)?(?:_q[\d.]+)?(?:_w[\dp]+)?(?:_p\d+)?_a(?P<ang>\d+)_(?P<delivery>\w+?)_(?P<seed>\d+)$")
 
 
 class Recorder:
