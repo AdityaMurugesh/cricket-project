@@ -88,6 +88,8 @@ def main():
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9],
                    help="bowl: landing zone, metres from the release point")
     p.add_argument("--task-weight", type=float, default=10.0, help="bowl: weight of the delivery reward")
+    p.add_argument("--speed-weight", type=float, default=0.5,
+                   help="kinematic: reward per m/s of release speed on a good delivery")
     p.add_argument("--arm-control", default="pd", choices=["pd", "torque"],
                    help="kinematic: the arm action is PD targets or (ThrowEnv's) torques")
     p.add_argument("--release-timing-sd-ms", type=float, default=0.0,
@@ -115,6 +117,7 @@ def main():
                                             release_angle_deg=a.release_angle,
                                             target_range=tuple(a.target_range), task_weight=a.task_weight,
                                             arm_control=a.arm_control,
+                                            speed_weight=a.speed_weight,
                                             release_timing_sd_ms=a.release_timing_sd_ms,
                                             torque_noise_sd=a.torque_noise_sd)
         if a.task == "bowl":
