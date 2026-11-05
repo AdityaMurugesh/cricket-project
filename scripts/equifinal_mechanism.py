@@ -19,6 +19,7 @@ Three sources, never mixed up:
 
     python scripts/equifinal_mechanism.py
 """
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -148,8 +149,12 @@ def measured(name, key):
 
 
 def main():
-    res = [simulated(r) for r in RUNS] + [measured(*h) for h in HUMANS]
-    OUT.write_text(json.dumps(res, indent=1))
+    p = argparse.ArgumentParser()
+    p.add_argument("--runs", nargs="*", help="just these simulated runs, printed and not saved")
+    a = p.parse_args()
+    res = [simulated(r) for r in a.runs] if a.runs else [simulated(r) for r in RUNS] + [measured(*h) for h in HUMANS]
+    if not a.runs:
+        OUT.write_text(json.dumps(res, indent=1))
     for r in res:
         name = r["run"][16:] if r["source"] == "simulated" else f"{r['run']} {r['marker']}"
         line = (f"{name:24s} {r['speed_kmh']:5.1f} km/h elev {r['elevation_deg']:6.1f} h {r['height_m']:.2f} "
