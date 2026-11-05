@@ -623,3 +623,24 @@ noise now, and start learning the full run-up with the mocap as the run-up and t
   - Checkpoint results sit in `equifinality_training/{4,9,14,19,24,29}M` (step 9,999,976 rounds down to 9M).
   - Next: BATCH=4096 + TIMING=12, a250/270/290 × seeds 0–1, 30M: jobs 32115–32120 (HPC commit 0f73a74, same
     training code); scoring job 32137 waits on them (`kin_eval.pbs`, afterany). Runs `kin_bowl_torque_b4096_t12_a*`.
+- **Batch 4096 + timing noise, all 6 runs done (5 Nov; jobs 32115-32120, scored by 32137):** stable AND tolerant.
+  - Finals (good / good under 12 ms jitter / km/h): a250 s0 21/21 90% 45; a250 s1 17/21 57% 51; a270 s0 21/21 66% 54;
+    a270 s1 21/21 73% 54; a290 s0 21/21 57% 55; a290 s1 21/21 86% 47. Batch-64 twins: 0/21 12%; 21/21 72%; 9/21 45%;
+    5/21 23%; 0/21 5%; 19/21 68%. One pair of six got worse (a250 s1).
+  - Checkpoints from 20M on with >= 19/21 good: 19 of 24 against 4 of 24 (`scripts/plot_batch_noise.py`, `batch_noise.png`).
+  - Epoch-0 early stops 1-17 of 916 updates (batch 64: ~650). Explained variance still 0.02-0.06: separate problem.
+  - Verified by bowling: 200 deliveries each with the env's jitter ON give 87, 54.5, 70, 73.5, 60.5, 83% (a250 s0 ... a290 s1)
+    against the curve's 90, 57, 66, 73, 57, 86. All legal, elbow extension <= 2 deg.
+- **Why it is flat (`scripts/equifinal_mechanism.py`, `equifinal_mechanism.png`):** first-order split of the landing's change
+  per 10 ms of later release. Tolerant: speed term +1.4 to +2.1 m cancels elevation term -1.9 to -2.8 m (net 0.1-1.0).
+  Brittle: +0.4 to +1.2 against -4.4 to -10.3 (net 3.8-8.8). Tolerant arms swing at 800-925 deg/s (brittle 1400-1800) and
+  release 4-14 deg upward (brittle about -2 to +2).
+- **Real bowler on the same measure (raw markers; hypothetical landing, no ball):** where the landing crosses mid-zone,
+  T3a/T2b hand and T1a/T4b wrist move it 4.6-7.1 m per 10 ms at 55-72 km/h, window 2.5-4.5 ms, 8-15% length-good under
+  12 ms jitter, no cancellation. Same place as the noise-free policies. The markers' speed peak lands at only 4-6 m, so the
+  crossing is 12-26 ms before it. Gotchas: series_*.npz is x along the pitch, y UP (z is lateral); the fitted skeleton's
+  frame-to-frame speed jumps (66 -> 46 -> 71 km/h), so use it for no derivative.
+- **Launched 5 Nov: more speed reward, same setup (BATCH=4096, TIMING=12, 30M):** SPEEDW 1.5 (TASKW 4) and 3 (TASKW 2),
+  a250/270/290 x seeds 0-1, runs `kin_bowl_torque_b4096_t12_w{1p5,3}_a*`. TASKW keeps a good delivery worth ~85 as at weight
+  0.5 / task 10 (scaling doesn't move the optimum, and keeps the value loss in range). Commit c749ab1, jobs 33335-33344 and
+  33348-33349, scoring 33350. Jobs 33345-33346 were held by PBS ("too many failed attempts to run", run_count 21) and resubmitted.

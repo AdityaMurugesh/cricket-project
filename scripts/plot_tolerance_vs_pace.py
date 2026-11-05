@@ -6,6 +6,8 @@ Two-joint arm: final policy of every run15 run that bowls legally
 (results/run15/equifinality, results/run15/noise_robustness, condition "none").
 Kinematic bowler: the torque finals, median over 21 starts (results/kinematic/equifinality);
 torque a290 s0 is left out (it releases when the window opens, not on the arm).
+Real bowler: raw hand/wrist markers, where the landing a ball would have crosses the middle of the
+good-length zone (results/kinematic/equifinal_mechanism.json; there is no ball in the capture).
 
     python scripts/plot_tolerance_vs_pace.py
 """
@@ -19,7 +21,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
-COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   # categorical slots 1-4 (validated; markers differ too)
+COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]   # categorical slots 1-6 (markers differ too)
 INK, INK2, GRID, SURFACE = "#1f1f1e", "#6b6a64", "#e4e3de", "#fcfcfb"
 
 
@@ -55,17 +57,27 @@ def kinematic(pattern="kin_bowl_torque_a*_summary.json"):
 
 def main():
     tj, kin, kin_noise = two_joint(), kinematic(), kinematic("kin_bowl_torque_t12*_summary.json")
+    kin += kinematic("kin_bowl_torque_b4096_a*_summary.json")
+    kin_b4096 = kinematic("kin_bowl_torque_b4096_t12_a*_summary.json")
+    human = [r for r in json.load(open(ROOT / "results" / "kinematic" / "equifinal_mechanism.json"))
+             if r["source"] == "measured"]
     fig, ax = plt.subplots(figsize=(9, 6), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
     series = [(tj["free"], "two-joint arm, trained without noise", "o"),
               (tj["noise"], "two-joint arm, trained with noise", "s"),
               ([(x, y) for x, y, _ in kin], "full-body bowler, trained without noise", "D"),
-              ([(x, y) for x, y, _ in kin_noise], "full-body bowler, trained with noise", "^")]
+              ([(x, y) for x, y, _ in kin_noise], "full-body bowler, trained with noise", "^"),
+              ([(x, y) for x, y, _ in kin_b4096], "full-body bowler, trained with noise, PPO batch 4096", "v"),
+              ([(r["speed_kmh"], abs(r["slope_m_per_10ms"])) for r in human],
+               "real hand/wrist markers (hypothetical landing, no ball)", "*")]
     for (pts, label, mk), c in zip(series, COLORS):
-        ax.plot([p[0] for p in pts], [p[1] for p in pts], mk, ms=9, color=c, mec=SURFACE, mew=1.5,
+        ax.plot([p[0] for p in pts], [p[1] for p in pts], mk, ms=17 if mk == "*" else 9, color=c, mec=SURFACE, mew=1,
                 ls="none", label=f"{label} (n = {len(pts)})")
     for x, y, lab in kin:
         ax.annotate(lab, (x, y), xytext=(8, 6), textcoords="offset points", fontsize=10, color=INK)
+    for r in human:
+        ax.annotate(f"real {r['run']}", (r["speed_kmh"], abs(r["slope_m_per_10ms"])), xytext=(9, 3),
+                    textcoords="offset points", fontsize=10, color=INK)
     ax.grid(True, color=GRID, lw=0.8)
     ax.set_axisbelow(True)
     for sp in ("top", "right"):
