@@ -102,8 +102,10 @@ def set_knots(handover, knot_dt=None):
         KNOTS = HANDOVER_KNOTS(handover)
 
 
-def _init(angle, target_range, handover=None, knot_dt=None, env2=None):
+def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd_ms=12.0):
     global _env, _M, ENV2
+    import scripts.kin_equifinality as ke
+    ke.JITTER_SD_S = jitter_sd_ms / 1000.0     # "p_jitter_12ms" is then the good rate under N(0, this)
     ENV2 = env2 or {}
     set_knots(handover, knot_dt)
     _env = make_env(angle, target_range, handover)
@@ -204,6 +206,11 @@ def main():
     p.add_argument("--torque-scale", type=float, default=1.0, help="actuator budget (x the arm's gears); tag _q<s>")
     p.add_argument("--actuator", default="damping", choices=["damping", "hill"], help="hill: Hill force-velocity")
     p.add_argument("--omega-max", type=float, default=40.0, help="Hill curve's zero-torque joint speed (rad/s)")
+    p.add_argument("--jitter-sd-ms", type=float, default=12.0,
+                   help="release-timing SD that tau refers to (the bowler's skill); tag _j<ms>. The records keep "
+                        "the key p_jitter_12ms for the good rate under it")
+    p.add_argument("--warm-frontier", nargs="*", default=[],
+                   help="also start from frontier optima: <json>:<tau> (same knots, angle and handover)")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
     out = Path(a.out)
@@ -219,7 +226,8 @@ def main():
     tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
         + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
         + (f"_q{a.torque_scale:g}".replace(".", "p") if a.torque_scale != 1.0 else "") \
-        + (f"_hill{a.omega_max:g}" if a.actuator == "hill" else "")
+        + (f"_hill{a.omega_max:g}" if a.actuator == "hill" else "") \
+        + (f"_j{a.jitter_sd_ms:g}".replace(".", "p") if a.jitter_sd_ms != 12.0 else "")
     logf = open(out / f"frontier_{tag}.log", "a")
 
     def log(s):
@@ -227,7 +235,8 @@ def main():
         logf.write(s + "\n")
         logf.flush()
 
-    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2)) as pool:
+    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2,
+                                                               a.jitter_sd_ms)) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
@@ -235,6 +244,15 @@ def main():
             starts[run] = x
             log(f"warm start {run}: open-loop fit {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "
                 f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r.get('land_x')}")
+        for spec in a.warm_frontier:
+            path, t = spec.rsplit(":", 1)
+            rec = next(q for q in json.load(open(path)) if abs(q["tau"] - float(t)) < 1e-9)
+            assert np.allclose(rec["knot_times_s"], KNOTS), f"{spec}: other knots"
+            x = np.array(rec["knots"]).ravel()
+            r = pool.map(evaluate, [x])[0]
+            starts[f"{Path(path).stem}@{t}"] = x
+            log(f"warm start {spec}: {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "
+                f"p_jit({a.jitter_sd_ms:g} ms) {r.get('p_jitter_12ms') or 0:.2f}")
         results = []
         prev = None
         for tau in a.tau:
@@ -248,7 +266,7 @@ def main():
                     best = (*b, run)
             f, x, r, run = best
             prev = x
-            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
+            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
                    "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)
