@@ -79,6 +79,8 @@ def run_episode(env, model, before_s, seed, release=True, t_stop=None):
     """One delivery from before_s ahead of the captured release; returns the env's outcome and recording."""
     angle = env.release_angle_deg
     env.release_angle_deg = angle if release else np.inf
+    if hasattr(env, "suppress_release"):      # KinematicBowlEnv2 (a learned release ignores the angle)
+        env.suppress_release = not release
     t_end = env.t_end
     if t_stop is not None:
         env.t_end = t_stop
@@ -188,6 +190,20 @@ def covariation(rows, n_perm=500, seed=0):
             "corr_speed_height": float(np.corrcoef(s, z)[0, 1])}
 
 
+def make_env2(kw, torque_sd, target_m=None):
+    """A kinematic2 run's env as trained (checkpoints/<run>.env2.json), scored noise-free except torque_sd."""
+    from envs.kinematic_bowl_env2 import KinematicBowlEnv2
+    kw = dict(kw, rsi=False, tolerance_reward_sd_ms=0.0, release_timing_sd_ms=0.0, torque_noise_sd=torque_sd)
+    if kw.get("target_range") is not None:
+        kw["target_range"] = tuple(kw["target_range"])
+    if kw.get("target_sample") is not None:
+        kw["target_sample"] = tuple(kw["target_sample"])
+    env = KinematicBowlEnv2(**kw)
+    if env.target_sample is not None:
+        env.fixed_target_m = target_m if target_m is not None else sum(env.target_sample) / 2
+    return env
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--run", nargs="+", required=True, help="e.g. kin_bowl_torque_a270_T3a_0")
@@ -196,22 +212,29 @@ def main():
     p.add_argument("--noise-seeds", type=int, default=10, help="torque-noise deliveries per start (torque runs)")
     p.add_argument("--torque-sd", type=float, default=0.15)
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9])
+    p.add_argument("--target-m", type=float, default=None,
+                   help="goal-conditioned (kinematic2 target_sample) runs: band centre to score at (default: middle)")
     p.add_argument("--root", default=str(ROOT))
     p.add_argument("--out", required=True, help="directory: <run>_deliveries.csv, <run>_curves.json, <run>_summary.json")
     a = p.parse_args()
     root, out = Path(a.root), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     for run in a.run:
+        env2 = root / "checkpoints" / f"{run}.env2.json"
+        kw2 = json.load(open(env2)) if env2.exists() else None
         m = RUN_RE.match(run)
-        if not m:
+        if kw2 is None and not m:
             sys.exit(f"not a kinematic run name: {run}")
         model = PPO.load(a.model_path or root / "checkpoints" / f"{run}.zip", device="cpu")
         conds = {"none": 0.0}
-        if m["ctl"] == "torque" and a.noise_seeds > 0:
+        if (kw2 is not None or m["ctl"] == "torque") and a.noise_seeds > 0:
             conds["torque"] = a.torque_sd
         rows, curves, summary = [], {}, {"run": run, "model": str(a.model_path or f"checkpoints/{run}.zip")}
         for cond, sd in conds.items():
-            env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
+            if kw2 is not None:
+                env = make_env2(kw2, sd, a.target_m)
+            else:
+              env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
                                    target_range=tuple(a.target_range), arm_control=m["ctl"], torque_noise_sd=sd,
                                    arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
             seeds = [0] if sd == 0 else range(1, a.noise_seeds + 1)

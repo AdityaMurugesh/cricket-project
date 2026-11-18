@@ -85,15 +85,19 @@ def make_env(angle, target_range, handover=None):
                             arm_control="torque", arm_handover_s=handover)
 
 
-def set_knots(handover):
+def set_knots(handover, knot_dt=None):
+    """knot_dt = 0.02 puts a knot on every decision, so a PPO policy's actions are copied exactly."""
     global KNOTS
-    if handover is not None:
+    if knot_dt is not None:
+        first = -handover if handover is not None else -BEFORE_S
+        KNOTS = np.round(first + np.arange(int(round((0.16 - first) / knot_dt)) + 1) * knot_dt, 6)
+    elif handover is not None:
         KNOTS = HANDOVER_KNOTS(handover)
 
 
-def _init(angle, target_range, handover=None):
+def _init(angle, target_range, handover=None, knot_dt=None):
     global _env, _M
-    set_knots(handover)
+    set_knots(handover, knot_dt)
     _env = make_env(angle, target_range, handover)
     _M = interp_matrix(decision_times(_env))
 
@@ -102,7 +106,10 @@ def evaluate(x):
     """x: knot values (len(KNOTS) x 7, flattened) -> the delivery's metrics."""
     from scripts.kin_equifinality import delivery
     table = np.clip(_M @ x.reshape(len(KNOTS), -1), -1.0, 1.0)
-    r, curve = delivery(_env, OpenLoop(_env, table), BEFORE_S, 0)
+    try:
+        r, curve = delivery(_env, OpenLoop(_env, table), BEFORE_S, 0)
+    except AssertionError as e:       # the scorer's own consistency checks: count it as no delivery
+        return {"released": False, "why": f"scorer check: {e}"}
     return {k: r.get(k) for k in ("released", "why", "speed_m_s", "land_x", "lateral_m", "extension_deg", "legal",
                                   "good", "p_jitter_12ms", "window_ms", "slope_m_per_10ms", "elevation_deg")}
 
@@ -148,10 +155,11 @@ def warm_start(run, angle, target_range, handover=None):
     return np.clip(knots, -1.0, 1.0).ravel()
 
 
-def optimise(pool, x0, tau, target_range, sigma, gens, popsize, seed, log):
+def optimise(pool, x0, tau, target_range, sigma, gens, popsize, seed, log, diagonal=False):
     import cma
     es = cma.CMAEvolutionStrategy(x0, sigma, {"bounds": [-1.0, 1.0], "popsize": popsize, "seed": seed,
-                                              "verbose": -9, "maxiter": gens})
+                                              "verbose": -9, "maxiter": gens,
+                                              **({"CMA_diagonal": True} if diagonal else {})})
     best = (np.inf, None, None)
     t0 = time.time()
     while not es.stop():
@@ -164,8 +172,8 @@ def optimise(pool, x0, tau, target_range, sigma, gens, popsize, seed, log):
             best = (F[i], np.array(X[i]), R[i])
         if es.countiter % 25 == 0:
             r = best[2]
-            log(f"    gen {es.countiter:4d}  best f {best[0]:8.2f}  {r['speed_m_s'] * 3.6:5.1f} km/h  "
-                f"good {r['good']}  p_jit {r.get('p_jitter_12ms') or 0:.2f}  ({time.time() - t0:.0f} s)")
+            log(f"    gen {es.countiter:4d}  best f {best[0]:8.2f}  {(r.get('speed_m_s') or 0) * 3.6:5.1f} km/h  "
+                f"good {r.get('good')}  p_jit {r.get('p_jitter_12ms') or 0:.2f}  ({time.time() - t0:.0f} s)")
     return best
 
 
@@ -174,6 +182,8 @@ def main():
     p.add_argument("--angle", type=float, required=True, help="release angle (deg), as the RL runs")
     p.add_argument("--tau", type=float, nargs="+", default=[0.0, 0.25, 0.5, 0.75, 0.9])
     p.add_argument("--warm", nargs="+", required=True, help="PPO runs (checkpoints/<run>.zip) to start from")
+    p.add_argument("--knot-dt", type=float, default=None, help="uniform knots this far apart (0.02 = every decision)")
+    p.add_argument("--diagonal", action="store_true", help="separable CMA (for many knots)")
     p.add_argument("--handover", type=float, default=None, help="arm_handover_s (s before release); tag _h<ms>")
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9])
     p.add_argument("--gens", type=int, default=300)
@@ -185,8 +195,9 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     tr = tuple(a.target_range)
-    set_knots(a.handover)
-    tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "")
+    set_knots(a.handover, a.knot_dt)
+    tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
+        + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "")
     logf = open(out / f"frontier_{tag}.log", "a")
 
     def log(s):
@@ -194,14 +205,14 @@ def main():
         logf.write(s + "\n")
         logf.flush()
 
-    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover)) as pool:
+    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt)) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
             r = pool.map(evaluate, [x])[0]
             starts[run] = x
-            log(f"warm start {run}: open-loop fit {r['speed_m_s'] * 3.6:.1f} km/h good {r['good']} "
-                f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r['land_x']}")
+            log(f"warm start {run}: open-loop fit {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "
+                f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r.get('land_x')}")
         results = []
         prev = None
         for tau in a.tau:
@@ -210,17 +221,17 @@ def main():
             cands = dict(starts, **({"previous_tau": prev} if prev is not None else {}))
             for k, (run, x0) in enumerate(cands.items()):
                 log(f"tau {tau}: from {run}")
-                b = optimise(pool, x0, tau, tr, a.sigma, a.gens, a.popsize, 1 + k, log)
+                b = optimise(pool, x0, tau, tr, a.sigma, a.gens, a.popsize, 1 + k, log, a.diagonal)
                 if best is None or b[0] < best[0]:
                     best = (*b, run)
             f, x, r, run = best
             prev = x
             rec = {"angle": a.angle, "handover_s": a.handover, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
-                   "speed_kmh": r["speed_m_s"] * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
+                   "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)
             log(f"== a{int(a.angle)} tau {tau}: {'FEASIBLE' if f < 0 else 'infeasible'} {rec['speed_kmh']:.1f} km/h "
-                f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r['land_x']:.2f} ext {r['extension_deg']}")
+                f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r.get('land_x')} ext {r.get('extension_deg')}")
             json.dump(results, open(out / f"frontier_{tag}.json", "w"), indent=1,
                       default=lambda v: bool(v) if isinstance(v, np.bool_) else float(v))
 

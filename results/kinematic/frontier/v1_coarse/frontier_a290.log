@@ -1,0 +1,16 @@
+warm start kin_bowl_torque_a290_T3a_0: open-loop fit 52.1 km/h good False p_jit 0.00 land 17.98524690124915
+warm start kin_bowl_torque_b4096_t12_a290_T3a_0: open-loop fit 77.8 km/h good False p_jit 0.00 land 11.598687595731514
+tau 0.0: from kin_bowl_torque_a290_T3a_0
+    gen   25  best f    93.04   85.2 km/h  good False  p_jit 0.00  (16 s)
+    gen   50  best f   -95.08   95.1 km/h  good True  p_jit 0.07  (28 s)
+    gen   75  best f   -95.08   95.1 km/h  good True  p_jit 0.07  (41 s)
+    gen  100  best f  -100.41  100.4 km/h  good True  p_jit 0.07  (54 s)
+    gen  125  best f  -102.00  102.0 km/h  good True  p_jit 0.07  (67 s)
+    gen  150  best f  -103.24  103.2 km/h  good True  p_jit 0.07  (80 s)
+    gen  175  best f  -108.76  108.8 km/h  good True  p_jit 0.07  (93 s)
+    gen  200  best f  -108.76  108.8 km/h  good True  p_jit 0.07  (107 s)
+tau 0.0: from kin_bowl_torque_b4096_t12_a290_T3a_0
+    gen   25  best f   -98.38   98.4 km/h  good True  p_jit 0.07  (12 s)
+    gen   50  best f  -111.85  111.8 km/h  good True  p_jit 0.07  (24 s)
+    gen   75  best f  -111.85  111.8 km/h  good True  p_jit 0.07  (35 s)
+    gen  100  best f  -117.29  117.3 km/h  good True  p_jit 0.07  (47 s)

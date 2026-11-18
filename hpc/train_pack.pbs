@@ -1,0 +1,34 @@
+#!/bin/bash
+# Several training runs in one job (the cpuq cap is 12 queued+running jobs per user), then scores them.
+# CONFIGS is a file with one run per line: <run name> <train_runup.py arguments...>
+#   qsub -v CONFIGS=hpc/packs/tier1_a.txt hpc/train_pack.pbs
+# Each run gets --n-envs NENVS (default 14), its own logs/<name>/job.log and checkpoints/<name>.zip.
+#PBS -N cricket_pack
+#PBS -q cpuq
+#PBS -l select=1:ncpus=64:mem=120gb
+#PBS -l walltime=16:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
+: "${CONFIGS:?pass CONFIGS=hpc/packs/<file>.txt}"
+NENVS="${NENVS:-14}"
+git rev-parse --short HEAD && echo "(commit above is the code this pack used)"
+runs=""
+while read -r name args; do
+    case "$name" in ''|\#*) continue ;; esac
+    mkdir -p "logs/${name}"
+    echo "start ${name}: ${args}"
+    python scripts/train_runup.py ${args} --n-envs "${NENVS}" --log-dir "logs/${name}" \
+        --model-path "checkpoints/${name}" > "logs/${name}/job.log" 2>&1 &
+    runs="${runs} ${name}"
+done < "${CONFIGS}"
+wait
+echo "training done:${runs}"
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+for r in ${runs}; do
+    [ -f "checkpoints/${r}.zip" ] && echo "--run ${r} --out results/kinematic/equifinality"
+done | xargs -P 8 -L 1 python scripts/kin_equifinality.py 2>&1 | grep -v Warning
+echo "pack exit $?"

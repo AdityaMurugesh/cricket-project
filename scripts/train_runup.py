@@ -12,6 +12,7 @@ Needs data/mocap/ref_<D>.npz (envs/humanoid_bowler.export_reference).
 """
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from envs.kinematic_bowl_env import KinematicBowlEnv
+from envs.kinematic_bowl_env2 import KinematicBowlEnv2
 from envs.runup_bowl_env import RunupBowlEnv
 from envs.runup_imitation_env import RunupImitationEnv
 
@@ -82,7 +84,7 @@ class EpisodeLogger(BaseCallback):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--task", default="imitate", choices=["imitate", "bowl", "kinematic"])
+    p.add_argument("--task", default="imitate", choices=["imitate", "bowl", "kinematic", "kinematic2"])
     p.add_argument("--delivery", default="T3a")
     p.add_argument("--release-angle", type=float, default=250.0, help="bowl: arm angle at release (deg)")
     p.add_argument("--target-range", type=float, nargs=2, default=[10.9, 12.9],
@@ -101,6 +103,15 @@ def main():
                    help="kinematic: the arm replays the capture until this long before release (s)")
     p.add_argument("--torque-noise-sd", type=float, default=0.0,
                    help="kinematic, torque control: signal-dependent torque noise SD, as ThrowEnvGym; 0 = off")
+    # kinematic2: envs/kinematic_bowl_env2.py (torque control; docs/roadmap_2026-11-18.md items 2-5)
+    p.add_argument("--tolerance-reward-sd-ms", type=float, default=0.0,
+                   help="kinematic2: pay the exact expected reward under N(0, sd) release jitter")
+    p.add_argument("--learned-release", action="store_true", help="kinematic2: the policy chooses its release")
+    p.add_argument("--target-sample", type=float, nargs=2, default=None,
+                   help="kinematic2: per episode a 2 m band centred on U(lo, hi) m, given in the observation")
+    p.add_argument("--actuator", default="damping", choices=["damping", "hill"], help="kinematic2")
+    p.add_argument("--omega-max", type=float, default=40.0, help="kinematic2, hill: zero-torque speed (rad/s)")
+    p.add_argument("--torque-scale", type=float, default=1.0, help="kinematic2: arm motor budget multiplier")
     p.add_argument("--max-pelvis-drift", type=float, default=None,
                    help="bowl: drifting this far (m) from the captured pelvis path counts as a fall")
     p.add_argument("--timesteps", type=int, default=50_000_000)
@@ -116,7 +127,17 @@ def main():
     p.add_argument("--dummy", action="store_true", help="single-process envs (debugging)")
     a = p.parse_args()
 
+    env2_kw = dict(delivery=a.delivery, release_angle_deg=a.release_angle, target_range=tuple(a.target_range),
+                   task_weight=a.task_weight, speed_weight=a.speed_weight, speed_power=a.speed_power,
+                   speed_target_kmh=a.speed_target_kmh, release_timing_sd_ms=a.release_timing_sd_ms,
+                   torque_noise_sd=a.torque_noise_sd, arm_handover_s=a.arm_handover,
+                   tolerance_reward_sd_ms=a.tolerance_reward_sd_ms, learned_release=a.learned_release,
+                   target_sample=tuple(a.target_sample) if a.target_sample else None, actuator=a.actuator,
+                   omega_max=a.omega_max, torque_scale=a.torque_scale)
+
     def make(rank):
+        if a.task == "kinematic2":
+            return lambda: KinematicBowlEnv2(seed=a.seed * 1000 + rank, **env2_kw)
         if a.task == "kinematic":
             return lambda: KinematicBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                             release_angle_deg=a.release_angle,
@@ -137,9 +158,11 @@ def main():
     Vec = DummyVecEnv if a.dummy else SubprocVecEnv
     venv = Vec([make(i) for i in range(a.n_envs)])
     if a.resume_from:
-        model = PPO.load(a.resume_from, env=venv)
+        # kinematic: resumed policies get this run's minibatch (the old ones were saved with 64, which collapses)
+        extra = {"batch_size": a.batch_size} if a.task in ("kinematic", "kinematic2") else {}
+        model = PPO.load(a.resume_from, env=venv, **extra)
         model.set_random_seed(a.seed)
-    elif a.task == "kinematic":
+    elif a.task in ("kinematic", "kinematic2"):
         # ThrowEnv's settings (run10-run15): one sparse reward per delivery, so no discounting
         # (the policy sets the episode length: episodic_discounting_trap), entropy 0.003
         # batch_size: SB3's default 64 makes target_kl's per-minibatch KL check so noisy that from
@@ -153,6 +176,9 @@ def main():
                     clip_range=0.2, ent_coef=0.0,
                     policy_kwargs=dict(net_arch=dict(pi=[512, 256], vf=[512, 256]),
                                        activation_fn=torch.nn.ReLU, log_std_init=-1.0))
+    if a.task == "kinematic2":    # how to rebuild the env for scoring (scripts/kin_equifinality.py reads it)
+        Path(a.model_path).parent.mkdir(parents=True, exist_ok=True)
+        json.dump(env2_kw, open(a.model_path + ".env2.json", "w"), indent=1)
     callbacks = [EpisodeLogger(Path(a.log_dir) / "episodes.csv")]
     if a.checkpoint_every > 0:
         callbacks.append(CheckpointCallback(save_freq=max(1, a.checkpoint_every // a.n_envs),

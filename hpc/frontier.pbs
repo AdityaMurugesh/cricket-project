@@ -1,0 +1,20 @@
+#!/bin/bash
+# Pace/tolerance frontier by trajectory optimisation (scripts/kin_frontier.py), exact PPO warm starts.
+#   qsub -v ANGLE=270,WORKERS=28 hpc/frontier.pbs        (EXTRA=--handover:0.5 etc., ':' for spaces)
+#PBS -N cricket_frontier
+#PBS -q cpuq
+#PBS -l select=1:ncpus=32:mem=48gb
+#PBS -l walltime=10:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${ANGLE:?pass ANGLE}"
+git rev-parse --short HEAD && echo "(commit above is the code this run used)"
+python scripts/kin_frontier.py --angle "${ANGLE}" --tau 0 0.25 0.5 0.75 0.9 --gens 200 --knot-dt 0.02 --diagonal \
+    --sigma 0.08 --workers "${WORKERS:-28}" ${EXTRA//:/ } \
+    --warm kin_bowl_torque_a${ANGLE}_T3a_0 kin_bowl_torque_b4096_t12_a${ANGLE}_T3a_0 kin_bowl_torque_b4096_t12_a${ANGLE}_T3a_1 \
+    --out results/kinematic/frontier 2>&1 | grep -v -i warning
+echo "frontier exit $?"

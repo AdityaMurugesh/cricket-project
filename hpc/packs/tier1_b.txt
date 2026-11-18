@@ -1,0 +1,3 @@
+# Roadmap item 4 (any length on demand) and item 5 (Hill torque-velocity arm); a270, batch 4096, 30M steps
+kin2_goal_tolr12_a270_T3a_0 --task kinematic2 --release-angle 270 --target-sample 8 18 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0
+kin2_hill_tolr12_a270_T3a_0 --task kinematic2 --release-angle 270 --actuator hill --omega-max 40 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0

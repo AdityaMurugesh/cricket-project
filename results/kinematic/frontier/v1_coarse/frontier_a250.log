@@ -1,0 +1,16 @@
+warm start kin_bowl_torque_a250_T3a_0: open-loop fit 49.7 km/h good False p_jit 0.00 land 9.124854305159673
+warm start kin_bowl_torque_b4096_t12_a250_T3a_0: open-loop fit 0.0 km/h good False p_jit 0.00 land None
+tau 0.0: from kin_bowl_torque_a250_T3a_0
+    gen   25  best f   -67.54   67.5 km/h  good True  p_jit 0.13  (13 s)
+    gen   50  best f   -70.15   70.2 km/h  good True  p_jit 0.13  (26 s)
+    gen   75  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (39 s)
+    gen  100  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (51 s)
+    gen  125  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (62 s)
+    gen  150  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (74 s)
+    gen  175  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (87 s)
+    gen  200  best f   -70.75   70.7 km/h  good True  p_jit 0.13  (101 s)
+tau 0.0: from kin_bowl_torque_b4096_t12_a250_T3a_0
+    gen   25  best f   -50.57   50.6 km/h  good True  p_jit 0.13  (12 s)
+    gen   50  best f   -52.07   52.1 km/h  good True  p_jit 0.20  (24 s)
+    gen   75  best f   -52.07   52.1 km/h  good True  p_jit 0.20  (36 s)
+    gen  100  best f   -53.12   53.1 km/h  good True  p_jit 0.13  (49 s)

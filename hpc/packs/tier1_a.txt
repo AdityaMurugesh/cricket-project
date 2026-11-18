@@ -1,0 +1,5 @@
+# Roadmap item 2 (exact expected tolerance reward, 12 ms) and item 3 (learned release); a270, batch 4096, 30M steps
+kin2_tolr12_a270_T3a_0 --task kinematic2 --release-angle 270 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0
+kin2_tolr12_resfast_a270_T3a_0 --task kinematic2 --release-angle 270 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0 --resume-from checkpoints/kin_bowl_torque_a270_T3a_0.zip
+kin2_tolr12_resfast_a290_T3a_1 --task kinematic2 --release-angle 290 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 1 --resume-from checkpoints/kin_bowl_torque_a290_T3a_1.zip
+kin2_lrel_tolr12_a270_T3a_0 --task kinematic2 --release-angle 270 --learned-release --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0

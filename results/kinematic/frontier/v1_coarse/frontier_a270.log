@@ -1,0 +1,113 @@
+warm start kin_bowl_torque_a270_T3a_0: open-loop fit 87.3 km/h good False p_jit 0.00 land 19.10110633587105
+warm start kin_bowl_torque_b4096_t12_a270_T3a_0: open-loop fit 59.2 km/h good False p_jit 0.00 land 8.688801122064817
+tau 0.0: from kin_bowl_torque_a270_T3a_0
+    gen   25  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (14 s)
+    gen   50  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (25 s)
+    gen   75  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (36 s)
+    gen  100  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (48 s)
+    gen  125  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (59 s)
+    gen  150  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (71 s)
+    gen  175  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (82 s)
+    gen  200  best f  -101.83  101.8 km/h  good True  p_jit 0.07  (94 s)
+tau 0.0: from kin_bowl_torque_b4096_t12_a270_T3a_0
+    gen   25  best f   -63.56   63.6 km/h  good True  p_jit 0.13  (10 s)
+    gen   50  best f   -71.76   71.8 km/h  good True  p_jit 0.13  (21 s)
+    gen   75  best f   -72.10   72.1 km/h  good True  p_jit 0.13  (32 s)
+    gen  100  best f   -83.27   83.3 km/h  good True  p_jit 0.07  (43 s)
+    gen  125  best f   -83.27   83.3 km/h  good True  p_jit 0.07  (56 s)
+    gen  150  best f   -83.27   83.3 km/h  good True  p_jit 0.07  (68 s)
+    gen  175  best f   -83.27   83.3 km/h  good True  p_jit 0.07  (79 s)
+    gen  200  best f   -83.27   83.3 km/h  good True  p_jit 0.07  (90 s)
+== a270 tau 0.0: FEASIBLE 101.8 km/h p_jit 0.07 land 11.16 ext 0.05922419133343482
+tau 0.25: from kin_bowl_torque_a270_T3a_0
+    gen   25  best f   -59.08   59.1 km/h  good True  p_jit 0.32  (10 s)
+    gen   50  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (20 s)
+    gen   75  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (32 s)
+    gen  100  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (43 s)
+    gen  125  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (53 s)
+    gen  150  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (66 s)
+    gen  175  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (77 s)
+    gen  200  best f   -61.27   61.3 km/h  good True  p_jit 0.25  (90 s)
+tau 0.25: from kin_bowl_torque_b4096_t12_a270_T3a_0
+    gen   25  best f   -50.66   50.7 km/h  good True  p_jit 0.48  (11 s)
+    gen   50  best f   -53.47   53.5 km/h  good True  p_jit 0.37  (23 s)
+    gen   75  best f   -53.47   53.5 km/h  good True  p_jit 0.37  (35 s)
+    gen  100  best f   -53.47   53.5 km/h  good True  p_jit 0.37  (47 s)
+    gen  125  best f   -55.86   55.9 km/h  good True  p_jit 0.43  (59 s)
+    gen  150  best f   -60.29   60.3 km/h  good True  p_jit 0.46  (70 s)
+    gen  175  best f   -62.00   62.0 km/h  good True  p_jit 0.25  (81 s)
+    gen  200  best f   -62.00   62.0 km/h  good True  p_jit 0.25  (91 s)
+tau 0.25: from previous_tau
+    gen   25  best f   128.23   71.2 km/h  good True  p_jit 0.13  (8 s)
+    gen   50  best f   127.82   75.4 km/h  good True  p_jit 0.13  (16 s)
+    gen   75  best f   -51.42   51.4 km/h  good True  p_jit 0.32  (25 s)
+    gen  100  best f   -53.37   53.4 km/h  good True  p_jit 0.43  (33 s)
+    gen  125  best f   -53.37   53.4 km/h  good True  p_jit 0.43  (42 s)
+    gen  150  best f   -57.87   57.9 km/h  good True  p_jit 0.35  (51 s)
+    gen  175  best f   -59.64   59.6 km/h  good True  p_jit 0.31  (60 s)
+    gen  200  best f   -63.62   63.6 km/h  good True  p_jit 0.26  (69 s)
+== a270 tau 0.25: FEASIBLE 63.6 km/h p_jit 0.26 land 11.55 ext -0.7035272753286499
+tau 0.5: from kin_bowl_torque_a270_T3a_0
+    gen   25  best f   184.35   63.2 km/h  good True  p_jit 0.20  (8 s)
+    gen   50  best f   152.00   58.8 km/h  good True  p_jit 0.31  (17 s)
+    gen   75  best f   152.00   58.8 km/h  good True  p_jit 0.31  (27 s)
+    gen  100  best f   152.00   58.8 km/h  good True  p_jit 0.31  (36 s)
+    gen  125  best f   147.66   52.5 km/h  good True  p_jit 0.32  (45 s)
+    gen  150  best f   138.66   51.1 km/h  good True  p_jit 0.35  (55 s)
+    gen  175  best f   138.66   51.1 km/h  good True  p_jit 0.35  (65 s)
+    gen  200  best f   116.28   52.8 km/h  good True  p_jit 0.43  (75 s)
+tau 0.5: from kin_bowl_torque_b4096_t12_a270_T3a_0
+    gen   25  best f   151.98   59.0 km/h  good True  p_jit 0.31  (9 s)
+    gen   50  best f   151.98   59.0 km/h  good True  p_jit 0.31  (17 s)
+    gen   75  best f   151.98   59.0 km/h  good True  p_jit 0.31  (26 s)
+    gen  100  best f   148.70   54.7 km/h  good True  p_jit 0.32  (34 s)
+    gen  125  best f   136.34   54.3 km/h  good False  p_jit 0.36  (47 s)
+    gen  150  best f   136.34   54.3 km/h  good False  p_jit 0.36  (59 s)
+    gen  175  best f   136.34   54.3 km/h  good False  p_jit 0.36  (71 s)
+    gen  200  best f   136.34   54.3 km/h  good False  p_jit 0.36  (83 s)
+tau 0.5: from previous_tau
+    gen   25  best f   179.85   54.7 km/h  good False  p_jit 0.24  (11 s)
+    gen   50  best f   174.20   55.4 km/h  good False  p_jit 0.24  (24 s)
+    gen   75  best f   162.52   49.2 km/h  good False  p_jit 0.30  (36 s)
+    gen  100  best f   162.52   49.2 km/h  good False  p_jit 0.30  (48 s)
+    gen  125  best f   162.52   49.2 km/h  good False  p_jit 0.30  (61 s)
+    gen  150  best f   162.52   49.2 km/h  good False  p_jit 0.30  (73 s)
+    gen  175  best f   162.52   49.2 km/h  good False  p_jit 0.30  (85 s)
+    gen  200  best f   162.52   49.2 km/h  good False  p_jit 0.30  (95 s)
+== a270 tau 0.5: infeasible 52.8 km/h p_jit 0.43 land 11.05 ext -0.6692164158707143
+tau 0.75: from kin_bowl_torque_a270_T3a_0
+    gen   25  best f   237.40   57.8 km/h  good False  p_jit 0.30  (9 s)
+    gen   50  best f   237.40   57.8 km/h  good False  p_jit 0.30  (20 s)
+    gen   75  best f   237.40   57.8 km/h  good False  p_jit 0.30  (28 s)
+    gen  100  best f   237.40   57.8 km/h  good False  p_jit 0.30  (38 s)
+    gen  125  best f   164.34   61.4 km/h  good True  p_jit 0.52  (49 s)
+    gen  150  best f   163.27   54.0 km/h  good True  p_jit 0.52  (57 s)
+    gen  175  best f   163.27   54.0 km/h  good True  p_jit 0.52  (66 s)
+    gen  200  best f   163.27   54.0 km/h  good True  p_jit 0.52  (75 s)
+tau 0.75: from kin_bowl_torque_b4096_t12_a270_T3a_0
+    gen   25  best f   218.92   51.3 km/h  good False  p_jit 0.36  (8 s)
+    gen   50  best f   142.65   49.2 km/h  good True  p_jit 0.59  (15 s)
+    gen   75  best f   142.65   49.2 km/h  good True  p_jit 0.59  (24 s)
+    gen  100  best f   142.65   49.2 km/h  good True  p_jit 0.59  (32 s)
+    gen  125  best f   142.65   49.2 km/h  good True  p_jit 0.59  (39 s)
+    gen  150  best f   142.65   49.2 km/h  good True  p_jit 0.59  (46 s)
+    gen  175  best f   142.65   49.2 km/h  good True  p_jit 0.59  (54 s)
+    gen  200  best f   142.65   49.2 km/h  good True  p_jit 0.59  (61 s)
+tau 0.75: from previous_tau
+    gen   25  best f   243.18   56.8 km/h  good True  p_jit 0.25  (8 s)
+    gen   50  best f   190.69   58.7 km/h  good True  p_jit 0.43  (16 s)
+    gen   75  best f   190.69   58.7 km/h  good True  p_jit 0.43  (24 s)
+    gen  100  best f   165.00   54.8 km/h  good True  p_jit 0.52  (32 s)
+    gen  125  best f   165.00   54.8 km/h  good True  p_jit 0.52  (43 s)
+    gen  150  best f   135.12   52.6 km/h  good True  p_jit 0.62  (56 s)
+    gen  175  best f   135.12   52.6 km/h  good True  p_jit 0.62  (69 s)
+    gen  200  best f   135.12   52.6 km/h  good True  p_jit 0.62  (82 s)
+== a270 tau 0.75: infeasible 52.6 km/h p_jit 0.62 land 12.10 ext -0.5510699203888336
+tau 0.9: from kin_bowl_torque_a270_T3a_0
+tau 0.9: from kin_bowl_torque_b4096_t12_a270_T3a_0
+tau 0.9: from previous_tau
+    gen   25  best f   276.15   56.0 km/h  good True  p_jit 0.29  (10 s)
+    gen   50  best f   276.15   56.0 km/h  good True  p_jit 0.29  (20 s)
+    gen   75  best f   276.15   56.0 km/h  good True  p_jit 0.29  (30 s)
+    gen  100  best f   276.15   56.0 km/h  good True  p_jit 0.29  (40 s)
+== a270 tau 0.9: infeasible 53.2 km/h p_jit 0.38 land 12.00 ext -0.2906818574139116
