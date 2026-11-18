@@ -146,7 +146,8 @@ def warm_start(run, angle, target_range, handover=None):
     """A PPO policy's deterministic actions from BEFORE_S, fitted onto the knots."""
     from stable_baselines3 import PPO
     model = PPO.load(ROOT / "checkpoints" / f"{run}.zip", device="cpu")
-    env = make_env(angle, target_range, handover, env2={})      # the policy's own (budget 1) env
+    # the policy's own env: budget 1 (budget frontiers start from budget-1 policies), same actuator model
+    env = make_env(angle, target_range, handover, env2={k: v for k, v in ENV2.items() if k != "torque_scale"})
     obs, _ = env.reset(options={"before_s": BEFORE_S})
     acts = []
     while True:

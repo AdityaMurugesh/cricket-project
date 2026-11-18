@@ -1,0 +1,2 @@
+# Hill's force-velocity arm (item 5), warm-started from the Hill PPO bowler (tier1_b: 52.9 km/h at 97.7%)
+270 --actuator hill --omega-max 40 --warm kin2_hill_tolr12_a270_T3a_0
