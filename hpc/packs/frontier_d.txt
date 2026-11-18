@@ -1,0 +1,4 @@
+# The tolerance-reward PPO bowlers (tier1_a) beat the frontier at high tau (a290: 56.2 km/h at 98%, a270: 59.4 at 76%),
+# so the frontier there is loose. Re-optimise from them as warm starts.
+270 --tau 0.5 0.6 0.75 0.85 0.9 0.95 --gens 300 --out results/kinematic/frontier/kin2warm --warm kin2_tolr12_resfast_a270_T3a_0 kin2_tolr12_a270_T3a_0 kin_bowl_torque_b4096_t12_a270_T3a_1
+290 --tau 0.5 0.6 0.75 0.85 0.9 0.95 --gens 300 --out results/kinematic/frontier/kin2warm --warm kin2_tolr12_resfast_a290_T3a_1 kin_bowl_torque_b4096_t12_a290_T3a_1
