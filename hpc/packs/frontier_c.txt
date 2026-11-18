@@ -2,5 +2,5 @@
 250 --handover 0.5
 270 --handover 0.5
 290 --handover 0.5
-# Hill's force-velocity curve instead of linear damping
-270 --actuator hill --omega-max 40
+# (Hill arm left out: the budget-1 PPO plans swing the low-damping Hill arm backwards and never release;
+#  warm-start its frontier from the Hill PPO run in tier1_b instead)
