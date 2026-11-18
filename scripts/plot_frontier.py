@@ -45,13 +45,14 @@ def frontier(suffix="_k20"):
 
 def rl_points():
     pts = []
-    for f in (ROOT / "results" / "kinematic" / "equifinality").glob("kin_bowl_torque_*_summary.json"):
+    eq = ROOT / "results" / "kinematic" / "equifinality"
+    for f in list(eq.glob("kin_bowl_torque_*_summary.json")) + list(eq.glob("kin2_*_summary.json")):
         s = json.load(open(f))
         n = s["none"]
         m = re.search(r"_a(\d+)_T3a", s["run"])
         if not m or n["good"] < 19:
             continue
-        pts.append({"run": s["run"], "angle": int(m[1]), "noise": "_t12" in s["run"],
+        pts.append({"run": s["run"], "angle": int(m[1]), "noise": "_t12" in s["run"], "kin2": s["run"].startswith("kin2"),
                     "p": n["good_with_timing_jitter_pct"] / 100.0, "kmh": n["mean_speed_kmh"]})
     return pts
 
@@ -69,10 +70,14 @@ def main():
                 lw=2.2, ms=5, label=f"optimised arm, release {ang}°")
     for p in P:
         c = COLORS.get(p["angle"], INK2)
+        if p["kin2"]:
+            ax.scatter(p["p"] * 100, p["kmh"], s=90, marker="*", zorder=4, facecolor=c, edgecolor=INK, lw=0.7)
+            continue
         ax.scatter(p["p"] * 100, p["kmh"], s=34, marker="s" if p["noise"] else "o", zorder=3,
                    facecolor=c if p["noise"] else "none", edgecolor=c, lw=1.3)
     ax.scatter([], [], marker="s", facecolor=INK2, edgecolor=INK2, label="PPO, trained with timing noise")
     ax.scatter([], [], marker="o", facecolor="none", edgecolor=INK2, label="PPO, trained without")
+    ax.scatter([], [], marker="*", s=90, facecolor=INK2, edgecolor=INK, lw=0.7, label="PPO, exact tolerance reward (new)")
     ax.set_xlabel("good length under 12 ms release-timing jitter (%)")
     ax.set_ylabel("release speed (km/h)")
     ax.set_xlim(0, 100)
