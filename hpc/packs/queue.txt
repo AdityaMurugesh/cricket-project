@@ -1,0 +1,9 @@
+# in priority order
+-v CONFIGS=hpc/packs/tier1_a.txt hpc/train_pack.pbs
+-v ANGLE=270,WORKERS=28 hpc/frontier.pbs
+-v CONFIGS=hpc/packs/h500_a270.txt hpc/train_pack.pbs
+-v CONFIGS=hpc/packs/tier1_b.txt hpc/train_pack.pbs
+-v CONFIGS=hpc/packs/h500_a250.txt hpc/train_pack.pbs
+-v CONFIGS=hpc/packs/h500_a290.txt hpc/train_pack.pbs
+-v ANGLE=250,WORKERS=28 hpc/frontier.pbs
+-v ANGLE=290,WORKERS=28 hpc/frontier.pbs

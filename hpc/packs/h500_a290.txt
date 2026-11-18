@@ -1,0 +1,4 @@
+# PPO from scratch with the arm handed over 500 ms before release (fair baseline for the frontier/BC); a290
+kin_bowl_torque_b4096_t12_h500_a290_T3a_0 --task kinematic --arm-control torque --release-angle 290 --batch-size 4096 --release-timing-sd-ms 12 --arm-handover 0.5 --timesteps 30000000 --seed 0
+kin_bowl_torque_b4096_t12_h500_a290_T3a_1 --task kinematic --arm-control torque --release-angle 290 --batch-size 4096 --release-timing-sd-ms 12 --arm-handover 0.5 --timesteps 30000000 --seed 1
+kin_bowl_torque_b4096_h500_a290_T3a_0 --task kinematic --arm-control torque --release-angle 290 --batch-size 4096 --arm-handover 0.5 --timesteps 30000000 --seed 0
