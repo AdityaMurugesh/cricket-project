@@ -1,0 +1,10 @@
+# Roadmap item 4: the any-length bowler scored at band centres across its 8-18 m range (zone = centre +/- 1 m)
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 8 --out results/kinematic/equifinality/goal_t8
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 9.5 --out results/kinematic/equifinality/goal_t9p5
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 11 --out results/kinematic/equifinality/goal_t11
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 11.9 --out results/kinematic/equifinality/goal_t11p9
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 13 --out results/kinematic/equifinality/goal_t13
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 14.5 --out results/kinematic/equifinality/goal_t14p5
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 16 --out results/kinematic/equifinality/goal_t16
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 17.5 --out results/kinematic/equifinality/goal_t17p5
+python scripts/kin_equifinality.py --run kin2_goal_tolr12_a270_T3a_0 --target-m 18 --out results/kinematic/equifinality/goal_t18
