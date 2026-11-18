@@ -50,7 +50,7 @@ def rl_points():
         s = json.load(open(f))
         n = s["none"]
         m = re.search(r"_a(\d+)_T3a", s["run"])
-        if not m or n["good"] < 19:
+        if not m or n["good"] < 19 or "goal" in s["run"] or "hill" in s["run"]:   # other zone / arm model
             continue
         pts.append({"run": s["run"], "angle": int(m[1]), "noise": "_t12" in s["run"], "kin2": s["run"].startswith("kin2"),
                     "p": n["good_with_timing_jitter_pct"] / 100.0, "kmh": n["mean_speed_kmh"]})
@@ -98,8 +98,8 @@ def main():
 def budgets():
     """Release 270 deg: the frontier at 0.5x, 0.75x, 1x and 1.5x the arm's torque, and with the 0.5 s handover."""
     curves = {"0.5x torque": "_k20_q0p5", "0.75x torque": "_k20_q0p75", "1x torque": "_k20", "1.5x torque": "_k20_q1p5",
-              "1x, arm handover 0.5 s": "_h500_k20"}
-    cols = ["#9ec5f0", "#2a78d6", "#1f1f1e", "#eb6834", "#1baf7a"]
+              "1x, arm handover 0.5 s": "_h500_k20", "Hill arm (w_max 40 rad/s)": "_k20_hill40"}
+    cols = ["#9ec5f0", "#2a78d6", "#1f1f1e", "#eb6834", "#1baf7a", "#a35bd6"]
     fig, ax = plt.subplots(figsize=(7.5, 5.2), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
     ax.grid(color=GRID, lw=0.8)
@@ -107,7 +107,7 @@ def budgets():
         recs = frontier(suf).get(270)
         if recs:
             ax.plot([r["p_jitter_12ms"] * 100 for r in recs], [r["speed_kmh"] for r in recs], "-o", color=c, lw=2,
-                    ms=4.5, label=lab, ls="--" if "handover" in lab else "-")
+                    ms=4.5, label=lab, ls="--" if ("handover" in lab or "Hill" in lab) else "-")
             for r in recs:
                 print(f"{lab:24s} {r['speed_kmh']:5.1f} km/h  p_jit {r['p_jitter_12ms']:.2f}")
     ax.set_xlabel("good length under 12 ms release-timing jitter (%)")

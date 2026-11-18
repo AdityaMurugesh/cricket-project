@@ -1,0 +1,72 @@
+warm start kin2_hill_tolr12_a270_T3a_0: open-loop fit 52.9 km/h good True p_jit 0.86 land 12.55906094563179
+tau 0.0: from kin2_hill_tolr12_a270_T3a_0
+    gen   25  best f   -73.86   73.9 km/h  good True  p_jit 0.13  (13 s)
+    gen   50  best f   -76.91   76.9 km/h  good True  p_jit 0.07  (21 s)
+    gen   75  best f   -76.91   76.9 km/h  good True  p_jit 0.07  (30 s)
+    gen  100  best f   -82.85   82.8 km/h  good True  p_jit 0.07  (38 s)
+    gen  125  best f   -90.37   90.4 km/h  good True  p_jit 0.07  (46 s)
+    gen  150  best f   -97.59   97.6 km/h  good True  p_jit 0.07  (53 s)
+    gen  175  best f  -101.18  101.2 km/h  good True  p_jit 0.07  (60 s)
+    gen  200  best f  -102.45  102.5 km/h  good True  p_jit 0.07  (67 s)
+== a270 tau 0.0: FEASIBLE 102.5 km/h p_jit 0.07 land 11.844615357375588 ext -0.06420650419105911
+tau 0.25: from kin2_hill_tolr12_a270_T3a_0
+    gen   25  best f    99.56   50.7 km/h  good False  p_jit 0.31  (8 s)
+    gen   50  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (16 s)
+    gen   75  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (24 s)
+    gen  100  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (33 s)
+    gen  125  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (41 s)
+    gen  150  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (49 s)
+    gen  175  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (56 s)
+    gen  200  best f   -55.72   55.7 km/h  good True  p_jit 0.46  (63 s)
+tau 0.25: from previous_tau
+    gen   25  best f   145.05   99.9 km/h  good True  p_jit 0.07  (7 s)
+    gen   50  best f   126.18   91.7 km/h  good True  p_jit 0.13  (15 s)
+    gen   75  best f   126.18   91.7 km/h  good True  p_jit 0.13  (24 s)
+    gen  100  best f   126.18   91.7 km/h  good True  p_jit 0.13  (32 s)
+    gen  125  best f   126.18   91.7 km/h  good True  p_jit 0.13  (40 s)
+    gen  150  best f   126.18   91.7 km/h  good True  p_jit 0.13  (48 s)
+    gen  175  best f   126.18   91.7 km/h  good True  p_jit 0.13  (56 s)
+    gen  200  best f   126.18   91.7 km/h  good True  p_jit 0.13  (63 s)
+== a270 tau 0.25: FEASIBLE 55.7 km/h p_jit 0.46 land 12.518689282802269 ext -1.1731786878993624
+tau 0.5: from kin2_hill_tolr12_a270_T3a_0
+    gen   25  best f   116.99   45.8 km/h  good True  p_jit 0.43  (7 s)
+    gen   50  best f   116.99   45.8 km/h  good True  p_jit 0.43  (14 s)
+    gen   75  best f   116.99   45.8 km/h  good True  p_jit 0.43  (22 s)
+    gen  100  best f   116.99   45.8 km/h  good True  p_jit 0.43  (29 s)
+    gen  125  best f   116.99   45.8 km/h  good True  p_jit 0.43  (38 s)
+    gen  150  best f   116.99   45.8 km/h  good True  p_jit 0.43  (46 s)
+    gen  175  best f   116.99   45.8 km/h  good True  p_jit 0.43  (54 s)
+    gen  200  best f   116.99   45.8 km/h  good True  p_jit 0.43  (63 s)
+tau 0.5: from previous_tau
+    gen   25  best f   184.28   63.9 km/h  good True  p_jit 0.20  (8 s)
+    gen   50  best f   184.28   63.9 km/h  good True  p_jit 0.20  (15 s)
+    gen   75  best f   184.28   63.9 km/h  good True  p_jit 0.20  (22 s)
+    gen  100  best f   184.28   63.9 km/h  good True  p_jit 0.20  (29 s)
+    gen  125  best f   184.28   63.9 km/h  good True  p_jit 0.20  (36 s)
+    gen  150  best f   184.28   63.9 km/h  good True  p_jit 0.20  (45 s)
+    gen  175  best f   184.28   63.9 km/h  good True  p_jit 0.20  (53 s)
+    gen  200  best f   184.28   63.9 km/h  good True  p_jit 0.20  (61 s)
+== a270 tau 0.5: infeasible 45.8 km/h p_jit 0.43 land 10.923963126509458 ext 0.04877508349402504
+tau 0.75: from kin2_hill_tolr12_a270_T3a_0
+    gen   25  best f   181.52   54.6 km/h  good True  p_jit 0.46  (8 s)
+    gen   50  best f   181.52   54.6 km/h  good True  p_jit 0.46  (17 s)
+    gen   75  best f   141.91   47.0 km/h  good True  p_jit 0.59  (23 s)
+    gen  100  best f   107.13   52.6 km/h  good True  p_jit 0.71  (30 s)
+    gen  125  best f   107.13   52.6 km/h  good True  p_jit 0.71  (37 s)
+    gen  150  best f    99.68   50.6 km/h  good True  p_jit 0.73  (43 s)
+    gen  175  best f   -52.43   52.4 km/h  good True  p_jit 0.76  (51 s)
+    gen  200  best f   -52.43   52.4 km/h  good True  p_jit 0.76  (59 s)
+tau 0.75: from previous_tau
+    gen   25  best f   138.57   47.5 km/h  good True  p_jit 0.61  (8 s)
+    gen   50  best f   109.62   46.8 km/h  good True  p_jit 0.70  (16 s)
+    gen   75  best f   109.62   46.8 km/h  good True  p_jit 0.70  (24 s)
+    gen  100  best f   105.31   49.9 km/h  good True  p_jit 0.72  (32 s)
+    gen  125  best f   105.31   49.9 km/h  good True  p_jit 0.72  (40 s)
+    gen  150  best f   105.31   49.9 km/h  good True  p_jit 0.72  (47 s)
+    gen  175  best f   105.31   49.9 km/h  good True  p_jit 0.72  (54 s)
+    gen  200  best f   105.31   49.9 km/h  good True  p_jit 0.72  (60 s)
+== a270 tau 0.75: FEASIBLE 52.4 km/h p_jit 0.76 land 12.058190842962771 ext -0.5141793365919192
+tau 0.9: from kin2_hill_tolr12_a270_T3a_0
+tau 0.9: from previous_tau
+    gen   25  best f   208.65   44.5 km/h  good True  p_jit 0.52  (7 s)
+== a270 tau 0.9: infeasible 44.5 km/h p_jit 0.52 land 11.44153600538377 ext -0.40398869695330575
