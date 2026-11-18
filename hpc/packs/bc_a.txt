@@ -1,0 +1,5 @@
+# Roadmap item 6, release 270: clone the arm-handover frontier's optimum at tau, fine-tune 15M steps
+kin_bowl_torque_b4096_h500_bctau0_a270_T3a_0 results/kinematic/frontier/frontier_a270_h500_k20.json 0 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 270
+kin_bowl_torque_b4096_t12_h500_bctau0_a270_T3a_0 results/kinematic/frontier/frontier_a270_h500_k20.json 0 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 270 --release-timing-sd-ms 12
+kin_bowl_torque_b4096_t12_h500_bctau0p5_a270_T3a_0 results/kinematic/frontier/frontier_a270_h500_k20.json 0.5 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 270 --release-timing-sd-ms 12
+kin_bowl_torque_b4096_t12_h500_bctau0p75_a270_T3a_0 results/kinematic/frontier/frontier_a270_h500_k20.json 0.75 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 270 --release-timing-sd-ms 12

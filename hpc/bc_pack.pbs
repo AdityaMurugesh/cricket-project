@@ -1,0 +1,45 @@
+#!/bin/bash
+# Roadmap item 6: PPO started from optimised deliveries. Per line of CONFIGS:
+#   <run name> <frontier json> <tau> <train_runup.py arguments...>
+# 1. scripts/bc_from_frontier.py clones that tau's optimum into checkpoints/<run>_init.zip (all lines in parallel)
+# 2. train_runup.py fine-tunes it (--resume-from the clone), all lines in parallel
+# 3. kin_equifinality scores the clones and the fine-tuned policies
+#   qsub -v CONFIGS=hpc/packs/bc_a.txt hpc/bc_pack.pbs
+#PBS -N cricket_bc
+#PBS -q cpuq
+#PBS -l select=1:ncpus=64:mem=120gb
+#PBS -l walltime=16:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+: "${CONFIGS:?pass CONFIGS=hpc/packs/<file>.txt}"
+NENVS="${NENVS:-14}"
+git rev-parse --short HEAD && echo "(commit above is the code this pack used)"
+export OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
+grep -v '^\s*\(#\|$\)' "${CONFIGS}" > "${TMPDIR:-/tmp}/bc_cfg_$$"
+CFG="${TMPDIR:-/tmp}/bc_cfg_$$"
+while read -r name fr tau args; do
+    mkdir -p "logs/${name}"
+    python scripts/bc_from_frontier.py --frontier "${fr}" --tau "${tau}" --out "checkpoints/${name}_init.zip" \
+        > "logs/${name}/bc.log" 2>&1 &
+done < "${CFG}"
+wait
+grep -h "plan:\|cloned policy" logs/*/bc.log | tail -n 40
+runs=""
+while read -r name fr tau args; do
+    [ -f "checkpoints/${name}_init.zip" ] || { echo "no clone for ${name}"; continue; }
+    echo "start ${name}: ${args}"
+    python scripts/train_runup.py ${args} --resume-from "checkpoints/${name}_init.zip" --n-envs "${NENVS}" \
+        --log-dir "logs/${name}" --model-path "checkpoints/${name}" > "logs/${name}/job.log" 2>&1 &
+    runs="${runs} ${name}"
+done < "${CFG}"
+wait
+echo "training done:${runs}"
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+for r in ${runs}; do
+    [ -f "checkpoints/${r}.zip" ] && echo "--run ${r} --out results/kinematic/equifinality"
+    [ -f "checkpoints/${r}_init.zip" ] && echo "--run ${r} --model-path checkpoints/${r}_init.zip --out results/kinematic/equifinality/bc_init"
+done | xargs -P 10 -L 1 python scripts/kin_equifinality.py 2>&1 | grep -v Warning
+echo "pack exit $?"
