@@ -1,0 +1,6 @@
+# a270 again: tau 0.75 and 0.9 were infeasible in job 38679 (a local optimum), so smaller continuation steps
+270 --tau 0.5 0.6 0.7 0.75 0.8 0.9 --gens 400 --out results/kinematic/frontier/a270_fine
+# the actuator budget (the project's original question): half, three quarters and 1.5x the arm's torque
+270 --torque-scale 0.5
+270 --torque-scale 0.75
+270 --torque-scale 1.5

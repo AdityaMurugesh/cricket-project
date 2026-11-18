@@ -1,0 +1,6 @@
+# the arm hands over 0.5 s before release: every start reaches the same state, so these plans clone into PPO
+250 --handover 0.5
+270 --handover 0.5
+290 --handover 0.5
+# Hill's force-velocity curve instead of linear damping
+270 --actuator hill --omega-max 40

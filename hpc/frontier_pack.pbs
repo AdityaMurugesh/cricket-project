@@ -1,0 +1,26 @@
+#!/bin/bash
+# Several frontiers (scripts/kin_frontier.py) one after another in one job (per-user queue cap).
+# CONFIGS: one frontier per line, "<angle> <extra kin_frontier.py args...>"; the warm starts are that angle's
+# noise-free PPO s0 and the two 12 ms-noise PPO seeds.
+#   qsub -v CONFIGS=hpc/packs/frontier_b.txt hpc/frontier_pack.pbs
+#PBS -N cricket_frontier
+#PBS -q cpuq
+#PBS -l select=1:ncpus=32:mem=48gb
+#PBS -l walltime=10:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${CONFIGS:?pass CONFIGS=hpc/packs/<file>.txt}"
+git rev-parse --short HEAD && echo "(commit above is the code this run used)"
+while read -r A args; do
+    case "$A" in ''|\#*) continue ;; esac
+    echo "=== a${A} ${args}"
+    python scripts/kin_frontier.py --angle "${A}" --tau 0 0.25 0.5 0.75 0.9 --gens 200 --knot-dt 0.02 --diagonal \
+        --sigma 0.08 --workers "${WORKERS:-28}" \
+        --warm kin_bowl_torque_a${A}_T3a_0 kin_bowl_torque_b4096_t12_a${A}_T3a_0 kin_bowl_torque_b4096_t12_a${A}_T3a_1 \
+        --out results/kinematic/frontier ${args} < /dev/null 2>&1 | grep -v -i warning
+    echo "frontier exit $?"
+done < "${CONFIGS}"

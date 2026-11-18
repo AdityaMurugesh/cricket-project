@@ -79,10 +79,17 @@ def interp_matrix(t):
     return M
 
 
-def make_env(angle, target_range, handover=None):
+ENV2 = {}      # --torque-scale / --actuator / --omega-max: KinematicBowlEnv2 (the actuator budget, Hill's curve)
+
+
+def make_env(angle, target_range, handover=None, env2=None):
+    env2 = ENV2 if env2 is None else env2
+    kw = dict(delivery="T3a", rsi=False, release_angle_deg=angle, target_range=target_range, arm_handover_s=handover)
+    if env2:
+        from envs.kinematic_bowl_env2 import KinematicBowlEnv2
+        return KinematicBowlEnv2(**kw, **env2)
     from envs.kinematic_bowl_env import KinematicBowlEnv
-    return KinematicBowlEnv(delivery="T3a", rsi=False, release_angle_deg=angle, target_range=target_range,
-                            arm_control="torque", arm_handover_s=handover)
+    return KinematicBowlEnv(arm_control="torque", **kw)
 
 
 def set_knots(handover, knot_dt=None):
@@ -95,8 +102,9 @@ def set_knots(handover, knot_dt=None):
         KNOTS = HANDOVER_KNOTS(handover)
 
 
-def _init(angle, target_range, handover=None, knot_dt=None):
-    global _env, _M
+def _init(angle, target_range, handover=None, knot_dt=None, env2=None):
+    global _env, _M, ENV2
+    ENV2 = env2 or {}
     set_knots(handover, knot_dt)
     _env = make_env(angle, target_range, handover)
     _M = interp_matrix(decision_times(_env))
@@ -137,8 +145,8 @@ def fitness(r, tau, target_range):
 def warm_start(run, angle, target_range, handover=None):
     """A PPO policy's deterministic actions from BEFORE_S, fitted onto the knots."""
     from stable_baselines3 import PPO
-    env = make_env(angle, target_range, handover)
     model = PPO.load(ROOT / "checkpoints" / f"{run}.zip", device="cpu")
+    env = make_env(angle, target_range, handover, env2={})      # the policy's own (budget 1) env
     obs, _ = env.reset(options={"before_s": BEFORE_S})
     acts = []
     while True:
@@ -152,6 +160,8 @@ def warm_start(run, angle, target_range, handover=None):
     # the episode ends at the release: hold the last action after it
     A = np.vstack([A, np.repeat(A[-1:], len(t) - len(A), axis=0)])
     knots, *_ = np.linalg.lstsq(interp_matrix(t), A, rcond=None)
+    # another actuator budget: ask for the same torque the policy did (saturating when the budget is smaller)
+    knots = knots / ENV2.get("torque_scale", 1.0)
     return np.clip(knots, -1.0, 1.0).ravel()
 
 
@@ -190,14 +200,25 @@ def main():
     p.add_argument("--popsize", type=int, default=28)
     p.add_argument("--sigma", type=float, default=0.15)
     p.add_argument("--workers", type=int, default=14)
+    p.add_argument("--torque-scale", type=float, default=1.0, help="actuator budget (x the arm's gears); tag _q<s>")
+    p.add_argument("--actuator", default="damping", choices=["damping", "hill"], help="hill: Hill force-velocity")
+    p.add_argument("--omega-max", type=float, default=40.0, help="Hill curve's zero-torque joint speed (rad/s)")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     tr = tuple(a.target_range)
+    global ENV2
+    ENV2 = {}
+    if a.torque_scale != 1.0:
+        ENV2["torque_scale"] = a.torque_scale
+    if a.actuator != "damping":
+        ENV2.update(actuator=a.actuator, omega_max=a.omega_max)
     set_knots(a.handover, a.knot_dt)
     tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
-        + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "")
+        + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
+        + (f"_q{a.torque_scale:g}".replace(".", "p") if a.torque_scale != 1.0 else "") \
+        + (f"_hill{a.omega_max:g}" if a.actuator == "hill" else "")
     logf = open(out / f"frontier_{tag}.log", "a")
 
     def log(s):
@@ -205,7 +226,7 @@ def main():
         logf.write(s + "\n")
         logf.flush()
 
-    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt)) as pool:
+    with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2)) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
@@ -226,7 +247,7 @@ def main():
                     best = (*b, run)
             f, x, r, run = best
             prev = x
-            rec = {"angle": a.angle, "handover_s": a.handover, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
+            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
                    "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)
