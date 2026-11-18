@@ -38,7 +38,7 @@ BODY_ARMATURE = 1e6
 
 class KinematicBowlEnv(RunupBowlEnv):
     def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), arm_control="pd", arm_top_speed=40.0,
-                 torque_noise_sd=0.0, release_timing_sd_ms=0.0, **kw):
+                 torque_noise_sd=0.0, release_timing_sd_ms=0.0, arm_handover_s=None, **kw):
         kw.setdefault("follow_through_s", 0.0)     # the body cannot fall
         super().__init__(delivery=delivery, **kw)
         m = self.m
@@ -84,6 +84,12 @@ class KinematicBowlEnv(RunupBowlEnv):
         self._arm_action = np.concatenate([np.arange(sl.start, sl.stop) for name, t, qa, sl, bowling, rng
                                            in self._act_slices if bowling])
         self.start_range = start_before_release_s
+        # arm_handover_s: until this long before the captured release the arm too replays the capture
+        # (its actions are ignored), then it is the policy's from the captured state. Every start then
+        # reaches the handover in the same state, so the delivery depends only on what happens after it
+        # (an open-loop plan is a policy for every start). None: the arm is the policy's from the start
+        self.arm_handover_s = arm_handover_s
+        self.t_handover = (self.t_ref_release - arm_handover_s) if arm_handover_s is not None else -np.inf
         self.action_space = spaces.Box(-1.0, 1.0, (len(self._arm_action),), np.float32)
         self._shoulder_body = self.m.body("humerus_r").id
         n_obs = len(self._kin_obs())
@@ -97,6 +103,9 @@ class KinematicBowlEnv(RunupBowlEnv):
         i = int(np.clip(t * self.ref["rate"], 0, len(self._ref_acc) - 1))
         self.d.qfrc_applied[:] = 0.0
         self.d.qfrc_applied[self._body_dofs] = BODY_ARMATURE * self._ref_acc[i, self._body_dofs]
+        if t < self.t_handover - 1e-9:          # before the handover the arm replays the capture too
+            self.d.qpos[self._arm_q] = q[self._arm_q]
+            self.d.qvel[self._arm_dofs] = v[self._arm_dofs]
 
     def _kin_obs(self):
         phase = (self.t - self.t_ref_release) / 1.0
@@ -154,7 +163,9 @@ class KinematicBowlEnv(RunupBowlEnv):
         for k in range(self.frame_skip):
             self._drive_body(self.t + k * h)
             self.d.ctrl[:] = 0.0
-            if self.arm_control == "pd":
+            if self.t + k * h < self.t_handover - 1e-9:
+                pass                    # the arm is still the capture's
+            elif self.arm_control == "pd":
                 self.d.ctrl[self._arm_acts] = self.J.pd_torques(self.d, target)[self._arm_acts]
             else:                       # ThrowEnv's: the action is the arm's torques
                 self.d.ctrl[self._arm_acts] = a

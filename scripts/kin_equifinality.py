@@ -51,7 +51,7 @@ from envs.runup_bowl_env import BALL_R, G
 ROOT = Path(__file__).resolve().parent.parent
 HALF_WINDOW_S = 0.040
 JITTER_SD_S = 0.012
-RUN_RE = re.compile(r"kin_bowl_(?P<ctl>torque|pd)(?:_b\d+)?(?:_t[\d.]+)?(?:_q[\d.]+)?(?:_w[\dp]+)?(?:_p\d+)?_a(?P<ang>\d+)_(?P<delivery>\w+?)_(?P<seed>\d+)$")
+RUN_RE = re.compile(r"kin_bowl_(?P<ctl>torque|pd)(?:_b\d+)?(?:_t[\d.]+)?(?:_q[\d.]+)?(?:_w[\dp]+)?(?:_p\d+)?(?:_h(?P<ho>\d+))?(?:_bc[\w.]*?)?_a(?P<ang>\d+)_(?P<delivery>\w+?)_(?P<seed>\d+)$")
 
 
 class Recorder:
@@ -212,7 +212,8 @@ def main():
         rows, curves, summary = [], {}, {"run": run, "model": str(a.model_path or f"checkpoints/{run}.zip")}
         for cond, sd in conds.items():
             env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
-                                   target_range=tuple(a.target_range), arm_control=m["ctl"], torque_noise_sd=sd)
+                                   target_range=tuple(a.target_range), arm_control=m["ctl"], torque_noise_sd=sd,
+                                   arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
             seeds = [0] if sd == 0 else range(1, a.noise_seeds + 1)
             cond_rows = []
             for before in np.linspace(*env.start_range, a.starts):

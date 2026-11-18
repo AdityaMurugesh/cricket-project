@@ -97,6 +97,8 @@ def main():
                    help="kinematic: the arm action is PD targets or (ThrowEnv's) torques")
     p.add_argument("--release-timing-sd-ms", type=float, default=0.0,
                    help="kinematic: release-timing jitter SD (ms), as ThrowEnv; 0 = off")
+    p.add_argument("--arm-handover", type=float, default=None,
+                   help="kinematic: the arm replays the capture until this long before release (s)")
     p.add_argument("--torque-noise-sd", type=float, default=0.0,
                    help="kinematic, torque control: signal-dependent torque noise SD, as ThrowEnvGym; 0 = off")
     p.add_argument("--max-pelvis-drift", type=float, default=None,
@@ -123,7 +125,8 @@ def main():
                                             speed_weight=a.speed_weight, speed_power=a.speed_power,
                                             speed_target_kmh=a.speed_target_kmh,
                                             release_timing_sd_ms=a.release_timing_sd_ms,
-                                            torque_noise_sd=a.torque_noise_sd)
+                                            torque_noise_sd=a.torque_noise_sd,
+                                            arm_handover_s=a.arm_handover)
         if a.task == "bowl":
             return lambda: RunupBowlEnv(delivery=a.delivery, seed=a.seed * 1000 + rank,
                                         release_angle_deg=a.release_angle,
