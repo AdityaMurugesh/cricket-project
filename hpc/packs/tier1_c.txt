@@ -1,0 +1,6 @@
+# The exact tolerance reward resumed from fast noise-free bowlers gave the best results (tier1_a). More of them:
+# from the 81 km/h a250 bowler, from the 77 km/h arm-handover a270 bowler, and a "more skilled" bowler (6 ms timing SD)
+kin2_tolr12_resfast_a250_T3a_1 --task kinematic2 --release-angle 250 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 1 --resume-from checkpoints/kin_bowl_torque_b4096_a250_T3a_1.zip
+kin2_tolr12_resfast_h500_a270_T3a_0 --task kinematic2 --release-angle 270 --arm-handover 0.5 --tolerance-reward-sd-ms 12 --batch-size 4096 --timesteps 30000000 --seed 0 --resume-from checkpoints/kin_bowl_torque_b4096_h500_a270_T3a_0.zip
+kin2_tolr6_resfast_a290_T3a_1 --task kinematic2 --release-angle 290 --tolerance-reward-sd-ms 6 --batch-size 4096 --timesteps 30000000 --seed 1 --resume-from checkpoints/kin_bowl_torque_a290_T3a_1.zip
+kin2_tolr6_resfast_a270_T3a_0 --task kinematic2 --release-angle 270 --tolerance-reward-sd-ms 6 --batch-size 4096 --timesteps 30000000 --seed 0 --resume-from checkpoints/kin_bowl_torque_a270_T3a_0.zip
