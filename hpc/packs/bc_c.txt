@@ -1,0 +1,4 @@
+# Does PPO's exploration noise pull the fragile 1 ms-window delivery down (a290: clone 106 km/h -> 85 after
+# fine-tuning)? Same clones with exploration std exp(-3.2) = 0.04 instead of exp(-1.6) = 0.2 (BC_LOGSTD=-3.2)
+kin_bowl_torque_b4096_h500_bctau0ls32_a290_T3a_0 results/kinematic/frontier/frontier_a290_h500_k20.json 0 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 290
+kin_bowl_torque_b4096_h500_bctau0ls32_a270_T3a_0 results/kinematic/frontier/frontier_a270_h500_k20.json 0 --task kinematic --arm-control torque --arm-handover 0.5 --batch-size 4096 --timesteps 15000000 --seed 0 --release-angle 270

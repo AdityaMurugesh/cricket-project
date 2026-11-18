@@ -22,7 +22,7 @@ grep -v '^\s*\(#\|$\)' "${CONFIGS}" > "${TMPDIR:-/tmp}/bc_cfg_$$"
 CFG="${TMPDIR:-/tmp}/bc_cfg_$$"
 while read -r name fr tau args; do
     mkdir -p "logs/${name}"
-    python scripts/bc_from_frontier.py --frontier "${fr}" --tau "${tau}" --epochs "${BC_EPOCHS:-1500}" --out "checkpoints/${name}_init.zip" \
+    python scripts/bc_from_frontier.py --frontier "${fr}" --tau "${tau}" --epochs "${BC_EPOCHS:-1500}" --log-std "${BC_LOGSTD:--1.6}" --out "checkpoints/${name}_init.zip" \
         > "logs/${name}/bc.log" 2>&1 &
 done < "${CFG}"
 wait
