@@ -106,6 +106,10 @@ def main():
     # kinematic2: envs/kinematic_bowl_env2.py (torque control; docs/roadmap_2026-11-18.md items 2-5)
     p.add_argument("--tolerance-reward-sd-ms", type=float, default=0.0,
                    help="kinematic2: pay the exact expected reward under N(0, sd) release jitter")
+    p.add_argument("--tolerance-target", type=float, default=0.0,
+                   help="kinematic2 with --tolerance-reward-sd-ms: aim for this good rate. The good part of the "
+                        "expected reward is divided by max(p, target), so above it only speed pays and below it "
+                        "tolerance does: the bowler settles at p = target at the most speed it can")
     p.add_argument("--learned-release", action="store_true", help="kinematic2: the policy chooses its release")
     p.add_argument("--target-sample", type=float, nargs=2, default=None,
                    help="kinematic2: per episode a 2 m band centred on U(lo, hi) m, given in the observation")
@@ -136,6 +140,8 @@ def main():
                    tolerance_reward_sd_ms=a.tolerance_reward_sd_ms, learned_release=a.learned_release,
                    target_sample=tuple(a.target_sample) if a.target_sample else None, actuator=a.actuator,
                    omega_max=a.omega_max, torque_scale=a.torque_scale)
+    if a.tolerance_target > 0:
+        env2_kw["tolerance_target"] = a.tolerance_target
 
     def make(rank):
         if a.task == "kinematic2":

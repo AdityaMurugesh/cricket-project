@@ -23,6 +23,9 @@ untouched so that every earlier result stays reproducible.
       zero at w_max, and full when it brakes. The linear damping (peak torque / arm_top_speed) is then
       reduced to 5% of it, for numerical stability only.
   torque_scale   multiplies the bowling arm's motor gears: the actuator budget (item 1)
+  tolerance_target = t   (with tolerance_reward_sd_ms) the good part of the expected reward is divided by
+      max(p, t): above good rate t only speed pays, below it tolerance does, so the bowler settles at p = t at
+      the most speed it can. Plain expected reward (t = 0) favours p ~ 0.85-0.95 on every skill frontier.
 
 Observation: KinematicBowlEnv's (so its trained policies can be fine-tuned here), + [target code] with
 target_sample.
@@ -49,11 +52,12 @@ def land(p, v):
 
 class KinematicBowlEnv2(KinematicBowlEnv):
     def __init__(self, tolerance_reward_sd_ms=0.0, learned_release=False, target_sample=None,
-                 actuator="damping", omega_max=40.0, torque_scale=1.0, **kw):
+                 actuator="damping", omega_max=40.0, torque_scale=1.0, tolerance_target=0.0, **kw):
         kw["arm_control"] = "torque"
         super().__init__(**kw)
         m = self.m
         self.tolerance_reward_sd_s = tolerance_reward_sd_ms / 1000.0
+        self.tolerance_target = tolerance_target
         self.learned_release = learned_release
         self.target_sample = target_sample
         self.actuator = actuator
@@ -144,11 +148,16 @@ class KinematicBowlEnv2(KinematicBowlEnv):
         offs = (np.arange(lo, hi + 1) - c) * h
         w = np.exp(-0.5 * (offs / self.tolerance_reward_sd_s) ** 2)
         w /= w.sum()
-        R, P = 0.0, 0.0
+        R, P, G = 0.0, 0.0, 0.0
         for wi, i in zip(w, range(lo, hi + 1)):
             r, o = self._score_instant(i)
             R += wi * r
             P += wi * float(o["good"])
+            G += wi * r * float(o["good"])
+        if self.tolerance_target > 0 and P > 0:
+            # target tolerance: the good part pays G / max(P, target). Above the target that is the good
+            # deliveries' mean reward (speed only); below it, P / target of it (tolerance pays)
+            R = R - G + G / max(P, self.tolerance_target)
         r0, o0 = self._score_instant(c)            # the nominal release, for logging
         o0 = dict(o0, p_jit=P, expected_reward=R)
         self._outcome = o0
