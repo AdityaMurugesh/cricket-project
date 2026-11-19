@@ -1,0 +1,5 @@
+# Re-score the 290 handover skill frontier (frontier_k, 39020) at SD 1-16 ms
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_h500_k20_j2_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j2_pc.json > results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j2_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_h500_k20_j4_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j4_pc.json > results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j4_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_h500_k20_j8_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j8_pc.json > results/kinematic/frontier/cross_sigma_c/a290_h500_k20_j8_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_h500_k20_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_h500_k20_pc.json > results/kinematic/frontier/cross_sigma_c/a290_h500_k20_pc.log 2>&1
