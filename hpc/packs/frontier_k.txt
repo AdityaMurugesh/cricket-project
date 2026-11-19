@@ -1,0 +1,6 @@
+# Skill frontier at 290 deg with the arm handover (the PPO bowlers' setting), warm from the 290 PPO skill bowlers
+# (52-66 km/h at p 0.95-0.98) and their 106 km/h clone. Like frontier_j at 270.
+290 --handover 0.5 --p-cont --jitter-sd-ms 2 --tau 0.25 0.5 0.6 0.75 0.9 0.95 --warm kin2_tolr2_bcclone_h500_a290_T3a_0 kin2_tolr4_bcclone_h500_a290_T3a_0 kin2_tolr8_bcclone_h500_a290_T3a_0 kin2_tolr12_bcclone_h500_a290_T3a_0 kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0
+290 --handover 0.5 --p-cont --jitter-sd-ms 4 --tau 0.25 0.5 0.6 0.75 0.9 0.95 --warm kin2_tolr2_bcclone_h500_a290_T3a_0 kin2_tolr4_bcclone_h500_a290_T3a_0 kin2_tolr8_bcclone_h500_a290_T3a_0 kin2_tolr12_bcclone_h500_a290_T3a_0 kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0
+290 --handover 0.5 --p-cont --jitter-sd-ms 8 --tau 0.25 0.5 0.6 0.75 0.9 0.95 --warm kin2_tolr2_bcclone_h500_a290_T3a_0 kin2_tolr4_bcclone_h500_a290_T3a_0 kin2_tolr8_bcclone_h500_a290_T3a_0 kin2_tolr12_bcclone_h500_a290_T3a_0 kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0
+290 --handover 0.5 --p-cont --jitter-sd-ms 12 --tau 0.25 0.5 0.6 0.75 0.9 0.95 --warm kin2_tolr2_bcclone_h500_a290_T3a_0 kin2_tolr4_bcclone_h500_a290_T3a_0 kin2_tolr8_bcclone_h500_a290_T3a_0 kin2_tolr12_bcclone_h500_a290_T3a_0 kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0
