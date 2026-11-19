@@ -1,0 +1,6 @@
+# The 270 skill bowlers continued 10M steps at exploration std 0.04 (log_std -3.2): the 8 and 12 ms bowlers are ~6 km/h
+# under the optimiser's curve; does PPO's own action noise (std ~0.2) hold them back, as it did the noise-free a290 clone?
+kin2_tolr2_bcfast_ls32_h500_a270_T3a_0 --task kinematic2 --release-angle 270 --arm-handover 0.5 --batch-size 4096 --timesteps 10000000 --seed 0 --tolerance-reward-sd-ms 2 --set-log-std -3.2 --resume-from checkpoints/kin2_tolr2_bcfast_h500_a270_T3a_0.zip
+kin2_tolr4_bcfast_ls32_h500_a270_T3a_0 --task kinematic2 --release-angle 270 --arm-handover 0.5 --batch-size 4096 --timesteps 10000000 --seed 0 --tolerance-reward-sd-ms 4 --set-log-std -3.2 --resume-from checkpoints/kin2_tolr4_bcfast_h500_a270_T3a_0.zip
+kin2_tolr8_bcfast_ls32_h500_a270_T3a_0 --task kinematic2 --release-angle 270 --arm-handover 0.5 --batch-size 4096 --timesteps 10000000 --seed 0 --tolerance-reward-sd-ms 8 --set-log-std -3.2 --resume-from checkpoints/kin2_tolr8_bcfast_h500_a270_T3a_0.zip
+kin2_tolr12_bcfast_ls32_h500_a270_T3a_0 --task kinematic2 --release-angle 270 --arm-handover 0.5 --batch-size 4096 --timesteps 10000000 --seed 0 --tolerance-reward-sd-ms 12 --set-log-std -3.2 --resume-from checkpoints/kin2_tolr12_bcfast_h500_a270_T3a_0.zip

@@ -118,6 +118,8 @@ def main():
     p.add_argument("--n-envs", type=int, default=16)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--set-log-std", type=float, default=None,
+                   help="with --resume-from: reset the policy's exploration log-std (e.g. -3.2 = std 0.04)")
     p.add_argument("--batch-size", type=int, default=64, help="kinematic: PPO minibatch size (64 = SB3 default)")
     p.add_argument("--log-dir", default=str(ROOT / "logs" / "runup_ppo"))
     p.add_argument("--model-path", default=str(ROOT / "checkpoints" / "runup_ppo"))
@@ -162,6 +164,11 @@ def main():
         extra = {"batch_size": a.batch_size} if a.task in ("kinematic", "kinematic2") else {}
         model = PPO.load(a.resume_from, env=venv, **extra)
         model.set_random_seed(a.seed)
+        if a.set_log_std is not None:
+            # PPO's own action noise acts like motor noise: under it the expected reward favours slower, safer
+            # deliveries (a290 clone 106 -> 85 km/h at std 0.2, 98 at std 0.04; bc pack c)
+            with torch.no_grad():
+                model.policy.log_std.fill_(a.set_log_std)
     elif a.task in ("kinematic", "kinematic2"):
         # ThrowEnv's settings (run10-run15): one sparse reward per delivery, so no discounting
         # (the policy sets the episode length: episodic_discounting_trap), entropy 0.003
