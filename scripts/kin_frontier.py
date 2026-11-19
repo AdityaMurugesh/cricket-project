@@ -189,7 +189,10 @@ def optimise(pool, x0, tau, target_range, sigma, gens, popsize, seed, log, diago
     es = cma.CMAEvolutionStrategy(x0, sigma, {"bounds": [-1.0, 1.0], "popsize": popsize, "seed": seed,
                                               "verbose": -9, "maxiter": gens,
                                               **({"CMA_diagonal": True} if diagonal else {})})
-    best = (np.inf, None, None)
+    # elitist: the start itself counts, so a large sigma can never return something worse than where it began
+    # (job 38912: sigma 0.25 from the 127.9 km/h optimum returned 120.3)
+    r0 = pool.map(evaluate, [np.asarray(x0, dtype=float)])[0]
+    best = (fitness(r0, tau, target_range), np.asarray(x0, dtype=float), r0)
     t0 = time.time()
     while not es.stop():
         X = es.ask()
