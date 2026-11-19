@@ -20,11 +20,13 @@ MARK = {"plain": "*", "ls32": "^", "tt": "D"}   # PPO: tolerance reward / + low 
 SDS = ["1", "2", "4", "8", "12", "16"]
 
 
-def envelope(rows, angle, sd):
-    """For each tau, the fastest delivery whose interpolated good rate at this SD is at least tau."""
+def envelope(rows, angle, sd, handover_only=False):
+    """For each tau, the fastest delivery whose interpolated good rate at this SD is at least tau
+    (handover_only: only arm-handover 0.5 s deliveries, the PPO bowlers' own setting)."""
     out = []
     for t in TAUS:
-        ok = [r for r in rows if r["angle"] == angle and r["p_cont"].get(sd, 0.0) >= t]
+        ok = [r for r in rows if r["angle"] == angle and r["p_cont"].get(sd, 0.0) >= t
+              and (not handover_only or r.get("handover_s") == 0.5)]
         best = max(ok, key=lambda r: r["speed_kmh"], default=None)
         out.append(None if best is None else round(best["speed_kmh"], 1))
     return out
@@ -35,7 +37,9 @@ def main():
     for f in sorted(glob.glob(str(D / "cross_sigma_c" / "*.json"))):
         rows += [r for r in json.load(open(f)) if r.get("good")]
     table = {a: {sd: envelope(rows, a, sd) for sd in SDS} for a in (270.0, 290.0)}
-    json.dump({"taus": TAUS, "by_angle": {str(int(a)): v for a, v in table.items()}, "n_deliveries": len(rows)},
+    table_h = {a: {sd: envelope(rows, a, sd, True) for sd in SDS} for a in (270.0, 290.0)}
+    json.dump({"taus": TAUS, "by_angle": {str(int(a)): v for a, v in table.items()},
+               "by_angle_handover": {str(int(a)): v for a, v in table_h.items()}, "n_deliveries": len(rows)},
               open(D / "skill_frontier.json", "w"), indent=1)
 
     # PPO bowlers trained with the exact tolerance reward at a timing SD, scored at that SD (curves_at_sd.py)
@@ -56,6 +60,9 @@ def main():
             pts = [(t, y) for t, y in zip(TAUS, ys) if y is not None]
             if pts:
                 ax.plot(*zip(*pts), "o-", color=cmap(k / (len(SDS) - 1)), label=f"{sd} ms", lw=2, ms=4)
+            pts = [(t, y) for t, y in zip(TAUS, table_h[a][sd]) if y is not None]
+            if pts:
+                ax.plot(*zip(*pts), "--", color=cmap(k / (len(SDS) - 1)), lw=1, alpha=0.8)
         for sd, p, kmh, run, kind in rl.get(a, []):
             ax.plot(p, kmh, MARK[kind], ms=14 if kind == "plain" else 10, mec="k", mew=0.6, color=cmap(SDS.index(sd) / (len(SDS) - 1)), zorder=5)
         ax.set_title(f"release {int(a)}°   (lines: optimiser; markers: PPO at its training SD)", fontsize=10)
@@ -63,7 +70,7 @@ def main():
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("fastest good delivery (km/h)")
     axes[1].legend(title="timing SD", frameon=False, loc="lower left", ncol=2)
-    axes[0].text(0.98, 0.98, "PPO:  * tolerance reward   ^ + low exploration   D + target tolerance",
+    axes[0].text(0.98, 0.98, "dashed: arm handover 0.5 s only (PPO setting)\nPPO:  * tolerance reward   ^ + low exploration   D + target tolerance",
                  transform=axes[0].transAxes, ha="right", va="top", fontsize=7)
     fig.suptitle("Pace vs timing skill: the arm's best delivery for a bowler with a given release-timing SD")
     fig.tight_layout()
@@ -72,6 +79,7 @@ def main():
         print(f"release {int(a)}:  tau " + "  ".join(f"{t:>5}" for t in TAUS))
         for sd in SDS:
             print(f"   SD {sd:>2} ms      " + "  ".join(f"{y if y is not None else '-':>5}" for y in table[a][sd]))
+            print(f"     handover      " + "  ".join(f"{y if y is not None else '-':>5}" for y in table_h[a][sd]))
         for sd, p, kmh, run, kind in rl.get(a, []):
             print(f"   PPO {run}: {kmh:.1f} km/h, good {p:.2f} at {sd} ms")
 
