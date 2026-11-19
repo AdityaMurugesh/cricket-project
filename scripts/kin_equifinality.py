@@ -100,6 +100,41 @@ def run_episode(env, model, before_s, seed, release=True, t_stop=None):
     return dict(info["outcome"]), rec.rows, list(env._arm_hist), list(env._elbow_hist), env._start_t
 
 
+def p_good_continuous(off, x, y, ok, lo, hi, line_tol, sd):
+    """Good rate under N(0, sd) release-timing error, with the landing point interpolated linearly between
+    physics samples. The grid version (p_jitter_12ms) counts whole 2 ms samples, which overstates a window
+    narrower than one sample once sd is ~2 ms or less (a one-sample window scores 0.79 at sd 1 ms). Legality,
+    arm plane and release window ("ok") are taken as holding between two samples if they hold at both, and
+    to the midpoint if only at one."""
+    from math import erf, sqrt
+
+    def cdf(t):
+        return 0.5 * (1.0 + erf(t / (sd * sqrt(2.0))))
+
+    def inside(f0, f1, lo_, hi_):
+        """Sub-interval of s in [0, 1] where f0 + s (f1 - f0) lies in [lo_, hi_]."""
+        d = f1 - f0
+        if abs(d) < 1e-12:
+            return (0.0, 1.0) if lo_ <= f0 <= hi_ else None
+        a, b = sorted(((lo_ - f0) / d, (hi_ - f0) / d))
+        a, b = max(a, 0.0), min(b, 1.0)
+        return (a, b) if a < b else None
+
+    mass = 0.0
+    for i in range(len(off) - 1):
+        if not (ok[i] or ok[i + 1]):
+            continue
+        s_lo, s_hi = (0.0, 1.0) if ok[i] and ok[i + 1] else ((0.0, 0.5) if ok[i] else (0.5, 1.0))
+        ix, iy = inside(x[i], x[i + 1], lo, hi), inside(y[i], y[i + 1], -line_tol, line_tol)
+        if ix is None or iy is None:
+            continue
+        a, b = max(s_lo, ix[0], iy[0]), min(s_hi, ix[1], iy[1])
+        if a < b:
+            t0, t1 = off[i] + a * (off[i + 1] - off[i]), off[i] + b * (off[i + 1] - off[i])
+            mass += cdf(t1) - cdf(t0)
+    return float(mass / (cdf(off[-1]) - cdf(off[0])))
+
+
 def delivery(env, model, before_s, seed):
     out, rows, _, _, t0 = run_episode(env, model, before_s, seed)
     h = env.m.opt.timestep
@@ -118,7 +153,7 @@ def delivery(env, model, before_s, seed):
     p, v, _ = rows2[rel]
     assert np.allclose(land(p, v), (out["land_x"], out["lateral_m"]), atol=1e-6), "replays diverged"
     lo, hi = max(rel - k, 0), min(rel + k, len(rows2) - 1)
-    curve = []
+    curve, oks, Ys = [], [], []
     for i in range(lo, hi + 1):
         p, v, plane = rows2[i]
         x, y = land(p, v)
@@ -129,6 +164,8 @@ def delivery(env, model, before_s, seed):
               and abs(elbow[i + 1]) <= env.max_release_elbow_deg)
         good = ok and env.target_min <= x <= env.target_max and abs(y) <= env.line_tol_m
         curve.append((i - rel, x, y, good, float(np.linalg.norm(v))))
+        oks.append(bool(ok))
+        Ys.append(y)
     off = np.array([c[0] for c in curve]) * h
     L = np.array([c[1] for c in curve])
     good = np.array([c[3] for c in curve])
@@ -144,6 +181,8 @@ def delivery(env, model, before_s, seed):
              window_early_ms=(j - a) * h * 1000 if good[j] else 0.0,
              window_late_ms=(b - j) * h * 1000 if good[j] else 0.0,
              p_jitter_12ms=float((w * good).sum() / w.sum()),
+             p_jitter_cont=p_good_continuous(off, L, np.array(Ys), np.array(oks), env.target_min, env.target_max,
+                                             env.line_tol_m, JITTER_SD_S),
              slope_m_per_10ms=float((L[j + 1] - L[j - 1]) / (2 * h) * 0.010) if 0 < j < len(L) - 1 else None,
              sd_40ms=float(L.std()), early_40ms=float(L[0]), late_40ms=float(L[-1]))
     # release parameters for the covariation test, and the arm-circle duration

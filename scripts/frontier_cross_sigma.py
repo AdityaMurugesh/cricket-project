@@ -1,7 +1,7 @@
 """Re-score frontier optima under several release-timing SDs (pace vs the bowler's timing skill).
 
-Each optimum in the given frontier JSONs is replayed once; its good rate is then recomputed for every SD in
---sd-ms. That gives the whole skill curve for each delivery, so one can check that a frontier found for one SD
+Each optimum in the given frontier JSONs is replayed once per SD in --sd-ms; "p" is the
+2 ms-grid good rate, "p_cont" the interpolated one (kin_equifinality.p_good_continuous). That gives the whole skill curve for each delivery, so one can check that a frontier found for one SD
 is not beaten, at that SD, by an optimum found for another.
 
   python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20*.json --out results/kinematic/frontier/cross_sigma_a290.json
@@ -34,17 +34,18 @@ def main():
             kf.KNOTS = np.array(rec["knot_times_s"])
             kf._init(rec["angle"], (10.9, 12.9), None, None, None, 12.0)
             x = np.array(rec["knots"]).ravel()
-            ps = {}
+            ps, pc = {}, {}
             for sd in a.sd_ms:
                 ke.JITTER_SD_S = sd / 1000.0
                 r = kf.evaluate(x)
-                ps[f"{sd:g}"] = r.get("p_jitter_12ms") or 0.0
+                ps[f"{sd:g}"] = r.get("p_jitter_grid", r.get("p_jitter_12ms")) or 0.0
+                pc[f"{sd:g}"] = r.get("p_jitter_cont") or 0.0
             row = {"file": Path(f).name, "angle": rec["angle"], "tau": rec["tau"],
                    "found_at_sd_ms": rec.get("jitter_sd_ms", 12.0), "speed_kmh": (r.get("speed_m_s") or 0) * 3.6,
-                   "good": r.get("good"), "p": ps}
+                   "good": r.get("good"), "p": ps, "p_cont": pc}
             rows.append(row)
             print(f"{row['file']:34s} tau {row['tau']:.2f} {row['speed_kmh']:6.1f} km/h good {row['good']} "
-                  + " ".join(f"p{k}={v:.2f}" for k, v in ps.items()), flush=True)
+                  + " ".join(f"p{k}={v:.2f}/{pc[k]:.2f}" for k, v in ps.items()), flush=True)
     json.dump(rows, open(a.out, "w"), indent=1)
 
 
