@@ -1,0 +1,3 @@
+kin2_v3_nf_ls32_bcfast_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --set-log-std -3.2 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a270_T3a_0.zip
+kin2_v3_nf_ls32_bcclone_h500_a290_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --arm-handover 0.5 --timesteps 15000000 --set-log-std -3.2 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip
+kin2_v3_tolr12_resfast_a290_T3a_1 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --timesteps 15000000 --tolerance-reward-sd-ms 12 --resume-from checkpoints/kin2_tolr12_resfast_a290_T3a_1.zip

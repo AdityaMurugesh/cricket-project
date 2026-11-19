@@ -1,0 +1,3 @@
+kin2_v3_tolr12_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 30000000 --tolerance-reward-sd-ms 12
+kin2_v3_tolr12_a290_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --timesteps 30000000 --tolerance-reward-sd-ms 12
+kin2_v3_lrel_tolr12_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --learned-release --timesteps 30000000 --tolerance-reward-sd-ms 12

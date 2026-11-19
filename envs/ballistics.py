@@ -19,6 +19,20 @@ G = 9.81
 CRICKET_DRAG_K = 1.2 * 0.45 * (math.pi * BALL_R ** 2) / (2 * 0.156)    # 0.00705 1/m
 
 
+def position(p, v, k, t, dt=0.002):
+    """The ball's position t seconds after release (for drawing; the same flight as land())."""
+    if k <= 0.0:
+        return (p[0] + v[0] * t, p[1] + v[1] * t, p[2] + v[2] * t - 0.5 * G * t * t)
+    x, y, z = float(p[0]), float(p[1]), float(p[2])
+    vx, vy, vz = float(v[0]), float(v[1]), float(v[2])
+    n = int(t / dt)
+    for _ in range(n):                           # semi-implicit Euler: fine for a picture
+        s = k * math.sqrt(vx * vx + vy * vy + vz * vz)
+        vx, vy, vz = vx - dt * s * vx, vy - dt * s * vy, vz - dt * (G + s * vz)
+        x, y, z = x + dt * vx, y + dt * vy, z + dt * vz
+    return (x, y, max(z, BALL_R))
+
+
 def land(p, v, k=0.0, dt=0.002):
     """Length (m beyond the release point, along x) and line (y) where the ball's centre is BALL_R above
     the ground. p, v: release position and velocity (x along the pitch, z up)."""

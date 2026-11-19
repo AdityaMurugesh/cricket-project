@@ -1,0 +1,2 @@
+kin2_v3_goal_tolr12_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --target-sample 8 18 --timesteps 15000000 --tolerance-reward-sd-ms 12 --resume-from checkpoints/kin2_goal_tolr12_a270_T3a_0.zip
+kin2_v3_tolr12_tt0p75_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 12 --tolerance-target 0.75 --resume-from checkpoints/kin2_tolr12_bctau0p5_h500_a270_T3a_0.zip

@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stable_baselines3 import PPO
 
 from envs.kinematic_bowl_env import KinematicBowlEnv
-from envs.runup_bowl_env import BALL_R, G
+from envs.ballistics import BALL_R, position
 from scripts.kin_equifinality import RUN_RE, run_episode
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -69,11 +69,23 @@ def main():
     p.add_argument("--slow", type=int, default=4, help="slow-motion factor (25 fps video)")
     p.add_argument("--flight-s", type=float, default=0.8, help="how long to show after release")
     p.add_argument("--out", default=None, help="default results/kinematic/videos/<run>.mp4")
+    p.add_argument("--target-m", type=float, default=None, help="any-length (target_sample) bowlers: band centre")
+    p.add_argument("--model-path", default=None, help="instead of checkpoints/<run>.zip")
+    p.add_argument("--label", default=None, help="what the arm is, for the caption (default: the run name)")
     a = p.parse_args()
-    m = RUN_RE.match(a.run)
-    env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
-                           target_range=(10.9, 12.9), arm_control=m["ctl"])
-    model = PPO.load(ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
+    env2 = ROOT / "checkpoints" / f"{a.run}.env2.json"
+    if env2.exists():               # kinematic2 runs: rebuild the env as trained, without training noise
+        import json
+        from scripts.kin_equifinality import make_env2
+        kw2 = json.load(open(env2))
+        env = make_env2(kw2, 0.0, a.target_m)
+        m = {"delivery": kw2.get("delivery", "T3a")}
+    else:
+        m = RUN_RE.match(a.run)
+        env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
+                               target_range=(10.9, 12.9), arm_control=m["ctl"],
+                               arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
+    model = PPO.load(a.model_path or ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
 
     out1, rows, _, _, t0 = run_episode(env, model, a.before, 0)
     if not out1["released"]:
@@ -99,10 +111,11 @@ def main():
     # ball: at the grip until release, then ballistic until it lands
     d = mujoco.MjData(env.m)
     stride = int(round(1.0 / (25 * a.slow) / h))           # physics steps per video frame
-    x0, zone = p_rel[0], (10.9, 12.9)
+    x0, zone = p_rel[0], (env.target_min, env.target_max)
+    dk = getattr(env, "drag_k", 0.0)
     rend = mujoco.Renderer(env.m, H, W)
     tmp = Path(tempfile.mkdtemp(prefix="kinvid_"))
-    land_t = (v_rel[2] + np.sqrt(v_rel[2] ** 2 + 2 * G * (p_rel[2] - BALL_R))) / G
+    land_x = out1["land_x"] + x0
     for f, i in enumerate(range(0, n, stride)):
         d.qpos[:] = qpos[i]
         mujoco.mj_kinematics(env.m, d)
@@ -110,8 +123,9 @@ def main():
             R = d.xmat[env._hand].reshape(3, 3)
             ball = d.xpos[env._hand] + R @ np.array([0.035, -0.09, 0.0])
         else:
-            tf = min((i - rel) * h, land_t)
-            ball = p_rel + v_rel * tf + np.array([0, 0, -0.5 * G * tf ** 2])
+            ball = np.array(position(p_rel, v_rel, dk, (i - rel) * h))
+            if ball[0] >= land_x or ball[2] <= BALL_R:      # pitched: hold it where it landed
+                ball = np.array([land_x, out1["lateral_m"], BALL_R])
         imgs = []
         for view in ("side", "pitch"):
             cam = mujoco.MjvCamera()
@@ -132,12 +146,12 @@ def main():
             imgs.append(rend.render().copy())
         plt.imsave(tmp / f"f_{f:05d}.png", np.concatenate(imgs, axis=1))
     o = out1
-    lines = [f"Body: motion capture replay ({m['delivery']}).  Bowling arm: learned policy ({a.run[9:]}).  "
-             "Ball: simulated.",
+    lines = [f"Body: motion capture replay ({m['delivery']}).  Bowling arm: {a.label or 'learned policy (' + a.run + ')'}.  "
+             f"Ball: simulated{' with air drag' if dk > 0 else ''}.",
              f"{o['speed_m_s'] * 3.6:.0f} km/h, lands {o['land_x']:.1f} m, {abs(o['lateral_m']):.2f} m off line, "
              f"elbow extension {o['extension_deg']:.1f} deg ({'good' if o['good'] else 'not good'}).  "
              f"{a.slow}x slow motion.",
-             "Green = good-length zone (10.9-12.9 m, +/-0.5 m line). Right view: ball drawn 2.5x size."]
+             f"Green = target zone ({zone[0]:.1f}-{zone[1]:.1f} m, +/-0.5 m line). Right view: ball drawn 2.5x size."]
     out = Path(a.out) if a.out else ROOT / "results" / "kinematic" / "videos" / f"{a.run}.mp4"
     out.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([str(LOCO_PY), "-c", WRITE, str(tmp), str(out), "25", "|".join(lines)], check=True)
