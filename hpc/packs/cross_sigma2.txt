@@ -1,0 +1,10 @@
+# Re-score the cost-of-the-law (g) and --p-cont skill (h) optima at timing SD 1-16 ms
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_x1000.json --out results/kinematic/frontier/cross_sigma_c/a290_k20_x1000.json > results/kinematic/frontier/cross_sigma_c/a290_k20_x1000.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_x1000.json --out results/kinematic/frontier/cross_sigma_c/a270_k20_x1000.json > results/kinematic/frontier/cross_sigma_c/a270_k20_x1000.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j1_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_k20_j1_pc.json > results/kinematic/frontier/cross_sigma_c/a290_k20_j1_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j1_pc.json --out results/kinematic/frontier/cross_sigma_c/a270_k20_j1_pc.json > results/kinematic/frontier/cross_sigma_c/a270_k20_j1_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j2_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_k20_j2_pc.json > results/kinematic/frontier/cross_sigma_c/a290_k20_j2_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j2_pc.json --out results/kinematic/frontier/cross_sigma_c/a270_k20_j2_pc.json > results/kinematic/frontier/cross_sigma_c/a270_k20_j2_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j4_pc.json --out results/kinematic/frontier/cross_sigma_c/a290_k20_j4_pc.json > results/kinematic/frontier/cross_sigma_c/a290_k20_j4_pc.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j4_pc.json --out results/kinematic/frontier/cross_sigma_c/a270_k20_j4_pc.json > results/kinematic/frontier/cross_sigma_c/a270_k20_j4_pc.log 2>&1
+python scripts/curves_at_sd.py 'kin*' > results/kinematic/equifinality/curves_at_sd.log 2>&1
