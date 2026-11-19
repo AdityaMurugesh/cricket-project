@@ -29,10 +29,11 @@ def main():
     rows = []
     for f in a.jsons:
         for rec in json.load(open(f)):
-            if rec.get("handover_s") is not None or rec.get("env2") or not rec.get("released", True):
+            if rec.get("env2") or not rec.get("released", True):
                 continue
-            kf.KNOTS = np.array(rec["knot_times_s"])
-            kf._init(rec["angle"], (10.9, 12.9), None, None, None, 12.0)
+            kf._init(rec["angle"], (10.9, 12.9), rec.get("handover_s"), None, None, 12.0)
+            kf.KNOTS = np.array(rec["knot_times_s"])          # the record's own knots (set_knots may differ)
+            kf._M = kf.interp_matrix(kf.decision_times(kf._env))
             x = np.array(rec["knots"]).ravel()
             ps, pc = {}, {}
             for sd in a.sd_ms:
@@ -40,7 +41,7 @@ def main():
                 r = kf.evaluate(x)
                 ps[f"{sd:g}"] = r.get("p_jitter_grid", r.get("p_jitter_12ms")) or 0.0
                 pc[f"{sd:g}"] = r.get("p_jitter_cont") or 0.0
-            row = {"file": Path(f).name, "angle": rec["angle"], "tau": rec["tau"],
+            row = {"file": Path(f).name, "angle": rec["angle"], "tau": rec["tau"], "handover_s": rec.get("handover_s"),
                    "found_at_sd_ms": rec.get("jitter_sd_ms", 12.0), "speed_kmh": (r.get("speed_m_s") or 0) * 3.6,
                    "good": r.get("good"), "p": ps, "p_cont": pc}
             rows.append(row)
