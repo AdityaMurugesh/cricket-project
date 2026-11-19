@@ -1,0 +1,6 @@
+# Pace vs bowler skill at release 290: the 106.1 km/h clone of the tau 0 optimum (21/21 good before any RL) fine-tuned with
+# the exact tolerance reward at release-timing SD 2 / 4 / 8 / 12 ms (mirrors skill_a270, which started from its fine-tuned bowler)
+kin2_tolr2_bcclone_h500_a290_T3a_0 --task kinematic2 --release-angle 290 --arm-handover 0.5 --batch-size 4096 --timesteps 20000000 --seed 0 --tolerance-reward-sd-ms 2 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip
+kin2_tolr4_bcclone_h500_a290_T3a_0 --task kinematic2 --release-angle 290 --arm-handover 0.5 --batch-size 4096 --timesteps 20000000 --seed 0 --tolerance-reward-sd-ms 4 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip
+kin2_tolr8_bcclone_h500_a290_T3a_0 --task kinematic2 --release-angle 290 --arm-handover 0.5 --batch-size 4096 --timesteps 20000000 --seed 0 --tolerance-reward-sd-ms 8 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip
+kin2_tolr12_bcclone_h500_a290_T3a_0 --task kinematic2 --release-angle 290 --arm-handover 0.5 --batch-size 4096 --timesteps 20000000 --seed 0 --tolerance-reward-sd-ms 12 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip

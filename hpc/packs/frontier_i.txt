@@ -1,0 +1,7 @@
+# Fair throw test: pack g never left the straight arm (sigma 0.08 from straight-arm starts). Larger steps (sigma 0.25,
+# 300 generations), law vs no law with identical settings and seeds; own output dir so the law control does not
+# overwrite frontier_a2x0_k20.json.
+290 --max-extension-deg 1000 --sigma 0.25 --gens 300 --tau 0 0.5 --out results/kinematic/frontier/throwtest --warm-frontier results/kinematic/frontier/frontier_a290_k20_x1000.json:0.0 results/kinematic/frontier/frontier_a290_k20_x1000.json:0.5
+290 --max-extension-deg 15 --sigma 0.25 --gens 300 --tau 0 0.5 --out results/kinematic/frontier/throwtest --warm-frontier results/kinematic/frontier/frontier_a290_k20_x1000.json:0.0 results/kinematic/frontier/frontier_a290_k20_x1000.json:0.5
+270 --max-extension-deg 1000 --sigma 0.25 --gens 300 --tau 0 0.5 --out results/kinematic/frontier/throwtest --warm-frontier results/kinematic/frontier/frontier_a270_k20_x1000.json:0.0 results/kinematic/frontier/frontier_a270_k20_x1000.json:0.5
+270 --max-extension-deg 15 --sigma 0.25 --gens 300 --tau 0 0.5 --out results/kinematic/frontier/throwtest --warm-frontier results/kinematic/frontier/frontier_a270_k20_x1000.json:0.0 results/kinematic/frontier/frontier_a270_k20_x1000.json:0.5
