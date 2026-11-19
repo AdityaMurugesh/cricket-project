@@ -1,0 +1,12 @@
+# Re-score each frontier optimum at timing SD 1-16 ms (pace vs skill, cross-check of pack f)
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20.json --out results/kinematic/frontier/cross_sigma/v2_a290.json > results/kinematic/frontier/cross_sigma/v2_a290.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20.json --out results/kinematic/frontier/cross_sigma/v2_a270.json > results/kinematic/frontier/cross_sigma/v2_a270.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/kin2warm/frontier_a290_k20.json --out results/kinematic/frontier/cross_sigma/kin2warm_a290.json > results/kinematic/frontier/cross_sigma/kin2warm_a290.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/kin2warm/frontier_a270_k20.json --out results/kinematic/frontier/cross_sigma/kin2warm_a270.json > results/kinematic/frontier/cross_sigma/kin2warm_a270.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/a270_fine/frontier_a270_k20.json --out results/kinematic/frontier/cross_sigma/fine_a270.json > results/kinematic/frontier/cross_sigma/fine_a270.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j2.json --out results/kinematic/frontier/cross_sigma/j2_a290.json > results/kinematic/frontier/cross_sigma/j2_a290.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j2.json --out results/kinematic/frontier/cross_sigma/j2_a270.json > results/kinematic/frontier/cross_sigma/j2_a270.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j4.json --out results/kinematic/frontier/cross_sigma/j4_a290.json > results/kinematic/frontier/cross_sigma/j4_a290.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j4.json --out results/kinematic/frontier/cross_sigma/j4_a270.json > results/kinematic/frontier/cross_sigma/j4_a270.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a290_k20_j8.json --out results/kinematic/frontier/cross_sigma/j8_a290.json > results/kinematic/frontier/cross_sigma/j8_a290.log 2>&1
+python scripts/frontier_cross_sigma.py results/kinematic/frontier/frontier_a270_k20_j8.json --out results/kinematic/frontier/cross_sigma/j8_a270.json > results/kinematic/frontier/cross_sigma/j8_a270.log 2>&1
