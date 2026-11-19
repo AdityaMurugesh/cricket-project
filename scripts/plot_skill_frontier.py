@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 D = ROOT / "results" / "kinematic" / "frontier"
 TAUS = [0.25, 0.5, 0.6, 0.75, 0.85, 0.9, 0.95]
+MARK = {"plain": "*", "ls32": "^", "tt": "D"}   # PPO: tolerance reward / + low exploration / + target tolerance
 SDS = ["1", "2", "4", "8", "12", "16"]
 
 
@@ -42,9 +43,10 @@ def main():
     cf = ROOT / "results" / "kinematic" / "equifinality" / "curves_at_sd.json"
     if cf.exists():
         for run, v in json.load(open(cf)).items():
-            m = re.match(r"kin2_tolr(\d+)_(bcfast|bcclone|resfast)_.*a(\d+)_T3a", run)
+            m = re.match(r"kin2_tolr(\d+)_(tt[0-9p]+_)?(bcfast|bcclone|resfast)_.*a(\d+)_T3a", run)
             if m and m.group(1) in SDS:
-                rl.setdefault(float(m.group(3)), []).append((m.group(1), v["p_cont"][m.group(1)], v["speed_kmh"], run))
+                kind = "tt" if m.group(2) else ("ls32" if "_ls32_" in run else "plain")
+                rl.setdefault(float(m.group(4)), []).append((m.group(1), v["p_cont"][m.group(1)], v["speed_kmh"], run, kind))
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.2), sharey=True)
     cmap = plt.get_cmap("viridis")
@@ -54,13 +56,15 @@ def main():
             pts = [(t, y) for t, y in zip(TAUS, ys) if y is not None]
             if pts:
                 ax.plot(*zip(*pts), "o-", color=cmap(k / (len(SDS) - 1)), label=f"{sd} ms", lw=2, ms=4)
-        for sd, p, kmh, run in rl.get(a, []):
-            ax.plot(p, kmh, "*", ms=14, mec="k", mew=0.6, color=cmap(SDS.index(sd) / (len(SDS) - 1)), zorder=5)
-        ax.set_title(f"release {int(a)}°   (lines: optimiser; stars: PPO trained at that SD)", fontsize=10)
+        for sd, p, kmh, run, kind in rl.get(a, []):
+            ax.plot(p, kmh, MARK[kind], ms=14 if kind == "plain" else 10, mec="k", mew=0.6, color=cmap(SDS.index(sd) / (len(SDS) - 1)), zorder=5)
+        ax.set_title(f"release {int(a)}°   (lines: optimiser; markers: PPO at its training SD)", fontsize=10)
         ax.set_xlabel("required good rate under timing error")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("fastest good delivery (km/h)")
     axes[1].legend(title="timing SD", frameon=False, loc="lower left", ncol=2)
+    axes[0].text(0.98, 0.98, "PPO:  * tolerance reward   ^ + low exploration   D + target tolerance",
+                 transform=axes[0].transAxes, ha="right", va="top", fontsize=7)
     fig.suptitle("Pace vs timing skill: the arm's best delivery for a bowler with a given release-timing SD")
     fig.tight_layout()
     fig.savefig(D / "skill_frontier.png", dpi=130)
@@ -68,7 +72,7 @@ def main():
         print(f"release {int(a)}:  tau " + "  ".join(f"{t:>5}" for t in TAUS))
         for sd in SDS:
             print(f"   SD {sd:>2} ms      " + "  ".join(f"{y if y is not None else '-':>5}" for y in table[a][sd]))
-        for sd, p, kmh, run in rl.get(a, []):
+        for sd, p, kmh, run, kind in rl.get(a, []):
             print(f"   PPO {run}: {kmh:.1f} km/h, good {p:.2f} at {sd} ms")
 
 
