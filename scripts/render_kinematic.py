@@ -64,7 +64,10 @@ def add_geom(scn, kind, size, pos, rgba, mat=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--run", required=True, help="e.g. kin_bowl_torque_a270_T3a_0")
+    p.add_argument("--run", default=None, help="e.g. kin_bowl_torque_a270_T3a_0")
+    p.add_argument("--frontier", default=None, help="instead of a policy: a kin_frontier.py json; the arm plays that "
+                                                     "record's optimised open-loop torques")
+    p.add_argument("--tau", type=float, default=0.0, help="with --frontier: which record (its required good rate)")
     p.add_argument("--before", type=float, default=1.0, help="start this long before the captured release (s)")
     p.add_argument("--slow", type=int, default=4, help="slow-motion factor (25 fps video)")
     p.add_argument("--flight-s", type=float, default=0.8, help="how long to show after release")
@@ -73,8 +76,25 @@ def main():
     p.add_argument("--model-path", default=None, help="instead of checkpoints/<run>.zip")
     p.add_argument("--label", default=None, help="what the arm is, for the caption (default: the run name)")
     a = p.parse_args()
+    if a.frontier:                  # a trajectory-optimisation record: replay its knots open loop
+        import json
+        import scripts.kin_frontier as kf
+        recs = [r for r in json.load(open(a.frontier)) if r.get("feasible") and abs(r["tau"] - a.tau) < 1e-6]
+        if not recs:
+            sys.exit(f"no feasible record with tau {a.tau} in {a.frontier}")
+        rec = recs[0]
+        kf._init(rec["angle"], (10.9, 12.9), rec.get("handover_s"), None, rec.get("env2") or {}, 12.0,
+                 rec.get("max_extension_deg", 15.0), False, rec.get("delivery", "T3a"))
+        kf.KNOTS = np.array(rec["knot_times_s"])
+        kf._M = kf.interp_matrix(kf.decision_times(kf._env))
+        env = kf._env
+        model = kf.OpenLoop(env, np.clip(kf._M @ np.array(rec["knots"]).reshape(len(kf.KNOTS), -1), -1.0, 1.0))
+        m = {"delivery": rec.get("delivery", "T3a")}
+        a.run = a.run or f"{Path(a.frontier).stem}_tau{a.tau:g}"
     env2 = ROOT / "checkpoints" / f"{a.run}.env2.json"
-    if env2.exists():               # kinematic2 runs: rebuild the env as trained, without training noise
+    if a.frontier:
+        pass
+    elif env2.exists():               # kinematic2 runs: rebuild the env as trained, without training noise
         import json
         from scripts.kin_equifinality import make_env2
         kw2 = json.load(open(env2))
@@ -85,7 +105,8 @@ def main():
         env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
                                target_range=(10.9, 12.9), arm_control=m["ctl"],
                                arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
-    model = PPO.load(a.model_path or ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
+    if not a.frontier:
+        model = PPO.load(a.model_path or ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
 
     out1, rows, _, _, t0 = run_episode(env, model, a.before, 0)
     if not out1["released"]:
