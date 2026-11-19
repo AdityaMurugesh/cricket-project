@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cricket bowling RL: what we did since 6 Nov</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --accent:#1f6f8b; --good:#1e8449; --warn:#a04000; --line:#d9dee7; --soft:#f3f6fa; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); font-size: 10.6pt; line-height: 1.45; margin: 0; background:#fff; }
+  h1 { font-size: 21pt; margin: 0 0 4px; color: var(--accent); }
+  h2 { font-size: 14.5pt; margin: 22px 0 6px; padding-bottom: 3px; border-bottom: 2px solid var(--accent); color: var(--accent); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 14px 0 4px; break-after: avoid; }
+  p { margin: 5px 0 7px; }
+  .sub { color: var(--muted); font-size: 10pt; }
+  .box { background: var(--soft); border-left: 4px solid var(--accent); padding: 7px 11px; margin: 9px 0; break-inside: avoid; }
+  .say { background: #eef8f1; border-left: 4px solid var(--good); padding: 6px 11px; margin: 9px 0; break-inside: avoid; }
+  .say::before { content: "What to say: "; font-weight: 700; color: var(--good); }
+  .caveat { background: #fdf2e9; border-left: 4px solid var(--warn); padding: 6px 11px; margin: 9px 0; break-inside: avoid; }
+  .caveat::before { content: "Be honest about: "; font-weight: 700; color: var(--warn); }
+  .plain { font-weight: 600; }
+  table { border-collapse: collapse; margin: 7px 0 9px; font-size: 9.6pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); }
+  td.n, th.n { text-align: right; }
+  img { max-width: 100%; display: block; margin: 6px auto; }
+  figure { margin: 8px 0 10px; break-inside: avoid; }
+  figcaption { font-size: 9pt; color: var(--muted); text-align: center; }
+  .toc li { margin: 1px 0; }
+  .pb { break-before: page; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: var(--soft); padding: 0 3px; }
+  .big { font-size: 12pt; }
+  ul { margin: 4px 0 8px 0; padding-left: 20px; } li { margin: 2px 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Cricket bowling RL: what we did since the 6 Nov meeting</h1>
+<p class="sub">ACOD310 mini project (supervisor: Dr Alap Kshirsagar). Written 20 Nov 2026 to teach you every step, so you can explain it
+in your own words. Each section opens with the idea in one plain sentence, then the details. The green boxes are lines you can say.</p>
+
+<div class="box big">
+<b>The whole story in five sentences.</b>
+(1) On 6 Nov our bowlers could be accurate <i>and</i> tolerant of timing errors, but only at 45–55 km/h, and we kept tuning
+PPO without learning why.
+(2) So we stopped tuning and asked the physics directly: with an optimiser (CMA-ES) we computed the <b>fastest delivery the arm
+can possibly bowl</b> for each level of timing reliability. This is the "pace vs tolerance frontier".
+(3) The answer is a sharp trade-off with a simple physical cause, the <b>launch window</b>: a fast ball has to be released within
+about 1 ms to land a good length, while a slow, looping ball can be released 20–30 ms early or late.
+(4) Turning the frontier into a <b>pace-vs-timing-skill curve</b>: a bowler with elite timing (1–2 ms) can bowl 85–110 km/h
+reliably, an ordinary one (12 ms) only 55–65 km/h. The same arm, different timing skill.
+(5) With better RL tools (exact tolerance reward, starting from optimised deliveries, a target-tolerance reward), PPO now
+<b>reaches or beats that physical limit</b>: 104 km/h noise-free (was 67), 81 km/h at 88% reliability for an elite-timing bowler.
+</div>
+
+<h3>Contents</h3>
+<ol class="toc">
+  <li>Where we were on 6 Nov (a 1-page recap)</li>
+  <li>The last PPO knob test (speed power) and why we changed method</li>
+  <li>New tool: trajectory optimisation and the pace/tolerance frontier</li>
+  <li>Why the trade-off is physics: the launch window</li>
+  <li>A stronger arm does not help (actuator budget)</li>
+  <li>Better RL: exact tolerance reward, learned release, any length, Hill muscle</li>
+  <li>PPO started from the optimiser (behaviour cloning): 77 → 104 km/h</li>
+  <li>The headline: pace vs timing skill</li>
+  <li>The reward chooses the tolerance, and the target-tolerance fix</li>
+  <li>Does the 15° law cost pace? (No.) A throw buys nothing</li>
+  <li>A measurement bug we found and fixed</li>
+  <li>Last night: a more realistic model (air drag, hard elbow stop, other bodies)</li>
+  <li>Limitations, honestly</li>
+  <li>Questions the supervisor may ask, with answers</li>
+  <li>What to open on the laptop; glossary</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>1. Where we were on 6 Nov</h2>
+<p class="plain">The simulated bowler is the real bowler's motion capture, with only the bowling arm learned by RL.</p>
+<ul>
+  <li><b>Body:</b> the motion capture of delivery T3a (the 1 Oct lab session) is replayed exactly. Only the right arm
+  (shoulder, elbow, forearm, wrist: 7 motors) is simulated in MuJoCo and controlled by a PPO policy.</li>
+  <li><b>Task:</b> a <i>good</i> delivery is legal (elbow extension ≤ 15°, ICC rule), pitches 10.9–12.9 m from release
+  (good length), and stays within 0.5 m of the line. The ball leaves when the arm passes a set angle (250°, 270° or 290°).</li>
+  <li><b>Equifinality / tolerance:</b> your supervisor's thread. Real bowlers can't release at exactly the same millisecond
+  every time. We model that as <b>release-timing jitter</b>: the ball leaves a random few ms early or late (SD 12 ms, from the
+  darts literature). A bowler is <i>tolerant</i> if most such deliveries are still good.</li>
+  <li><b>6 Nov result:</b> bowlers trained without noise were fast (61–67 km/h) but brittle (~15% good under 12 ms jitter).
+  Trained with noise and a bigger PPO batch, they were tolerant (57–90% good) but slow (45–55 km/h). The real bowler's hand
+  looked like the brittle ones.</li>
+  <li><b>Open question we had:</b> is 45–55 km/h a limit of the arm, or a limit of PPO?</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>2. The last knob test, and why we changed method</h2>
+<p class="plain">Even paying up to 12× more for pace, PPO stayed at 44–60 km/h; tuning PPO could not tell us whether faster-and-tolerant exists.</p>
+<p>The first "speed weight" test on 5–6 Nov was weak (reward 1 + w·speed is almost proportional to speed whatever w is).
+The proper test paid a good delivery <code>min(speed/68 km/h, 1)^k</code>: with k = 4 a 68 km/h ball is worth 3.4× a 50 km/h one,
+with k = 8 it is 11.7×. Result (9 of 12 runs scored): pace stayed at 44–60 km/h. The k = 8 runs that pushed to 58–60 km/h lost
+accuracy (0, 4 and 10 of 21 good).</p>
+<p>From 23 Oct to 6 Nov every step had been "change one PPO knob, train, score". Each answered a small question, none moved
+the headline. You said it felt like a loop. So on 18 Nov we changed the question from <i>"what does PPO find?"</i> to
+<i>"what is physically possible?"</i></p>
+<div class="say">Making speed pay more didn't make tolerant bowlers faster. That told us to measure the physical limit
+directly instead of tuning the learner.</div>
+
+<!-- ============================================================ -->
+<h2>3. Trajectory optimisation and the pace/tolerance frontier</h2>
+<p class="plain">Instead of training a policy by trial and error, we directly search for the best sequence of arm torques for
+one delivery, and we do it for every level of tolerance.</p>
+<h3>What we did</h3>
+<ul>
+  <li>A delivery is just a list of 7 motor commands every 20 ms (the same decisions PPO makes). We search over that list with
+  <b>CMA-ES</b> (Covariance Matrix Adaptation Evolution Strategy): a standard black-box optimiser. It tries a population of
+  28 slightly different command lists, keeps the best, shifts its search towards them, and repeats 200–300 generations.</li>
+  <li><b>Same simulator, same scoring</b> as every RL result (<code>kin_equifinality.delivery()</code>), so the numbers are
+  directly comparable.</li>
+  <li>For each required tolerance τ ("at least τ of deliveries must be good under 12 ms timing jitter") it maximises release
+  speed, subject to legal + good length + on line. τ = 0 means "noise-free: just one perfect release".</li>
+  <li>It starts from PPO bowlers' own action sequences (warm start), so it begins from a working delivery.</li>
+  <li>Script <code>scripts/kin_frontier.py</code>; runs on the HPC (it lagged your laptop on 18 Nov, so all heavy work moved there).</li>
+</ul>
+<p>Analogy: PPO is a coach who teaches a bowler through thousands of practice balls. The optimiser is an engineer who,
+for one specific delivery, tweaks every muscle command until the ball is as fast as possible. The engineer's answer is
+the ceiling the coach can hope for.</p>
+<figure><img src="../results/kinematic/frontier/frontier.png" style="width:82%">
+<figcaption>Lines: the optimiser's fastest good delivery at each tolerance (release angle 250/270/290°). Markers: our PPO bowlers.</figcaption></figure>
+<table>
+<tr><th>required tolerance τ (12 ms jitter)</th><th class="n">release 250°</th><th class="n">270°</th><th class="n">290°</th></tr>
+<tr><td>0 (noise-free)</td><td class="n">87.6 km/h</td><td class="n">112.9</td><td class="n">122.4</td></tr>
+<tr><td>0.25</td><td class="n">64.6</td><td class="n">65.9</td><td class="n">75.3</td></tr>
+<tr><td>0.5</td><td class="n">56.7</td><td class="n">60.3</td><td class="n">61.3</td></tr>
+<tr><td>0.9</td><td class="n">44.7</td><td class="n">–</td><td class="n">47.7</td></tr>
+</table>
+<p><b>Reading it:</b> the noise-free optimum is 113–122 km/h, but asking for just 25% tolerance cuts it to 66–75, and 50–90%
+tolerance costs pace down to ~60 → ~45 km/h. Later runs (better starts) raised the noise-free legal best to <b>129.6 km/h</b>.</p>
+<p><b>PPO against the curve:</b> PPO trained <i>with</i> 12 ms noise sat on the curve or within ~10% of it, so the tolerant
+bowlers' 45–57 km/h is <b>the physics, not a training failure</b>. PPO trained <i>without</i> noise reached only 60–90% of the
+noise-free optimum (67–95 km/h vs 113–122): that gap <i>was</i> a training limit (fixed in section 7).</p>
+<div class="say">We computed the best delivery the arm can physically bowl at each level of timing tolerance. Tolerant
+PPO bowlers already sit on that limit; the fast-but-fragile end is where PPO was falling short.</div>
+<div class="caveat">The optimiser is open loop (one fixed command list), plans for one start, and is a local search, so each
+point is a <i>lower bound</i> on what is possible. That is why PPO is sometimes slightly above it.</div>
+
+<!-- ============================================================ -->
+<h2>4. Why the trade-off is physics: the launch window</h2>
+<p class="plain">The faster the ball, the more the pitching point moves if you let go a millisecond early or late, so a fast
+ball has a tiny "launch window".</p>
+<figure><img src="../results/kinematic/launch_window.png" style="width:78%">
+<figcaption>Where the ball would pitch if it left the hand t ms away from the intended release, for three of our bowlers.
+Thick parts are inside the good-length band. Bottom: the spread of release times for an elite (2 ms) and an ordinary (12 ms) bowler.</figcaption></figure>
+<ul>
+  <li>The hand moves in a circle. If release is Δt late, the release direction has rotated by ω·Δt (ω = arm angular speed),
+  so the ball goes lower or higher.</li>
+  <li>How far a ball goes depends on its launch angle more strongly the faster it goes (range ∝ v²). The arm also spins
+  faster for a faster ball (ω ∝ v). So the landing error per ms of timing grows like <b>v³</b>. We measured
+  speed<sup>2.86</sup> on our bowlers.</li>
+  <li>Red line (104 km/h): crosses the band in about 1–2 ms. Blue line (56 km/h): stays in the band for ~60 ms, because the
+  slow looping ball's two effects cancel (released later = faster but aimed lower), Müller &amp; Loosch's "equifinality".</li>
+  <li>Cancelling the effect at high speed would need hand acceleration that grows like v² (~115 m/s² at 50 km/h, ~3000 m/s² at
+  100 km/h). A motor with a fixed strength can't supply that.</li>
+</ul>
+<h3>The literature agrees (found 18 Nov)</h3>
+<table>
+<tr><th>Finding</th><th>Source</th></tr>
+<tr><td>Accurate throws need ~1 ms release precision; the window shrinks ~8× when distance doubles</td><td>Calvin 1983, J Theor Biol</td></tr>
+<tr><td>Simulated optimal overarm throws: launch window ≈ 1.2 ms (our 102 km/h delivery: also ~1.2 ms)</td><td>Chowdhary &amp; Challis 1999</td></tr>
+<tr><td>Real release-timing SD 3–15 ms; skilled amateurs ≈ ±10 ms; pitchers estimated to need 1–2 ms</td><td>Hore et al. 1995/1996, Exp Brain Res</td></tr>
+<tr><td>Elite fast-bowling simulations optimise one deterministic delivery for max speed (no noise)</td><td>Felton, King, Yeadon (Loughborough)</td></tr>
+</table>
+<div class="say">Fast bowling is a launch-window problem. A 100+ km/h ball has to leave the hand within about a millisecond to
+pitch on a good length. That matches the throwing literature, and it's why a bowler with ordinary timing can't be fast and
+accurate at the same time.</div>
+<p><b>Our novelty vs prior work:</b> the Loughborough bowling simulations optimise a single noise-free delivery for speed. We
+optimise for speed <i>under timing noise</i>, with the legality rule, and test whether RL can reach it.</p>
+
+<!-- ============================================================ -->
+<h2>5. A stronger arm does not buy tolerant pace</h2>
+<p class="plain">Giving the arm 0.5× to 1.5× the torque changed the noise-free top speed a little and the tolerant pace not at all.</p>
+<table>
+<tr><th>torque budget (release 270°)</th><th class="n">noise-free</th><th class="n">τ 0.25</th><th class="n">τ 0.5</th><th class="n">τ 0.75</th></tr>
+<tr><td>0.5×</td><td class="n">100.9</td><td class="n">67.8</td><td class="n">61.0</td><td class="n">–</td></tr>
+<tr><td>0.75×</td><td class="n">103.7</td><td class="n">66.2</td><td class="n">59.6</td><td class="n">–</td></tr>
+<tr><td>1×</td><td class="n">112.9</td><td class="n">65.9</td><td class="n">62.2</td><td class="n">57.1</td></tr>
+<tr><td>1.5×</td><td class="n">115.4</td><td class="n">71.6</td><td class="n">51.8</td><td class="n">47.4</td></tr>
+</table>
+<p>Tripling the torque bought ~15 km/h noise-free and nothing under jitter (all ~50–62 km/h at τ ≥ 0.5, within the optimiser's
+±5 km/h run-to-run spread). Two reasons: under jitter the launch window, not strength, is the limit; and the model's top joint
+speed is set by damping (peak torque / 40 rad/s), so a stronger motor reaches the same top speed sooner but not a higher one.
+This answers the project's <b>original September question</b> (trade-off across actuator budgets).</p>
+<div class="say">Strength isn't the bottleneck for an accurate bowler. Timing is.</div>
+
+<!-- ============================================================ -->
+<h2>6. Better RL tools (roadmap "Tier 1", built 18 Nov)</h2>
+<p class="plain">Four upgrades to the training environment (<code>envs/kinematic_bowl_env2.py</code>), each checked to give exactly the
+old behaviour when switched off.</p>
+<h3>6a. Exact tolerance reward ("equifinality reward")</h3>
+<p>Old way: each practice ball draws one random timing error and pays 0 or 1. That's like learning darts by being told
+"hit/miss" once per throw: very noisy. New way: when the ball is released, the environment simulates the arm on for 40 ms and
+computes where the ball would land for <i>every</i> release time within ±40 ms, then pays the <b>exact expected reward</b> under
+the timing-error distribution. Same goal, no luck in the signal. Checked: the reward equals the scorer's good rate
+(0.6393 = 0.6393 etc.).</p>
+<h3>6b. The policy chooses its own release (supervisor question 3)</h3>
+<p>One extra action: the ball goes when the policy says so, instead of at a fixed arm angle. Result: 50.2 km/h at 95.1%
+tolerance, and the most robust to motor noise (87% good under torque noise too).</p>
+<h3>6c. One bowler, any length on demand</h3>
+<p>The target length (8–18 m) is drawn each episode and given to the policy. One network bowls every length, 21/21 good at each:</p>
+<table>
+<tr><th>asked for (m)</th><td class="n">8</td><td class="n">9.5</td><td class="n">11</td><td class="n">11.9</td><td class="n">13</td><td class="n">14.5</td><td class="n">16</td><td class="n">17.5</td><td class="n">18</td></tr>
+<tr><th>good under 12 ms jitter</th><td class="n">95%</td><td class="n">96%</td><td class="n">94%</td><td class="n">93%</td><td class="n">90%</td><td class="n">84%</td><td class="n">76%</td><td class="n">79%</td><td class="n">76%</td></tr>
+<tr><th>speed (km/h)</th><td class="n">45.1</td><td class="n">48.2</td><td class="n">51.2</td><td class="n">52.7</td><td class="n">54.5</td><td class="n">55.9</td><td class="n">58.2</td><td class="n">60.0</td><td class="n">61.0</td></tr>
+</table>
+<p>It bowls longer by bowling faster, and the longer, faster balls are less tolerant, exactly what the launch window predicts.</p>
+<h3>6d. A muscle-like arm (Hill's force-velocity curve)</h3>
+<p>Real muscle gets weaker the faster it shortens. We replaced the simple damping with Hill's curve (zero torque at 40 rad/s).
+The Hill bowler: 52.9 km/h at 97.7% tolerance, and 92% even with motor noise added: the most robust bowler. The Hill arm's
+noise-free top speed is ~10 km/h lower (102.5 vs 112.9); tolerant pace is about the same.</p>
+<h3>Result</h3>
+<p>With the exact tolerance reward, started from fast noise-free bowlers: <b>56.2 km/h at 97.7%</b> (290°) and
+<b>59.4 km/h at 75.6%</b> (270°): faster at the same or higher tolerance than any earlier bowler.</p>
+<div class="say">Rewarding the exact probability of a good ball, instead of one random draw, gave our best tolerant bowlers.</div>
+
+<!-- ============================================================ -->
+<h2>7. Starting PPO from the optimiser: 77 → 104 km/h</h2>
+<p class="plain">We copied the optimiser's best delivery into the PPO network first (behaviour cloning), then let RL fine-tune it.</p>
+<ul>
+  <li><b>Problem:</b> an optimised command list works from one start time only; from a start 0.05 s different it lands 17–42 m
+  or never releases. <b>Fix: arm handover.</b> The arm replays the captured motion until 0.5 s before release, then the policy
+  takes over. Every episode then reaches the handover in the identical state, so one plan fits all starts.</li>
+  <li><b>Behaviour cloning</b> (<code>scripts/bc_from_frontier.py</code>): train the PPO network by supervised learning to output the
+  optimiser's actions (1500 epochs), then RL fine-tuning (15M steps).</li>
+</ul>
+<table>
+<tr><th>noise-free bowler (arm handover 0.5 s)</th><th class="n">speed</th><th class="n">good of 21</th></tr>
+<tr><td>PPO from scratch, release 270°</td><td class="n">77.2 km/h</td><td class="n">21</td></tr>
+<tr><td>PPO from scratch, release 290°</td><td class="n">95.4</td><td class="n">21</td></tr>
+<tr><td><b>Cloned from the optimiser + fine-tuned, 270°</b></td><td class="n"><b>103.6</b></td><td class="n">21</td></tr>
+<tr><td>The clone itself (before RL), 290°</td><td class="n">106.1</td><td class="n">21</td></tr>
+<tr><td>290° clone fine-tuned at default exploration / at low exploration (std 0.04)</td><td class="n">85.3 / 98.4</td><td class="n">21 / 21</td></tr>
+</table>
+<p><b>A neat lesson:</b> fine-tuning the 106 km/h clone <i>lowered</i> it to 85 km/h. Why? PPO adds random noise to its own
+actions to explore (std ≈ 0.2). For a delivery with a 1 ms launch window, that noise makes it miss, so the expected reward
+prefers a slower, safer ball. That's the launch-window effect again, with PPO's own exploration noise playing the role of
+timing error. Lowering exploration to std 0.04 kept 98.4 km/h.</p>
+<div class="say">The gap between noise-free PPO and the physical limit was an initialisation problem, not a training-time
+problem: starting from the optimiser's plan took PPO from 77 to 104 km/h, 92% of the optimum, from every start.</div>
+
+<!-- ============================================================ -->
+<h2 class="pb">8. The headline: pace vs timing skill</h2>
+<p class="plain">For a bowler whose release timing varies by a given amount, how fast can they bowl and still land a good length
+most of the time?</p>
+<p>Same optimiser, but τ is measured under timing SD 1, 2, 4, 8 or 12 ms instead of always 12. Elite throwers: estimated 1–2 ms;
+skilled amateurs: ~10 ms.</p>
+<figure><img src="../results/kinematic/frontier/skill_frontier.png">
+<figcaption>Each line: one timing skill (SD). x: required good rate; y: fastest good delivery. Solid: any setting; dashed: with
+the arm handover (the PPO bowlers' setting). Markers: PPO bowlers trained for that SD (★ tolerance reward, ▲ + low exploration,
+◆ + target tolerance).</figcaption></figure>
+<table>
+<tr><th>timing SD</th><th class="n">290°, 50% good</th><th class="n">75%</th><th class="n">90%</th><th class="n">270°, 50%</th><th class="n">75%</th><th class="n">90%</th></tr>
+<tr><td>1 ms</td><td class="n"><b>114.2</b></td><td class="n">99.9</td><td class="n"><b>91.8</b></td><td class="n">113.4</td><td class="n">109.1</td><td class="n">79.4</td></tr>
+<tr><td>2 ms</td><td class="n">99.9</td><td class="n">91.0</td><td class="n">84.3</td><td class="n">103.2</td><td class="n">79.4</td><td class="n">71.9</td></tr>
+<tr><td>4 ms</td><td class="n">85.7</td><td class="n">76.4</td><td class="n">74.3</td><td class="n">79.4</td><td class="n">69.4</td><td class="n">68.7</td></tr>
+<tr><td>8 ms</td><td class="n">74.3</td><td class="n">66.6</td><td class="n">60.1</td><td class="n">68.7</td><td class="n">67.7</td><td class="n">64.8</td></tr>
+<tr><td>12 ms</td><td class="n">70.2</td><td class="n">66.6</td><td class="n">54.3</td><td class="n">67.7</td><td class="n">64.8</td><td class="n">55.6</td></tr>
+</table>
+<p><b>Pace is a timing skill.</b> At 90% reliability the same arm bowls ~92 km/h for a 1 ms bowler and ~55 for a 12 ms one.
+The biggest drop is between 2 and 8 ms, which is where measured human timing lies. This also answers the supervisor's
+question 1 ("is 12 ms realistic?"): 12 ms is realistic for a non-elite bowler like our participant, and it's exactly why such a
+bowler can't be fast and accurate together.</p>
+<p><b>PPO on the same curves:</b> bowlers trained with the tolerance reward at 2/4/8/12 ms (270°, started from the 104 km/h
+clone) gave 94.0 / 75.7 / 62.8 / 61.4 km/h, on the curve at 2 and 4 ms and ~6 km/h under at 8 and 12 ms (fixed in section 9).</p>
+<div class="say">The same arm can bowl about 90 km/h reliably if its timing is elite and about 55 if its timing is ordinary.
+So in this model, pace is a timing skill, and RL bowlers trained for each skill level land on those curves.</div>
+
+<!-- ============================================================ -->
+<h2>9. The reward chooses the tolerance, and the target-tolerance fix</h2>
+<p class="plain">The reward we used silently decides where on the curve the bowler sits, so we added a knob that lets us choose.</p>
+<ul>
+  <li>The tolerance reward pays p·(1 + 0.5·v) (p = good rate, v = speed). Along every skill curve that product is largest at
+  p ≈ 0.85–0.95. So the 290° bowlers drifted to the "safe" end (95–98% good, 52–66 km/h).</li>
+  <li><b>Target tolerance</b> (<code>--tolerance-target t</code>): the good part of the reward is divided by max(p, t). Above t only
+  speed pays; below it, tolerance does. So the bowler should settle near p = t at the most pace it can.</li>
+</ul>
+<table>
+<tr><th>bowler</th><th class="n">speed</th><th class="n">good at own SD</th><th class="n">optimiser's curve there</th><th class="n">before</th></tr>
+<tr><td>290°, 2 ms, aim 75%</td><td class="n"><b>81.3</b></td><td class="n">88%</td><td class="n">76.0 @ 90%</td><td class="n">66.4 @ 98%</td></tr>
+<tr><td>290°, 4 ms, aim 50%</td><td class="n"><b>80.9</b></td><td class="n">59%</td><td class="n">76.0 @ 50%</td><td class="n">57.9 @ 98%</td></tr>
+<tr><td>290°, 4 ms, aim 75%</td><td class="n">69.6</td><td class="n">83%</td><td class="n">≈ 70</td><td class="n"></td></tr>
+<tr><td>270°, 4 ms, aim 50%</td><td class="n">78.2</td><td class="n">53%</td><td class="n">79.4</td><td class="n">75.7 @ 56%</td></tr>
+<tr><td>270°, 8 ms, aim 50%</td><td class="n"><b>68.0</b></td><td class="n">52%</td><td class="n">68.7</td><td class="n">62.8 @ 59%</td></tr>
+</table>
+<p>The bowlers moved to the chosen tolerance and gained 15–23 km/h; two are ~5 km/h <i>above</i> the optimiser's curve, the rest are
+on it. The 6 km/h gap at 8 ms closed. So the gap was never a PPO limit: the reward simply wasn't asking for that point.</p>
+<div class="say">With the right reward, PPO matches or beats the trajectory optimiser at every timing skill we tested. The method
+is: optimiser for the ceiling, cloning for a good start, and a reward that says which tolerance we want.</div>
+
+<!-- ============================================================ -->
+<h2>10. Does the 15° law cost pace? No. A throw buys nothing</h2>
+<p class="plain">Every optimal legal delivery keeps the elbow straight, and removing the law doesn't produce a faster delivery.</p>
+<ul>
+  <li>All legal optima had 0–2° of elbow extension: the 15° limit never binds.</li>
+  <li>Fair test (job 38912): the same optimiser and seeds with the law (15°) and with no law. No-law runs did try bent-arm
+  deliveries, and none beat the legal ones: 290° noise-free 120.3 (no law) vs 124.7 (law); 270° 128.5 vs <b>129.6</b>.</li>
+  <li>The fastest deliveries <i>flex</i> the elbow 16° between arm-horizontal and release, which is legal (the law limits extension only).</li>
+</ul>
+<div class="say">In this model, chucking gives no speed advantage, so legality isn't what caps pace. Whether the law matters
+for real bowlers depends on their elbow, which is a mocap question, not a simulation one.</div>
+<div class="caveat">Our arm has no elbow-extension "whip" mechanism (no tendon elasticity), and before last night the elbow could
+over-straighten past its stop (section 12). A real arm might gain from extension in ways this model can't.</div>
+
+<!-- ============================================================ -->
+<h2>11. A measurement bug we found and fixed</h2>
+<p class="plain">Physics runs in 2 ms steps, and our "good rate" counted whole steps, which overstated tolerance for very
+skilled (1–2 ms) bowlers.</p>
+<p>A delivery that is good at exactly one 2 ms sample scored 0.79 at 1 ms SD, but its true window (~1 ms) gives 0.38. The fix
+interpolates the landing point between steps (<code>p_good_continuous</code>, checked against the exact formula 2Φ(0.5)−1 = 0.383).
+At 8–16 ms the two measures differ by ≤ 0.05, so all 12 ms results stand. Every 1–2 ms number in this document uses the fixed measure.</p>
+<div class="say">We caught and fixed a resolution bug in our own metric; it only mattered for elite-timing bowlers, and the
+reported numbers use the corrected version.</div>
+
+<!-- ============================================================ -->
+<h2 class="pb">12. Last night: a more realistic model ("v3")</h2>
+<p class="plain">Three weaknesses a supervisor could attack were fixed and everything important was re-run: air drag on the
+ball, a hard elbow stop, and other captured deliveries for the body.</p>
+<!--V3-->
+
+<!-- ============================================================ -->
+<h2>13. Limitations, honestly</h2>
+<ul>
+  <li><b>One bowler's body.</b> The body is one non-elite participant. Section 12 tests 3 more deliveries by the same participant, not other people.</li>
+  <li><b>Arm only.</b> The run-up and trunk are replayed, so pace from the kinetic chain (trunk rotation, front-leg block) is fixed.
+  Real fast bowlers get much of their speed there.</li>
+  <li><b>Speed limit is a model parameter.</b> Arm top speed comes from damping (40 rad/s); the fastest deliveries circle right at it.</li>
+  <li><b>Ball flight:</b> drag only (since last night); no swing, seam or spin; "good length" is the pitching point only (no bounce).</li>
+  <li><b>Timing noise model:</b> Gaussian release jitter, same SD for early and late; real release error may be skewed or
+  correlated with speed.</li>
+  <li><b>Optimiser points are lower bounds</b> (open loop, local search, one start).</li>
+  <li><b>Few seeds</b> for some RL results (often one run per setting).</li>
+  <li><b>The real hand comparison</b> (6 Nov item 8) uses a hypothetical landing from the hand marker; there was no ball marker.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>14. Questions the supervisor may ask, with answers</h2>
+<table>
+<tr><th style="width:36%">Question</th><th>Answer</th></tr>
+<tr><td>Is 12 ms timing noise realistic?</td><td>For a non-elite bowler, yes: measured release-timing SD is 3–15 ms (Hore 1995), skilled amateurs ~±10 ms.
+Elite pitchers are estimated at 1–2 ms. That's why we now report every result as a function of timing skill.</td></tr>
+<tr><td>How do you know PPO isn't just bad?</td><td>We computed the physical limit with an independent method (CMA-ES trajectory optimisation, same simulator and scoring).
+Tolerant PPO bowlers sit on or above it; with cloning and the target-tolerance reward, fast ones do too.</td></tr>
+<tr><td>Why is the optimiser sometimes below PPO?</td><td>It's open loop, plans for one start, and is a local search, so its points are lower bounds.
+PPO is closed loop (it can react to its state).</td></tr>
+<tr><td>What's new compared with the literature?</td><td>Prior bowling simulations (Felton/King/Yeadon) optimise a single noise-free delivery.
+We optimise under timing noise with the legality rule, show the ~1 ms launch window at 100 km/h (matching Calvin 1983 and
+Chowdhary &amp; Challis 1999), and show RL can reach the noise-robust limit.</td></tr>
+<tr><td>Does the 15° law cost pace?</td><td>Not in this model: removing it found nothing faster, and the best deliveries keep the elbow straight or flex it.</td></tr>
+<tr><td>Why did the noise-free fine-tune get slower?</td><td>PPO's own exploration noise acts like timing error on a 1 ms-window delivery; low exploration (std 0.04) keeps the pace.</td></tr>
+<tr><td>What about air resistance?</td><td>Added last night (Cd 0.45). It shortens the ball's length by 0.2–0.5 m; see section 12 for the re-run results.</td></tr>
+<tr><td>What's next?</td><td>(a) more bowlers' bodies / elite bowlers' data, (b) letting the trunk be simulated (kinetic chain),
+(c) a ball marker in the lab to measure real release timing and landing, (d) a write-up.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>15. What to open, and a glossary</h2>
+<h3>Files (all in Documents\cricket-project)</h3>
+<ul>
+  <li>Figures: <code>results/kinematic/launch_window.png</code>, <code>results/kinematic/frontier/skill_frontier.png</code>,
+  <code>results/kinematic/frontier/frontier.png</code>, <code>results/kinematic/frontier/frontier_budget.png</code></li>
+  <li>Videos (laptop only, <code>results/kinematic/videos/</code>):
+    <code>kin_bowl_torque_b4096_h500_bctau0_a270_T3a_0.mp4</code> (104 km/h, the cloned fast bowler),
+    <code>kin2_tolr2_tt0p75_bcclone_h500_a290_T3a_0.mp4</code> (81 km/h elite-timing bowler),
+    <code>kin2_tolr12_resfast_a290_T3a_1.mp4</code> (56 km/h, 98% tolerant),
+    <code>kin2_goal_any_length.mp4</code> (one bowler asked for 8, 12 and 17 m).</li>
+  <li>Detailed log of every number: <code>docs/frontier_2026-11-18.md</code>; plan and literature: <code>docs/roadmap_2026-11-18.md</code>.</li>
+</ul>
+<h3>Glossary</h3>
+<table>
+<tr><td><b>PPO</b></td><td>Proximal Policy Optimisation, the RL algorithm: improves a neural-network policy from practice episodes, a small safe step at a time.</td></tr>
+<tr><td><b>Policy</b></td><td>The network that maps what the arm senses (joint angles, speeds, time) to motor commands every 20 ms.</td></tr>
+<tr><td><b>CMA-ES</b></td><td>An evolutionary optimiser: tries a population of candidate solutions, moves towards the best ones, repeats. Needs no gradients.</td></tr>
+<tr><td><b>Open loop</b></td><td>A fixed list of commands that doesn't react to what happens (the optimiser's plans). PPO is closed loop.</td></tr>
+<tr><td><b>Frontier</b></td><td>The best achievable pace for each required tolerance: the edge of what's possible.</td></tr>
+<tr><td><b>Tolerance / good rate (p, τ)</b></td><td>The fraction of deliveries that are still good when release timing has random error of a given SD.</td></tr>
+<tr><td><b>Timing SD</b></td><td>Standard deviation of release-time error: the bowler's timing skill (1–2 ms elite, ~10–12 ms ordinary).</td></tr>
+<tr><td><b>Launch window</b></td><td>How long (in ms) the release can vary while the ball still lands in the target band.</td></tr>
+<tr><td><b>Equifinality</b></td><td>Different movements reaching the same outcome; here, early and late releases that still land the same length because speed and angle errors cancel.</td></tr>
+<tr><td><b>Behaviour cloning</b></td><td>Training the policy by supervised learning to copy a given set of actions (here the optimiser's), before RL.</td></tr>
+<tr><td><b>Arm handover</b></td><td>The arm replays the capture until 0.5 s before release, then the policy controls it, so every episode starts its learned part from the same state.</td></tr>
+<tr><td><b>Exploration noise (log std)</b></td><td>The randomness PPO adds to its actions while training. Less noise = less exploration but more precise.</td></tr>
+<tr><td><b>Hill curve</b></td><td>Muscle force falls as shortening speed rises; used as a more realistic motor model.</td></tr>
+<tr><td><b>Release angle 250/270/290°</b></td><td>Arm angle at which the ball is let go (270° = arm straight up).</td></tr>
+<tr><td><b>HPC / PBS job</b></td><td>The university cluster; we pack several runs into one job because of a per-user job limit.</td></tr>
+</table>
+
+</body>
+</html>

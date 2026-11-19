@@ -43,7 +43,7 @@ def main():
     ax.set_ylim(4, 20)
     ax.set_ylabel("where the ball pitches (m)")
     ax.set_title("The launch window: release a few ms early or late, and the length moves", fontsize=11)
-    ax.legend(frameon=False, fontsize=8.5, loc="upper left", bbox_to_anchor=(0.0, 0.93))
+    ax.legend(frameon=True, framealpha=0.9, fontsize=8.5, loc="lower left")
     ax.grid(alpha=0.25)
     t = np.linspace(-40, 40, 400)
     for sd, col in ((2, "#8e44ad"), (12, "#2471a3")):
