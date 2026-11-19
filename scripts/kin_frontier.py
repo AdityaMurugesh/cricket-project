@@ -79,12 +79,13 @@ def interp_matrix(t):
     return M
 
 
-ENV2 = {}      # --torque-scale / --actuator / --omega-max: KinematicBowlEnv2 (the actuator budget, Hill's curve)
+ENV2 = {}      # --torque-scale / --actuator / --omega-max / --drag / --stiff-elbow: KinematicBowlEnv2
+DELIVERY = "T3a"   # --delivery: the captured body the arm rides on
 
 
 def make_env(angle, target_range, handover=None, env2=None):
     env2 = ENV2 if env2 is None else env2
-    kw = dict(delivery="T3a", rsi=False, release_angle_deg=angle, target_range=target_range, arm_handover_s=handover)
+    kw = dict(delivery=DELIVERY, rsi=False, release_angle_deg=angle, target_range=target_range, arm_handover_s=handover)
     if env2:
         from envs.kinematic_bowl_env2 import KinematicBowlEnv2
         return KinematicBowlEnv2(**kw, **env2)
@@ -106,9 +107,10 @@ P_CONT = False     # True: tau refers to the continuous (interpolated) good rate
 
 
 def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd_ms=12.0, max_ext_deg=15.0,
-          p_cont=False):
-    global _env, _M, ENV2, P_CONT
+          p_cont=False, delivery="T3a"):
+    global _env, _M, ENV2, P_CONT, DELIVERY
     P_CONT = p_cont
+    DELIVERY = delivery
     import scripts.kin_equifinality as ke
     ke.JITTER_SD_S = jitter_sd_ms / 1000.0     # "p_jitter_12ms" is then the good rate under N(0, this)
     import envs.legality as legality
@@ -235,8 +237,14 @@ def main():
                         "samples (needed for timing SD <= ~4 ms); tag _pc")
     p.add_argument("--warm-frontier", nargs="*", default=[],
                    help="also start from frontier optima: <json>:<tau> (same knots, angle and handover)")
+    p.add_argument("--drag", action="store_true", help="air drag on the ball (envs/ballistics.py); tag _drag")
+    p.add_argument("--stiff-elbow", action="store_true",
+                   help="hard elbow hyperextension stop (KinematicBowlEnv elbow_solref 0.004); tag _se")
+    p.add_argument("--delivery", default="T3a", help="captured body (data/mocap/ref_<D>.npz); tag _<D> if not T3a")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
+    global DELIVERY
+    DELIVERY = a.delivery
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     tr = tuple(a.target_range)
@@ -246,6 +254,11 @@ def main():
         ENV2["torque_scale"] = a.torque_scale
     if a.actuator != "damping":
         ENV2.update(actuator=a.actuator, omega_max=a.omega_max)
+    if a.drag:
+        from envs.ballistics import CRICKET_DRAG_K
+        ENV2["drag_k"] = CRICKET_DRAG_K
+    if a.stiff_elbow:
+        ENV2["elbow_solref"] = [0.004, 1.0]
     set_knots(a.handover, a.knot_dt)
     tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
         + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
@@ -253,7 +266,8 @@ def main():
         + (f"_hill{a.omega_max:g}" if a.actuator == "hill" else "") \
         + (f"_j{a.jitter_sd_ms:g}".replace(".", "p") if a.jitter_sd_ms != 12.0 else "") \
         + (f"_x{a.max_extension_deg:g}" if a.max_extension_deg != 15.0 else "") \
-        + ("_pc" if a.p_cont else "")
+        + ("_pc" if a.p_cont else "") + ("_drag" if a.drag else "") + ("_se" if a.stiff_elbow else "") \
+        + (f"_{a.delivery}" if a.delivery != "T3a" else "")
     import envs.legality as legality
     legality.LEGAL_EXTENSION_DEG = a.max_extension_deg    # the main process scores too (fitness/violation)
     global P_CONT
@@ -267,7 +281,7 @@ def main():
 
     with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2,
                                                                a.jitter_sd_ms, a.max_extension_deg,
-                                                               a.p_cont)) as pool:
+                                                               a.p_cont, a.delivery)) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
@@ -297,7 +311,7 @@ def main():
                     best = (*b, run)
             f, x, r, run = best
             prev = x
-            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "max_extension_deg": a.max_extension_deg, "p_cont": a.p_cont, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
+            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "max_extension_deg": a.max_extension_deg, "p_cont": a.p_cont, "delivery": a.delivery, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
                    "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)

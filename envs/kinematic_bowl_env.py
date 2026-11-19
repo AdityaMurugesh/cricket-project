@@ -38,10 +38,21 @@ BODY_ARMATURE = 1e6
 
 class KinematicBowlEnv(RunupBowlEnv):
     def __init__(self, delivery="T3a", start_before_release_s=(0.8, 1.2), arm_control="pd", arm_top_speed=40.0,
-                 torque_noise_sd=0.0, release_timing_sd_ms=0.0, arm_handover_s=None, **kw):
+                 torque_noise_sd=0.0, release_timing_sd_ms=0.0, arm_handover_s=None, drag_k=0.0,
+                 elbow_solref=None, **kw):
         kw.setdefault("follow_through_s", 0.0)     # the body cannot fall
         super().__init__(delivery=delivery, **kw)
         m = self.m
+        # drag_k (1/m): air drag on the ball's flight (envs/ballistics.py; CRICKET_DRAG_K = 0.00705). 0 = the
+        # drag-free parabola every result before 20 Nov used
+        self.drag_k = float(drag_k)
+        # elbow_solref: the bowling elbow's joint-limit stiffness (MuJoCo solref, time constant s and damping
+        # ratio). The default (0.02, 1) is soft: a 250 N m motor pushes the elbow up to 16 deg past its -15 deg
+        # hyperextension stop (-31 deg in the 113 km/h optimum). (0.004, 1), the stiffest stable at the 2 ms
+        # step, keeps it within ~3 deg of the stop. None = the old soft stop
+        self.elbow_solref = elbow_solref
+        if elbow_solref is not None:
+            m.jnt_solref[m.joint("elbow_flex_r").id] = elbow_solref
         m.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
         arm_j = [m.joint(n).id for n in BOWLING_ARM]
         arm_dofs = np.concatenate([np.arange(m.jnt_dofadr[j], m.jnt_dofadr[j] + (3 if m.jnt_type[j] == 1 else 1))

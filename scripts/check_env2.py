@@ -72,4 +72,17 @@ print("4. learned release, commanded when the arm passes the angle")
 lr = KinematicBowlEnv2(rsi=False, release_angle_deg=ANG, learned_release=True)
 r, o = play(lr, model, 1.0, extra=lambda env: 1.0 if env._arm_hist[-1] >= ANG - 25 else -1.0)
 print(f"   released {o['released']} {o.get('why', '')} land {o.get('land_x')} {(o.get('speed_m_s') or 0) * 3.6:.1f} km/h good {o.get('good')}")
+
+print("5. drag + stiff elbow (20 Nov): env tolerance reward vs the scorer with the same options; drag shortens")
+from envs.ballistics import CRICKET_DRAG_K  # noqa: E402
+v3 = dict(drag_k=CRICKET_DRAG_K, elbow_solref=[0.004, 1.0])
+tol3 = KinematicBowlEnv2(rsi=False, release_angle_deg=ANG, tolerance_reward_sd_ms=12.0, **v3)
+sc3 = KinematicBowlEnv2(rsi=False, release_angle_deg=ANG, **v3)
+for before in (0.9, 1.0, 1.1):
+    r, o = play(tol3, model, before)
+    d, _ = delivery(sc3, model, before, 0)
+    _, o0 = play(new, model, before)
+    print(f"   before {before:.2f}: env p_jit {o['p_jit']:.4f} | scorer {d['p_jitter_12ms']:.4f}; land {d['land_x']:.3f} "
+          f"(old model {o0['land_x']:.3f})")
+    assert abs(o["p_jit"] - d["p_jitter_12ms"]) < 0.02, "curves disagree"
 print("all checks done")

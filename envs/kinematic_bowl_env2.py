@@ -37,17 +37,15 @@ from gymnasium import spaces
 from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs import legality
 from envs.legality import elbow_extension_deg
-from envs.runup_bowl_env import BALL_R, G
+from envs.ballistics import land as ballistic_land
 
 HALF_WINDOW_S = 0.040
 HILL_K = 0.25
 
 
-def land(p, v):
-    """RunupBowlEnv._release's drag-free ballistic: length beyond the release point, and line."""
-    z0 = p[2] - BALL_R
-    t_fl = (v[2] + np.sqrt(max(v[2] ** 2 + 2 * G * z0, 0.0))) / G
-    return float(v[0] * t_fl), float(p[1] + v[1] * t_fl)
+def land(p, v, k=0.0):
+    """RunupBowlEnv._release's ballistic (envs/ballistics.py): length beyond the release point, and line."""
+    return ballistic_land(p, v, k)
 
 
 class KinematicBowlEnv2(KinematicBowlEnv):
@@ -126,7 +124,7 @@ class KinematicBowlEnv2(KinematicBowlEnv):
             return self._no_ball_at("arm out of the bowling plane")
         if not (self.t_window - 1e-9 <= t <= self.t_end + 1e-9):
             return self._no_ball_at("outside the release window")
-        x, y = land(p, v)
+        x, y = land(p, v, self.drag_k)
         ext = elbow_extension_deg(self._arm_hist, self._elbow_hist, j)
         legal = ext is not None and ext <= legality.LEGAL_EXTENSION_DEG
         out = {"released": True, "speed_m_s": float(np.linalg.norm(v)), "land_x": x, "lateral_m": y,

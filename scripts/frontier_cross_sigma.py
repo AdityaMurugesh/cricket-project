@@ -29,9 +29,10 @@ def main():
     rows = []
     for f in a.jsons:
         for rec in json.load(open(f)):
-            if rec.get("env2") or not rec.get("released", True):
+            if not rec.get("released", True):
                 continue
-            kf._init(rec["angle"], (10.9, 12.9), rec.get("handover_s"), None, None, 12.0)
+            kf._init(rec["angle"], (10.9, 12.9), rec.get("handover_s"), None, rec.get("env2") or {}, 12.0,
+                     rec.get("max_extension_deg", 15.0), False, rec.get("delivery", "T3a"))
             kf.KNOTS = np.array(rec["knot_times_s"])          # the record's own knots (set_knots may differ)
             kf._M = kf.interp_matrix(kf.decision_times(kf._env))
             x = np.array(rec["knots"]).ravel()

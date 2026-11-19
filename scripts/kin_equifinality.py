@@ -48,6 +48,7 @@ from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs import legality
 from envs.legality import elbow_extension_deg
 from envs.runup_bowl_env import BALL_R, G
+from envs.ballistics import land as ballistic_land
 
 ROOT = Path(__file__).resolve().parent.parent
 HALF_WINDOW_S = 0.040
@@ -69,11 +70,9 @@ class Recorder:
         self.rows.append((e._grip().copy(), e._grip_velocity().copy(), e._arm_out_of_plane_deg()))
 
 
-def land(p, v):
-    """RunupBowlEnv._release's ballistic: length beyond the release point, and line."""
-    z0 = p[2] - BALL_R
-    t_fl = (v[2] + np.sqrt(max(v[2] ** 2 + 2 * G * z0, 0.0))) / G
-    return float(v[0] * t_fl), float(p[1] + v[1] * t_fl)
+def land(p, v, k=0.0):
+    """RunupBowlEnv._release's ballistic (envs/ballistics.py; k = drag, 0 = the drag-free parabola)."""
+    return ballistic_land(p, v, k)
 
 
 def run_episode(env, model, before_s, seed, release=True, t_stop=None):
@@ -151,12 +150,13 @@ def delivery(env, model, before_s, seed):
     _, rows2, arm, elbow, _ = run_episode(env, model, before_s, seed, release=False,
                                           t_stop=out["release_t"] + HALF_WINDOW_S + env.dt)
     p, v, _ = rows2[rel]
-    assert np.allclose(land(p, v), (out["land_x"], out["lateral_m"]), atol=1e-6), "replays diverged"
+    dk = getattr(env, "drag_k", 0.0)
+    assert np.allclose(land(p, v, dk), (out["land_x"], out["lateral_m"]), atol=1e-6), "replays diverged"
     lo, hi = max(rel - k, 0), min(rel + k, len(rows2) - 1)
     curve, oks, Ys = [], [], []
     for i in range(lo, hi + 1):
         p, v, plane = rows2[i]
-        x, y = land(p, v)
+        x, y = land(p, v, dk)
         t = t0 + (i + 1) * h                      # rows[i] is after physics step i + 1
         ext = elbow_extension_deg(arm, elbow, i + 1)   # arm_hist[0] is the start state
         legal = ext is not None and ext <= legality.LEGAL_EXTENSION_DEG

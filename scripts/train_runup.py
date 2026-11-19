@@ -116,6 +116,10 @@ def main():
     p.add_argument("--actuator", default="damping", choices=["damping", "hill"], help="kinematic2")
     p.add_argument("--omega-max", type=float, default=40.0, help="kinematic2, hill: zero-torque speed (rad/s)")
     p.add_argument("--torque-scale", type=float, default=1.0, help="kinematic2: arm motor budget multiplier")
+    p.add_argument("--drag", action="store_true",
+                   help="kinematic2: air drag on the ball (envs/ballistics.CRICKET_DRAG_K); default drag-free")
+    p.add_argument("--stiff-elbow", action="store_true",
+                   help="kinematic2: hard elbow hyperextension stop (solref 0.004); default the soft stop")
     p.add_argument("--max-pelvis-drift", type=float, default=None,
                    help="bowl: drifting this far (m) from the captured pelvis path counts as a fall")
     p.add_argument("--timesteps", type=int, default=50_000_000)
@@ -142,6 +146,11 @@ def main():
                    omega_max=a.omega_max, torque_scale=a.torque_scale)
     if a.tolerance_target > 0:
         env2_kw["tolerance_target"] = a.tolerance_target
+    if a.drag:
+        from envs.ballistics import CRICKET_DRAG_K
+        env2_kw["drag_k"] = CRICKET_DRAG_K
+    if a.stiff_elbow:
+        env2_kw["elbow_solref"] = [0.004, 1.0]
 
     def make(rank):
         if a.task == "kinematic2":

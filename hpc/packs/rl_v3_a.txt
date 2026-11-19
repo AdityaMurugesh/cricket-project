@@ -1,0 +1,10 @@
+# v3 model (air drag + hard elbow stop, 20 Nov): the best bowlers so far continued in the more realistic model, 15M steps.
+# noise-free pace: the 103.6 km/h (a270) bowler and the 106.1 km/h a290 clone, at exploration std 0.04 (as 38896)
+kin2_v3_nf_ls32_bcfast_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --set-log-std -3.2 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a270_T3a_0.zip
+kin2_v3_nf_ls32_bcclone_h500_a290_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --arm-handover 0.5 --timesteps 15000000 --set-log-std -3.2 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a290_T3a_0_init.zip
+# the most tolerant 12 ms bowler (56.2 km/h at 97.7%, no handover)
+kin2_v3_tolr12_resfast_a290_T3a_1 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --timesteps 15000000 --tolerance-reward-sd-ms 12 --resume-from checkpoints/kin2_tolr12_resfast_a290_T3a_1.zip
+# target-tolerance bowlers (on or above the optimiser's curve in the old model)
+kin2_v3_tolr2_tt0p75_bcclone_h500_a290_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 290 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 2 --tolerance-target 0.75 --resume-from checkpoints/kin2_tolr2_tt0p75_bcclone_h500_a290_T3a_0.zip
+kin2_v3_tolr4_tt0p5_bcfast_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 4 --tolerance-target 0.5 --resume-from checkpoints/kin2_tolr4_tt0p5_bcfast_h500_a270_T3a_0.zip
+kin2_v3_tolr8_tt0p5_bcfast_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 8 --tolerance-target 0.5 --resume-from checkpoints/kin2_tolr8_tt0p5_bcfast_h500_a270_T3a_0.zip
