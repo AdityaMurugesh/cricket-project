@@ -32,6 +32,7 @@ import numpy as np
 from gymnasium import spaces
 
 from envs.kinematic_bowl_env import KinematicBowlEnv
+from envs import legality
 from envs.legality import elbow_extension_deg
 from envs.runup_bowl_env import BALL_R, G
 
@@ -123,7 +124,7 @@ class KinematicBowlEnv2(KinematicBowlEnv):
             return self._no_ball_at("outside the release window")
         x, y = land(p, v)
         ext = elbow_extension_deg(self._arm_hist, self._elbow_hist, j)
-        legal = ext is not None and ext <= 15.0
+        legal = ext is not None and ext <= legality.LEGAL_EXTENSION_DEG
         out = {"released": True, "speed_m_s": float(np.linalg.norm(v)), "land_x": x, "lateral_m": y,
                "extension_deg": ext, "legal": legal, "release_t": t, "release_height_m": float(p[2]),
                "arm_out_of_plane_deg": plane}

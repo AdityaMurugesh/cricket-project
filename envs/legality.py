@@ -1,6 +1,11 @@
 """Elbow extension metric: joint angle series in, degrees out. No sim dependency."""
 import numpy as np
 
+# ICC: at most 15 deg of elbow extension from arm-horizontal to release. A module attribute, not a literal,
+# so a counterfactual study (scripts/kin_frontier.py --max-extension-deg) can move the law; every
+# scorer reads it at call time.
+LEGAL_EXTENSION_DEG = 15.0
+
 
 def find_horizontal_crossings(shoulder_angles_deg):
     """Sample indices where the shoulder crosses a multiple of 180 deg."""

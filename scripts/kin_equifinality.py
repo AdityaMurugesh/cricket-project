@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from stable_baselines3 import PPO
 
 from envs.kinematic_bowl_env import KinematicBowlEnv
+from envs import legality
 from envs.legality import elbow_extension_deg
 from envs.runup_bowl_env import BALL_R, G
 
@@ -123,7 +124,7 @@ def delivery(env, model, before_s, seed):
         x, y = land(p, v)
         t = t0 + (i + 1) * h                      # rows[i] is after physics step i + 1
         ext = elbow_extension_deg(arm, elbow, i + 1)   # arm_hist[0] is the start state
-        legal = ext is not None and ext <= 15.0
+        legal = ext is not None and ext <= legality.LEGAL_EXTENSION_DEG
         ok = (legal and plane <= env.max_arm_out_of_plane_deg and env.t_window <= t <= env.t_end
               and abs(elbow[i + 1]) <= env.max_release_elbow_deg)
         good = ok and env.target_min <= x <= env.target_max and abs(y) <= env.line_tol_m

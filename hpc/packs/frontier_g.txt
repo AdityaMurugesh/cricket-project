@@ -1,0 +1,7 @@
+# What does the ICC law cost? Every legal optimum so far keeps the elbow at 0-2 deg of extension, so the 15 deg
+# limit never binds. Same frontier with the limit moved to 30 deg and removed (1000): does the optimiser learn to
+# throw, and how many km/h does a throw buy at each timing tolerance?
+290 --max-extension-deg 1000 --tau 0 0.5 0.75 --warm-frontier results/kinematic/frontier/frontier_a290_k20.json:0.0 results/kinematic/frontier/kin2warm/frontier_a290_k20.json:0.5 results/kinematic/frontier/kin2warm/frontier_a290_k20.json:0.75
+270 --max-extension-deg 1000 --tau 0 0.5 0.75 --warm-frontier results/kinematic/frontier/frontier_a270_k20.json:0.0 results/kinematic/frontier/kin2warm/frontier_a270_k20.json:0.5 results/kinematic/frontier/kin2warm/frontier_a270_k20.json:0.75
+290 --max-extension-deg 30 --tau 0 0.5 0.75 --warm-frontier results/kinematic/frontier/frontier_a290_k20.json:0.0 results/kinematic/frontier/kin2warm/frontier_a290_k20.json:0.5 results/kinematic/frontier/kin2warm/frontier_a290_k20.json:0.75
+270 --max-extension-deg 30 --tau 0 0.5 0.75 --warm-frontier results/kinematic/frontier/frontier_a270_k20.json:0.0 results/kinematic/frontier/kin2warm/frontier_a270_k20.json:0.5 results/kinematic/frontier/kin2warm/frontier_a270_k20.json:0.75

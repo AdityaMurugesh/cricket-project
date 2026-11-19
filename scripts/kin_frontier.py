@@ -102,10 +102,12 @@ def set_knots(handover, knot_dt=None):
         KNOTS = HANDOVER_KNOTS(handover)
 
 
-def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd_ms=12.0):
+def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd_ms=12.0, max_ext_deg=15.0):
     global _env, _M, ENV2
     import scripts.kin_equifinality as ke
     ke.JITTER_SD_S = jitter_sd_ms / 1000.0     # "p_jitter_12ms" is then the good rate under N(0, this)
+    import envs.legality as legality
+    legality.LEGAL_EXTENSION_DEG = max_ext_deg     # the law itself (15 = ICC); larger = what a throw buys
     ENV2 = env2 or {}
     set_knots(handover, knot_dt)
     _env = make_env(angle, target_range, handover)
@@ -124,6 +126,11 @@ def evaluate(x):
                                   "good", "p_jitter_12ms", "window_ms", "slope_m_per_10ms", "elevation_deg")}
 
 
+def LEGAL():
+    import envs.legality as legality
+    return legality.LEGAL_EXTENSION_DEG
+
+
 def violation(r, tau, target_range):
     lo, hi = target_range
     x, y = r["land_x"], r["lateral_m"]
@@ -131,7 +138,7 @@ def violation(r, tau, target_range):
     dy = max(abs(y) - 0.5, 0.0)
     ext = r["extension_deg"] if r["extension_deg"] is not None else 90.0
     p = r.get("p_jitter_12ms") or 0.0
-    return float(np.hypot(dx, dy) + max(0.0, ext - 15.0) / 5.0 + 10.0 * max(0.0, tau - p))
+    return float(np.hypot(dx, dy) + max(0.0, ext - LEGAL()) / 5.0 + 10.0 * max(0.0, tau - p))
 
 
 def fitness(r, tau, target_range):
@@ -209,6 +216,8 @@ def main():
     p.add_argument("--jitter-sd-ms", type=float, default=12.0,
                    help="release-timing SD that tau refers to (the bowler's skill); tag _j<ms>. The records keep "
                         "the key p_jitter_12ms for the good rate under it")
+    p.add_argument("--max-extension-deg", type=float, default=15.0,
+                   help="elbow-extension limit counted as legal (15 = ICC; 1000 = no law); tag _x<deg>")
     p.add_argument("--warm-frontier", nargs="*", default=[],
                    help="also start from frontier optima: <json>:<tau> (same knots, angle and handover)")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
@@ -227,7 +236,10 @@ def main():
         + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
         + (f"_q{a.torque_scale:g}".replace(".", "p") if a.torque_scale != 1.0 else "") \
         + (f"_hill{a.omega_max:g}" if a.actuator == "hill" else "") \
-        + (f"_j{a.jitter_sd_ms:g}".replace(".", "p") if a.jitter_sd_ms != 12.0 else "")
+        + (f"_j{a.jitter_sd_ms:g}".replace(".", "p") if a.jitter_sd_ms != 12.0 else "") \
+        + (f"_x{a.max_extension_deg:g}" if a.max_extension_deg != 15.0 else "")
+    import envs.legality as legality
+    legality.LEGAL_EXTENSION_DEG = a.max_extension_deg    # the main process scores too (fitness/violation)
     logf = open(out / f"frontier_{tag}.log", "a")
 
     def log(s):
@@ -236,7 +248,7 @@ def main():
         logf.flush()
 
     with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2,
-                                                               a.jitter_sd_ms)) as pool:
+                                                               a.jitter_sd_ms, a.max_extension_deg)) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
@@ -266,7 +278,7 @@ def main():
                     best = (*b, run)
             f, x, r, run = best
             prev = x
-            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
+            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "max_extension_deg": a.max_extension_deg, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
                    "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)

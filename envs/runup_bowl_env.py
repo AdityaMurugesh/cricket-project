@@ -39,6 +39,7 @@ import mujoco
 import numpy as np
 
 from envs.humanoid_bowler import MOCAP_DIR
+from envs import legality
 from envs.legality import elbow_extension_deg
 from envs.runup_imitation_env import RunupImitationEnv
 
@@ -191,7 +192,7 @@ class RunupBowlEnv(RunupImitationEnv):
         t_fl = (v[2] + np.sqrt(max(v[2] ** 2 + 2 * G * z0, 0.0))) / G
         land = float(v[0] * t_fl)                       # metres beyond the release point
         ext = elbow_extension_deg(self._arm_hist, self._elbow_hist, len(self._arm_hist) - 1)
-        legal = ext is not None and ext <= 15.0
+        legal = ext is not None and ext <= legality.LEGAL_EXTENSION_DEG
         lat = float(p[1] + v[1] * t_fl)
         self._outcome = {"released": True, "speed_m_s": float(np.linalg.norm(v)), "land_x": land,
                          "lateral_m": lat, "extension_deg": ext, "legal": legal, "release_t": self.t,
