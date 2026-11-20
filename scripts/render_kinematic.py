@@ -75,6 +75,8 @@ def main():
     p.add_argument("--target-m", type=float, default=None, help="any-length (target_sample) bowlers: band centre")
     p.add_argument("--model-path", default=None, help="instead of checkpoints/<run>.zip")
     p.add_argument("--label", default=None, help="what the arm is, for the caption (default: the run name)")
+    p.add_argument("--delivery", default=None,
+                   help="replay another captured body (e.g. T3aL, the legs cleaned by scripts/fix_legs.py)")
     a = p.parse_args()
     if a.frontier:                  # a trajectory-optimisation record: replay its knots open loop
         import json
@@ -84,12 +86,12 @@ def main():
             sys.exit(f"no feasible record with tau {a.tau} in {a.frontier}")
         rec = recs[0]
         kf._init(rec["angle"], (10.9, 12.9), rec.get("handover_s"), None, rec.get("env2") or {}, 12.0,
-                 rec.get("max_extension_deg", 15.0), False, rec.get("delivery", "T3a"))
+                 rec.get("max_extension_deg", 15.0), False, a.delivery or rec.get("delivery", "T3a"))
         kf.KNOTS = np.array(rec["knot_times_s"])
         kf._M = kf.interp_matrix(kf.decision_times(kf._env))
         env = kf._env
         model = kf.OpenLoop(env, np.clip(kf._M @ np.array(rec["knots"]).reshape(len(kf.KNOTS), -1), -1.0, 1.0))
-        m = {"delivery": rec.get("delivery", "T3a")}
+        m = {"delivery": a.delivery or rec.get("delivery", "T3a")}
         a.run = a.run or f"{Path(a.frontier).stem}_tau{a.tau:g}"
     env2 = ROOT / "checkpoints" / f"{a.run}.env2.json"
     if a.frontier:
@@ -98,6 +100,8 @@ def main():
         import json
         from scripts.kin_equifinality import make_env2
         kw2 = json.load(open(env2))
+        if a.delivery:
+            kw2["delivery"] = a.delivery
         env = make_env2(kw2, 0.0, a.target_m)
         m = {"delivery": kw2.get("delivery", "T3a")}
     else:
@@ -167,7 +171,9 @@ def main():
             imgs.append(rend.render().copy())
         plt.imsave(tmp / f"f_{f:05d}.png", np.concatenate(imgs, axis=1))
     o = out1
-    lines = [f"Body: motion capture replay ({m['delivery']}).  Bowling arm: {a.label or 'learned policy (' + a.run + ')'}.  "
+    body = (f"motion capture replay ({m['delivery'][:-1]}), legs cleaned (feet planted at the video's contacts)"
+            if m["delivery"].endswith("L") else f"motion capture replay ({m['delivery']})")
+    lines = [f"Body: {body}.  Bowling arm: {a.label or 'learned policy (' + a.run + ')'}.  "
              f"Ball: simulated{' with air drag' if dk > 0 else ''}.",
              f"{o['speed_m_s'] * 3.6:.0f} km/h, lands {o['land_x']:.1f} m, {abs(o['lateral_m']):.2f} m off line, "
              f"elbow extension {o['extension_deg']:.1f} deg ({'good' if o['good'] else 'not good'}).  "
