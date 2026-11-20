@@ -21,11 +21,14 @@ The running project log is [`context.md`](context.md). The latest write-ups are 
 | CMA-ES alone vs CMA-ES + RL | Plans and policies bowled in the same model under the same noise draws. | `scripts/compare_cmaes_rl.py` |
 | Arm limits | Human-like and real-robot (Unitree G1, H1) actuator and joint limits. | `envs/arm_limits.py` |
 | Leg clean-up | Feet planted at the contacts seen in the lab video (the legs were not tracked after the jump). | `scripts/fix_legs.py` |
+| Constrained RL | PPO-Lagrangian: the elbow law as a cost with a target illegal rate, its price λ adjusted during training. | `KinematicBowlEnv2(lagrangian=True)`, `scripts/train_runup.py --lagrangian` |
+| Body vs robot | The captured legs and trunk against the Unitree G1/H1 joint ranges and speed limits. | `scripts/body_vs_robot.py` |
 
 A one-slide summary of the CMA-ES → PPO link: [`docs/slide_cmaes_to_ppo.png`](docs/slide_cmaes_to_ppo.png).
 
 ## Results
 
+- [`docs/progress_since_20nov.pdf`](docs/progress_since_20nov.pdf): the 20 Nov meeting's actions (CMA-ES vs RL under the same noise, legs, arm limits, constrained RL).
 - [`docs/progress_since_6nov.pdf`](docs/progress_since_6nov.pdf): what was built and found from 6 to 20 Nov (a short version: [`docs/progress_simple.pdf`](docs/progress_simple.pdf)).
 - `results/kinematic/frontier/`: CMA-ES frontiers (speed against accuracy per timing skill), e.g. `speed_vs_accuracy.png`.
 - `results/kinematic/equifinality/`: every RL bowler's landing curves and scores (`curves_at_sd.json`: good rate at 1-12 ms timing error).
