@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>After the 20 Nov meeting</title>
+<style>
+  @page { size: A4; margin: 18mm 18mm 18mm 18mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --accent:#1f6f8b; --good:#1e8449; --warn:#a04000; --soft:#f3f6fa; --line:#d9dee7; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); font-size: 12.5pt; line-height: 1.6; margin: 0; background:#fff; }
+  h1 { font-size: 24pt; margin: 0 0 2px; color: var(--accent); }
+  h2 { font-size: 16pt; margin: 26px 0 6px; color: var(--accent); break-after: avoid; }
+  h2 .n { display:inline-block; width: 30px; height: 30px; line-height: 30px; text-align:center; border-radius: 50%;
+          background: var(--accent); color:#fff; font-size: 13pt; margin-right: 8px; }
+  p { margin: 6px 0 9px; }
+  .sub { color: var(--muted); font-size: 11pt; }
+  .one { font-size: 13.5pt; font-weight: 600; margin: 4px 0 10px; }
+  .box { background: var(--soft); border-radius: 8px; padding: 10px 14px; margin: 10px 0; break-inside: avoid; }
+  .say { background: #eef8f1; border-left: 5px solid var(--good); border-radius: 6px; padding: 9px 14px; margin: 12px 0; break-inside: avoid; }
+  .say b:first-child { color: var(--good); }
+  .catch { background: #fdf2e9; border-left: 5px solid var(--warn); border-radius: 6px; padding: 9px 14px; margin: 12px 0; break-inside: avoid; }
+  .catch b:first-child { color: var(--warn); }
+  table { border-collapse: collapse; margin: 8px 0 10px; break-inside: avoid; font-size: 11.5pt; }
+  th, td { border: 1px solid var(--line); padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); }
+  td.n { text-align: right; font-weight: 600; }
+  img { max-width: 100%; display: block; margin: 8px auto; }
+  figure { margin: 10px 0; break-inside: avoid; }
+  figcaption { font-size: 10.5pt; color: var(--muted); text-align: center; }
+  ul, ol { margin: 4px 0 10px; padding-left: 24px; } li { margin: 4px 0; }
+  code { font-family: Consolas, monospace; font-size: 10.5pt; background: var(--soft); padding: 0 4px; }
+  .qa p { margin: 2px 0 12px; }
+  .qa .q { font-weight: 700; margin-top: 10px; }
+  .done { color: var(--good); font-weight: 700; }
+  .run { color: var(--warn); font-weight: 700; }
+  .post { font-family: "Segoe UI", Calibri, Arial, sans-serif; white-space: pre-wrap; border: 1px dashed var(--line); padding: 10px 14px; border-radius: 6px; font-size: 11.5pt; }
+</style>
+</head>
+<body>
+
+<h1>After the 20 Nov meeting: what we did</h1>
+<p class="sub">Everything the supervisor asked for on 20 Nov, in plain words. The green boxes are lines you can say as they
+are. The orange boxes are the honest catches: say them before you are asked. Written on the night of 20–21 Nov.</p>
+
+<div class="box">
+<p class="one">The whole story in one paragraph</p>
+<p>The supervisor asked <b>why we need RL if CMA-ES already gives a delivery</b>. We tested it: the CMA-ES delivery
+and the RL bowler, under exactly the same noise. With only release-timing error they are equal. But add a little
+<b>noise in the muscles during the swing</b> and the CMA-ES delivery falls apart, while the RL bowler hardly
+notices, because RL <b>watches the arm and corrects</b>. We also <b>fixed the sliding feet</b> using the lab video,
+built <b>human-like and real-robot strength limits</b> for the arm, and built <b>constrained RL</b>. Those runs are
+waiting on the HPC.</p>
+</div>
+
+<!-- 1 -->
+<h2><span class="n">1</span>The supervisor's list, and where each item is</h2>
+<table>
+<tr><th>Asked on 20 Nov</th><th>Status</th><th>Where</th></tr>
+<tr><td>One slide: how CMA-ES connects to PPO</td><td class="done">Done</td><td><code>docs/slide_cmaes_to_ppo.pdf</code> (and .png)</td></tr>
+<tr><td>CMA-ES alone vs CMA-ES + RL, at the same noise</td><td class="done">First results</td><td>section 3; the full test is queued on the HPC</td></tr>
+<tr><td>Fix the legs in the reference motion</td><td class="done">Done</td><td>section 4; video <code>v3_fastest_a270_legsfixed.mp4</code></td></tr>
+<tr><td>Humanoid model: human-like and real-robot limits</td><td class="run">Built, runs queued</td><td>section 5; <code>envs/arm_limits.py</code></td></tr>
+<tr><td>Constrained RL (from 6 Nov)</td><td class="run">Built, runs queued</td><td>section 6</td></tr>
+<tr><td>Keep the tables; code on GitHub; update in Teams</td><td class="done">Done</td><td>README added to the repo; Teams post at the end of this doc</td></tr>
+</table>
+
+<!-- 2 -->
+<h2><span class="n">2</span>How CMA-ES connects to PPO (the slide)</h2>
+<figure><img src="slide_cmaes_to_ppo.png" alt="slide"><figcaption>docs/slide_cmaes_to_ppo.pdf</figcaption></figure>
+<p>The supervisor gave two options: (a) a reward term for staying close to the reference, or (b) starting the policy
+from the reference. <b>We do (b).</b> Three steps:</p>
+<ol>
+  <li><b>CMA-ES</b> finds the arm torques for one fast, legal, on-length delivery.</li>
+  <li><b>Behaviour cloning</b> copies those torques into PPO's own network: bowl the plan many times with small
+  random nudges, record what the arm was doing and what torque the plan used, and train the network to give the same
+  torque (the critic learns each rollout's reward).</li>
+  <li><b>PPO</b> keeps training the same network with the normal reward. Nothing pays it to stay close to the plan.</li>
+</ol>
+<div class="say"><b>Say:</b> "CMA-ES gives a starting point, not a reward. We copy its delivery into PPO's network by
+behaviour cloning, then PPO trains with the same task reward as always."</div>
+
+<!-- 3 -->
+<h2><span class="n">3</span>Why we need RL: the same-noise test</h2>
+<p class="one">A CMA-ES delivery is a fixed list of torques. An RL bowler looks at the arm every 20 ms and decides.</p>
+<p>There are two kinds of mistake a bowler can make:</p>
+<ul>
+  <li><b>Letting go a little early or late</b> (release-timing error). This happens after the last decision, so
+  watching the arm cannot help. Here CMA-ES and RL are <b>equal</b>, and CMA-ES is the best possible.</li>
+  <li><b>The muscles not doing exactly what was asked</b> during the swing (motor noise: each 20 ms command comes out
+  a few percent stronger or weaker at random). A fixed list of torques cannot react. A policy sees the arm going
+  wrong and <b>corrects it</b>.</li>
+</ul>
+<p>So we bowled each CMA-ES delivery and each RL bowler under <b>exactly the same random noise</b> (same timing error,
+same motor-noise draws) and counted the good balls.</p>
+<figure><img src="../results/kinematic/cmaes_vs_rl/cmaes_vs_rl_prelim.png" alt="CMA-ES vs RL under noise">
+<figcaption>Blue: CMA-ES deliveries. Orange: RL bowlers. Left of each panel: no motor noise. Right: 15% motor noise.</figcaption></figure>
+<table>
+<tr><th>Timing skill</th><th>Bowler</th><th>No motor noise</th><th>5% motor noise</th><th>15% motor noise</th></tr>
+<tr><td rowspan="2">12 ms (ordinary)</td><td>CMA-ES, 66 km/h</td><td class="n">77%</td><td class="n">35%</td><td class="n">8%</td></tr>
+<tr><td>RL, 67 km/h</td><td class="n">85%</td><td class="n">83%</td><td class="n">63%</td></tr>
+<tr><td rowspan="2">4 ms (very good)</td><td>CMA-ES, 80 km/h</td><td class="n">81%</td><td class="n">37%</td><td class="n">9%</td></tr>
+<tr><td>RL, 87 km/h</td><td class="n">53%</td><td class="n">48%</td><td class="n">24%</td></tr>
+<tr><td rowspan="2">2 ms, fastest balls</td><td>CMA-ES, 130 km/h</td><td class="n">21%</td><td class="n">7%</td><td class="n">3%</td></tr>
+<tr><td>RL, 110 km/h</td><td class="n">47%</td><td class="n">45%</td><td class="n">31%</td></tr>
+</table>
+<div class="say"><b>Say:</b> "With only timing error, CMA-ES and RL are the same, and CMA-ES is the ceiling. But with
+just 5% noise in the muscles, the CMA-ES delivery loses about half its good balls, and the RL bowler hardly changes,
+because it watches the arm and corrects. That is why we need RL on top of CMA-ES."</div>
+<div class="catch"><b>Catch:</b> these are first results, run on the laptop: 63 deliveries per point (21 starts × 3
+noise draws). The full test (10 draws, plus CMA-ES <i>re-optimised</i> for motor noise, plus RL <i>trained</i> with
+motor noise) is queued on the HPC. Also, the RL bowlers here were never trained with motor noise, so this robustness
+comes for free from feedback.</div>
+
+<!-- 4 -->
+<h2><span class="n">4</span>The legs are fixed</h2>
+<p class="one">The feet no longer slide after the jump.</p>
+<p><b>What was wrong.</b> From 0.6 s before release, <b>no marker on the legs or feet was tracked</b>, so the fitting
+program guessed the legs. The pelvis and trunk were measured; the legs were not. The guess slid the back foot along
+the floor at 2–5 m/s and lifted the front foot just after release.</p>
+<p><b>Where the real contacts are.</b> We read them off the lab's video (side camera and back camera, 25 frames a
+second, so ±20 ms):</p>
+<table>
+<tr><th></th><th>Video (real)</th><th>Old guess</th></tr>
+<tr><td>Back foot lands</td><td>0.32 s before release</td><td>0.26 s, then slides</td></tr>
+<tr><td>Back foot leaves</td><td>0.10 s before (heel up at 0.14)</td><td>0.02 s before</td></tr>
+<tr><td>Front foot lands</td><td>0.08 s before release</td><td>0.10 s, slides</td></tr>
+<tr><td>Front foot after release</td><td>stays down</td><td>lifts 7 cm</td></tr>
+</table>
+<p><b>The fix</b> (<code>scripts/fix_legs.py</code>), as the supervisor suggested, at the reference level:</p>
+<ol>
+  <li>pin each foot to the floor while the video shows it down;</li>
+  <li>in between, <b>interpolate</b> the foot's path smoothly from one contact to the next;</li>
+  <li>work out the leg angles that put the foot there (inverse kinematics);</li>
+  <li><b>filter</b> the leg angles (low-pass).</li>
+</ol>
+<figure><img src="../results/kinematic/legfix/legfix_T3a.png" alt="leg fix">
+<figcaption>Dashed: old guess. Solid: fixed. Shaded: foot planted. Bottom row: how fast the touching foot slides.</figcaption></figure>
+<ul>
+  <li>Total sliding of the feet after the jump: <b>4.0 m → 0.7 m</b>. While planted, the feet move 0 cm (before: 19–40 cm).</li>
+  <li>The back knee now bends 30–40° on landing, as a real back leg does. The old guess kept it straight.</li>
+  <li>The bowling arm is <b>exactly the same</b>: same speed, landing within 0.1 mm. Every earlier result still stands.</li>
+</ul>
+<div class="say"><b>Say:</b> "The legs weren't tracked after the jump, so the fit guessed them and the feet slid. We
+took the foot contacts from the lab video, pinned the feet there, interpolated in between and filtered. The sliding
+went from 4 m to 0.7 m, and the arm's delivery didn't change at all."</div>
+<div class="catch"><b>Catch:</b> after release the fit's pelvis (not measured there either) moves forward too far
+for the front foot to stay down as long as the video shows, so the front foot pivots off at about 0.15 s after
+release. Next recording: put markers on the legs and feet.</div>
+
+<!-- 5 -->
+<h2><span class="n">5</span>A human arm and a real robot arm</h2>
+<p class="one">Until now the arm motors were much stronger than a person's.</p>
+<p>The supervisor asked for two sets of limits: one human-like, one from a real humanoid robot. We built both, and a
+third robot for comparison (<code>envs/arm_limits.py</code>). Torques are the most each joint can push, in N·m.</p>
+<table>
+<tr><th>Arm</th><th>Shoulder</th><th>Elbow</th><th>Forearm twist</th><th>Wrist</th><th>Top speed</th><th>Source</th></tr>
+<tr><td>Our model so far</td><td>250</td><td>250</td><td>250</td><td>50</td><td>40 rad/s</td><td>the skeleton model</td></tr>
+<tr><td>Human (adult man)</td><td>45–84</td><td>70</td><td>10</td><td>12–20</td><td>40 rad/s, muscle curve</td><td>Holzbaur et al. 2007, and others</td></tr>
+<tr><td>Unitree G1 robot</td><td>25</td><td>25</td><td>25</td><td>5</td><td>37 rad/s (wrist 22)</td><td>Unitree's robot files</td></tr>
+<tr><td>Unitree H1 robot</td><td>18–40</td><td>18</td><td>(G1's)</td><td>(G1's)</td><td>9–20 rad/s</td><td>Unitree's robot files</td></tr>
+</table>
+<p>Joint ranges are human ones for all three (the robots' ranges are wider). The human shoulder may not turn further
+than the bowler's own captured shoulder did.</p>
+<p><b>First check:</b> the 130 km/h CMA-ES delivery, replayed with these limits, gives about 80 km/h (human), 51–59 km/h
+(G1) and 60 km/h (H1), and none of them pitches on a good length. CMA-ES now has to find the best delivery for each
+arm, then RL continues from it. Both are queued on the HPC.</p>
+<div class="say"><b>Say:</b> "Our arm was about three times stronger than a person's, and ten times stronger than a
+Unitree G1's. We now have human-like limits from published strength data, and real-robot limits from Unitree's own
+robot files. The optimiser and RL are being re-run with each."</div>
+<div class="catch"><b>Catch:</b> the human numbers come from a small study (5 men) plus typical textbook values for
+some joints, and a trained fast bowler is stronger than average. The robot arm keeps the human arm's size and weight;
+only the motors and joint limits change.</div>
+
+<!-- 6 -->
+<h2><span class="n">6</span>Constrained RL</h2>
+<p>So far, legality was <b>inside the reward</b>: an illegal ball never counts as good and loses 2 more points. We
+chose that penalty by hand. Constrained RL (here PPO-Lagrangian, as in OpenAI's Safety Gym) separates them:</p>
+<ul>
+  <li>the reward pays for pace and length only;</li>
+  <li>each delivery reports a <b>cost</b>: 1 if the elbow straightened more than 15°, else 0;</li>
+  <li>a weight λ (lambda) on that cost <b>adjusts itself</b> during training: up while too many balls are illegal,
+  down when the rate is under target (for example 1%).</li>
+</ul>
+<p>Built and tested; three runs are queued (two from scratch with targets of 1% and 5%, one continuing the fast bowler),
+each against an existing run with the old penalty as the baseline.</p>
+<div class="say"><b>Say:</b> "We now treat the ICC law as a constraint, not a penalty: the program learns how hard to
+punish illegal balls so that at most 1% are illegal."</div>
+
+<!-- 7 -->
+<h2><span class="n">7</span>Also finished: RL from scratch in the new model</h2>
+<table>
+<tr><th>From scratch, 12 ms timing</th><th>Speed</th><th>Good balls</th></tr>
+<tr><td>270°, arm hand-over</td><td class="n">50.9 km/h</td><td class="n">96%</td></tr>
+<tr><td>290°</td><td class="n">57.1 km/h</td><td class="n">82%</td></tr>
+<tr><td>Chooses its own release</td><td class="n">55.4 km/h</td><td class="n">94%</td></tr>
+<tr><td>Any length on demand</td><td class="n">53.7 km/h</td><td class="n">95%</td></tr>
+</table>
+<p>The same as in the old model: from scratch, RL is slow but very reliable. Starting from CMA-ES is what makes it fast.</p>
+
+<!-- 8 -->
+<h2><span class="n">8</span>What is waiting on the HPC</h2>
+<p>The cluster was full all night (other users' jobs of up to 100 hours), so these are queued and start as nodes free up:</p>
+<ul>
+  <li>the full same-noise test, including CMA-ES optimised <i>under</i> motor noise, and RL trained with motor noise;</li>
+  <li>CMA-ES with human, G1 and H1 limits, then RL from each;</li>
+  <li>constrained RL (three runs).</li>
+</ul>
+
+<!-- 9 -->
+<h2><span class="n">9</span>Questions you might get</h2>
+<div class="qa">
+<p class="q">"Why not just use CMA-ES?"</p>
+<p>With only timing error, CMA-ES is enough, and it's the ceiling. But its delivery is a fixed list of torques, so any
+error during the swing goes uncorrected. RL watches the arm and corrects: with 5% motor noise CMA-ES loses about half
+its good balls and RL almost none.</p>
+<p class="q">"Is 5% motor noise realistic?"</p>
+<p>Human muscle force varies a few percent from try to try, and more at high force (signal-dependent noise, Harris &amp;
+Wolpert 1998). 5% is mild; 15% is a lot. We show both.</p>
+<p class="q">"Did fixing the legs change your earlier numbers?"</p>
+<p>No. Only the arm is simulated; the body is replayed. We checked: the same delivery comes out to within 0.1 mm.</p>
+<p class="q">"How did you know where the feet really were?"</p>
+<p>From the lab's own video cameras, synchronised with the motion capture: we looked frame by frame at when each foot
+touched down and lifted.</p>
+<p class="q">"Where do the robot numbers come from?"</p>
+<p>Unitree's official robot description files (the maximum torque and speed of every joint), the same ones used in the
+MuJoCo robot library.</p>
+<p class="q">"What does constrained RL change?"</p>
+<p>Instead of us picking the penalty for an illegal ball, the program adjusts it itself to hit a target illegal rate.
+We'll compare it with our old penalty.</p>
+</div>
+
+<!-- 10 -->
+<h2><span class="n">10</span>Teams update (to paste)</h2>
+<div class="post">Update after Friday's meeting:
+1. CMA-ES to PPO: one slide attached. It's a warm start (behaviour cloning of the CMA-ES delivery into the PPO network), then PPO with the normal task reward. No imitation term.
+2. CMA-ES alone vs CMA-ES + RL, same noise: with release-timing error only they're equal. With 5% motor noise per command, the CMA-ES plans lose about half their good balls (12 ms: 77% to 35%), the RL bowler stays at 83%. Plot attached. Full run on the HPC.
+3. Legs: no leg markers after the jump, so I took the foot contacts from the lab video, pinned the feet, interpolated and filtered. Foot sliding 4.0 m to 0.7 m; the arm's delivery is unchanged.
+4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES and RL runs queued.
+5. Constrained RL (PPO-Lagrangian, legality as a cost) implemented, runs queued.
+Code: github.com/AdityaMurugesh/cricket-project</div>
+
+</body>
+</html>
