@@ -407,20 +407,28 @@ runs from 47 to 83 km/h. So "good 51% of the time at 12 ms" means good length, n
 counts length and line, not pace. Also, the 83 km/h delivery sits at the late edge of its window (late releases fall
 short), so its good rate is capped near 50%. We have not yet checked how natural the arm motion behind the wiggle is.</div>
 
-<h3>12.6 RL in the new model (running)</h3>
-<p>Eleven PPO runs were restarted in v3 (jobs 39390–39393): the cloned fast bowlers, the target-tolerance bowlers, and from-scratch
-controls. They take 16–30 h. Numbers from the training logs so far (last 2000 practice deliveries, <i>with</i> training noise
-on, so not the final scored values):</p>
+<h3>12.6 RL in the new model</h3>
+<p>Eleven PPO runs were restarted in v3 (jobs 39390&ndash;39393): the cloned fast bowlers, the target-tolerance bowlers, and from-scratch
+controls. Pack 39391 finished at about 01:45 UTC on 20 Nov, and its three bowlers were scored the same way as the old ones
+(21 noise-free deliveries, each landing curve read off at the bowler's own timing SD):</p>
+<table>
+<tr><th>bowler (trained for)</th><th class="n">old model</th><th class="n">v3 model</th><th class="n">v3 optimiser curve at that good rate</th></tr>
+<tr><td>2 ms timing, aim 75% (290&deg;)</td><td class="n">81.3 km/h, 88% good</td><td class="n"><b>86.2</b> km/h, 86% good</td><td class="n">80.9 (85%)</td></tr>
+<tr><td>4 ms timing, aim 50% (270&deg;)</td><td class="n">78.2 km/h, 53%</td><td class="n"><b>87.0</b> km/h, 53%</td><td class="n">87.0 (50%)</td></tr>
+<tr><td>8 ms timing, aim 50% (270&deg;)</td><td class="n">68.0 km/h, 52%</td><td class="n"><b>69.5</b> km/h, 49%</td><td class="n">83.0 (50%)</td></tr>
+</table>
+<p>So the RL bowlers trained in the more realistic model are as good as or faster than the old ones, and the first two sit
+on or above the new optimiser curve. The 8 ms bowler is the exception. It matches its old self, but it did <i>not</i> find the
+83 km/h plateau delivery from 12.5, so it is 13 km/h under the new curve. That is a fair point to raise: RL found the ordinary
+solution, not the clever wiggly one.</p>
+<p>Still running (training-log numbers, last 2000 practice deliveries with training noise on, not final scores):</p>
 <table>
 <tr><th>run (v3)</th><th class="n">good in practice</th><th class="n">mean speed of good balls</th></tr>
-<tr><td>fast bowler, cloned from optimiser, 270°, low exploration</td><td class="n">94%</td><td class="n"><b>108.0</b> km/h</td></tr>
-<tr><td>same at 290°</td><td class="n">90%</td><td class="n">88.8</td></tr>
-<tr><td>2 ms timing, aim 75% (290°)</td><td class="n">100%</td><td class="n">84.5</td></tr>
-<tr><td>4 ms timing, aim 50% (270°)</td><td class="n">96%</td><td class="n">85.7</td></tr>
-<tr><td>8 ms timing, aim 50% (270°)</td><td class="n">72%</td><td class="n">69.1</td></tr>
-<tr><td>12 ms, tolerant bowler continued (290°)</td><td class="n">100%</td><td class="n">56.0</td></tr>
+<tr><td>fast bowler, cloned from optimiser, 270&deg;, low exploration</td><td class="n">94%</td><td class="n"><b>108.0</b> km/h</td></tr>
+<tr><td>same at 290&deg;</td><td class="n">90%</td><td class="n">88.8</td></tr>
+<tr><td>12 ms, tolerant bowler continued (290&deg;)</td><td class="n">100%</td><td class="n">56.0</td></tr>
 </table>
-<p>The RL bowlers carry over to the new model without losing pace (the cloned fast bowler went from 104 to ~108 km/h).</p>
+<p>The cloned fast bowler carries over to the new model without losing pace (104 km/h before, about 108 now).</p>
 
 <div class="say">We made the model more realistic (air drag, a proper elbow stop, other captured run-ups) and re-ran
 everything with a control that uses the old model and identical search settings. The pace-versus-timing-skill result
