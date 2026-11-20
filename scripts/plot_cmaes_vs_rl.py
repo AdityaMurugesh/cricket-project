@@ -27,7 +27,8 @@ KEY = [("cmaes", "CMA-ES plan: open loop, the same torques whatever happens"),
        ("rl", "RL policy: closed loop, sees the arm every 20 ms"),
        ("cmaes_tn", "CMA-ES plan optimised under motor noise"),
        ("bc", "the plan cloned into the network, before RL"),
-       ("rl_tn", "RL trained with motor noise")]
+       ("rl_tn", "RL trained with motor noise"),
+       ("rl_scratch", "RL from scratch (no CMA-ES start)")]
 
 
 def kind(name):
@@ -43,6 +44,11 @@ def main():
     ap.add_argument("--sd", nargs="+", type=float, required=True, help="timing skill per label (ms)")
     ap.add_argument("--titles", nargs="+", default=None)
     ap.add_argument("--ncols", type=int, default=3)
+    ap.add_argument("--best-tn", action="store_true",
+                    help="of the plans optimised under motor noise (cmaes_tn*), keep only the one with the most good "
+                         "balls at the largest motor noise: CMA-ES's best shot")
+    ap.add_argument("--short-legend", action="store_true", help="panel legends give only the speeds (the key panel "
+                    "says which colour is which)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     n = len(a.labels)
@@ -60,8 +66,13 @@ def main():
         xs = np.arange(len(conds))
         ax.set_facecolor(BG)
         count = {}
+        skip = set()
+        tn = [k for k in d if not k.startswith("_") and kind(k) == "cmaes_tn"]
+        if a.best_tn and len(tn) > 1:
+            best = max(tn, key=lambda k: d[k][conds[-1]]["p_cont"][f"{sd:g}"])
+            skip = set(tn) - {best}
         for name, item in d.items():
-            if name.startswith("_"):
+            if name.startswith("_") or name in skip:
                 continue
             k = kind(name)
             kinds_seen.add(k)
@@ -70,8 +81,9 @@ def main():
             ls = "-" if count[k] == 1 and k != "rl_scratch" else "--"
             ys = [100 * item[c]["p_cont"][f"{sd:g}"] for c in conds]
             kmh = item["none"]["speed_kmh"] or 0
+            tag = f" (τ {item['plan_tau']:g})" if k == "cmaes_tn" and a.best_tn else ""
             ax.plot(xs, ys, ls=ls, marker=mk, color=col, lw=2, ms=6.5, mec=BG, mew=1.2,
-                    label=f"{short} {kmh:.0f} km/h")
+                    label=f"{kmh:.0f} km/h{tag}" if a.short_legend else f"{short}{tag} {kmh:.0f} km/h")
         ax.set_xticks(xs)
         ax.set_xticklabels(["none" if c == "none" else f"{float(c[1:]) * 100:g}%" for c in conds])
         ax.set_title(a.titles[p] if a.titles else lab, color=INK, fontsize=10.5, loc="left")
@@ -98,7 +110,9 @@ def main():
         key.plot([0.02, 0.12], [y + 0.02, y + 0.02], color=col, lw=2, marker=mk, ms=6, transform=key.transAxes)
         key.text(0.16, y, text, fontsize=8.8, color=INK2, transform=key.transAxes)
     y -= 0.17
-    key.text(0.0, y, "Each point: 63 deliveries (21 starts x 3 noise draws),\nthe same draws for every bowler. "
+    env0 = json.load(open(DIR / f"{a.labels[0]}.json")).get("_env", {})
+    n_st, n_dr = env0.get("starts", 21), env0.get("noise_seeds", 3)
+    key.text(0.0, y, f"Each point: {n_st * n_dr} deliveries ({n_st} starts x {n_dr} noise draws),\nthe same draws for every bowler. "
              "Good-ball rate at\nthe panel's release-timing error.", fontsize=8.5, color=INK2,
              transform=key.transAxes, va="top")
     for ax in axes[n + 1:]:
