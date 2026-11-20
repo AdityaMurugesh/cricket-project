@@ -405,7 +405,7 @@ releases, same outcome.</p>
 <div class="caveat">The cancellation works because an early release is a <i>slower</i> ball: across that window the speed
 runs from 47 to 83 km/h. So "good 51% of the time at 12 ms" means good length, not always 83 km/h. Our good-rate metric
 counts length and line, not pace. Also, the 83 km/h delivery sits at the late edge of its window (late releases fall
-short), so its good rate is capped near 50%. We have not yet checked how natural the arm motion behind the wiggle is.</div>
+short), so its good rate is capped near 50%. In the video (12.7) the arm motion looks like an ordinary overarm action; the cancellation is in the last few ms.</div>
 
 <h3>12.6 RL in the new model</h3>
 <p>Eleven PPO runs were restarted in v3 (jobs 39390&ndash;39393): the cloned fast bowlers, the target-tolerance bowlers, and from-scratch
@@ -421,14 +421,17 @@ controls. Pack 39391 finished at about 01:45 UTC on 20 Nov, and its three bowler
 on or above the new optimiser curve. The 8 ms bowler is the exception. It matches its old self, but it did <i>not</i> find the
 83 km/h plateau delivery from 12.5, so it is 13 km/h under the new curve. That is a fair point to raise: RL found the ordinary
 solution, not the clever wiggly one.</p>
-<p>Still running (training-log numbers, last 2000 practice deliveries with training noise on, not final scores):</p>
+<p>Pack 39390 finished soon after (02:05 UTC) and gives the fast bowlers and the 12 ms tolerant bowler:</p>
 <table>
-<tr><th>run (v3)</th><th class="n">good in practice</th><th class="n">mean speed of good balls</th></tr>
-<tr><td>fast bowler, cloned from optimiser, 270&deg;, low exploration</td><td class="n">94%</td><td class="n"><b>108.0</b> km/h</td></tr>
-<tr><td>same at 290&deg;</td><td class="n">90%</td><td class="n">88.8</td></tr>
-<tr><td>12 ms, tolerant bowler continued (290&deg;)</td><td class="n">100%</td><td class="n">56.0</td></tr>
+<tr><th>bowler</th><th class="n">old model</th><th class="n">v3 model</th><th class="n">v3 good rate at 2 ms / 12 ms timing SD</th></tr>
+<tr><td>fast bowler, cloned from optimiser, 270&deg;</td><td class="n">104 km/h</td><td class="n"><b>109.9</b> km/h (21/21 good, no noise)</td><td class="n">47% / 9%</td></tr>
+<tr><td>same at 290&deg;</td><td class="n">&ndash;</td><td class="n">89.3 km/h (21/21 good)</td><td class="n">38% / 7%</td></tr>
+<tr><td>12 ms tolerant bowler (290&deg;)</td><td class="n">56.2 km/h, 98% good at 12 ms</td><td class="n">56.3 km/h, 97% good at 12 ms</td><td class="n">100% / 97%</td></tr>
 </table>
-<p>The cloned fast bowler carries over to the new model without losing pace (104 km/h before, about 108 now).</p>
+<p>The cloned fast bowler carries over to the new model and gets slightly faster (104 to 110 km/h, about 85% of the v3
+optimiser's 130 km/h). Like every fast ball, it needs near-perfect timing: good only 9% of the time with ordinary (12 ms)
+timing. The 12 ms tolerant bowler is unchanged. Five more v3 runs (from-scratch 12 ms controls) are still training on the HPC;
+they only check that RL from scratch behaves the same in the new model.</p>
 
 <div class="say">We made the model more realistic (air drag, a proper elbow stop, other captured run-ups) and re-ran
 everything with a control that uses the old model and identical search settings. The pace-versus-timing-skill result
