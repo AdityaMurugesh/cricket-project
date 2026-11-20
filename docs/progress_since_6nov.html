@@ -446,6 +446,10 @@ late releases still land on a length because speed and angle errors cancel, whic
   action. The cancellation is in the last few ms of the arm's path, too small to see.</li>
   <li><code>v3_fastest_nohandover_a270.mp4</code>: 144 km/h without the arm handover. Watch the arm: it swings an extra windmill
   circle in the run-up. That's why we use the handover: the capture's own arm motion is kept until 0.5 s before release.</li>
+  <li>RL bowlers trained in the new model (12.6), made on 20 Nov: <code>v3_rl_fast_110kmh_a270.mp4</code>,
+  <code>v3_rl_fast_89kmh_a290.mp4</code>, <code>v3_rl_2ms_86kmh_a290.mp4</code>, <code>v3_rl_4ms_87kmh_a270.mp4</code>,
+  <code>v3_rl_8ms_70kmh_a270.mp4</code>, <code>v3_rl_12ms_56kmh_a290.mp4</code>. Good pair to show: the 110 km/h and the
+  56 km/h one, which pitch the same length but need very different timing.</li>
 </ul>
 
 <!-- ============================================================ -->
@@ -501,7 +505,7 @@ counts length and line, not pace.</td></tr>
     <code>kin2_tolr12_resfast_a290_T3a_1.mp4</code> (56 km/h, 98% tolerant),
     <code>kin2_goal_any_length.mp4</code> (one bowler asked for 8, 12 and 17 m),
     <code>v3_fastest_a270.mp4</code> (130 km/h, new model), <code>v3_tolerant_2ms_a270.mp4</code>,
-    <code>v3_fastest_nohandover_a270.mp4</code> (144 km/h with a windmill arm: why we use the handover).</li>
+    <code>v3_fastest_nohandover_a270.mp4</code> (144 km/h with a windmill arm: why we use the handover), and the six <code>v3_rl_*.mp4</code> RL bowlers from 12.6.</li>
   <li>New-model figures: <code>results/kinematic/frontier/v3_compare.png</code>, <code>results/kinematic/frontier/v3_plateau.png</code>;
   numbers in <code>results/kinematic/frontier/v3_compare.json</code>.</li>
   <li>Detailed log of every number: <code>docs/frontier_2026-11-18.md</code>; plan and literature: <code>docs/roadmap_2026-11-18.md</code>.</li>
