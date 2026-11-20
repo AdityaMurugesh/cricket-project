@@ -1,0 +1,8 @@
+# Constrained RL (carried over from 6 Nov): PPO-Lagrangian, the ICC elbow law as a cost with a target illegal rate instead of
+# a reward penalty (KinematicBowlEnv2 lagrangian, train_runup --lagrangian). v3 model, 270 deg, handover 0.5 s.
+#   qsub -l walltime=12:00:00 -v CONFIGS=hpc/packs/constrained_1.txt,NENVS=18 hpc/train_pack.pbs
+# baselines (reward penalty, same settings otherwise): kin2_v3_tolr12_h500_a270_T3a_0 (from scratch, 12 ms) and
+# kin2_v3_nf_ls32_bcfast_h500_a270_T3a_0 (the fast bowler, same start)
+kin2_v3_lagr0p01_tolr12_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 12 --lagrangian 0.01
+kin2_v3_lagr0p05_tolr12_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 15000000 --tolerance-reward-sd-ms 12 --lagrangian 0.05
+kin2_v3_lagr0p01_nf_ls32_bcfast_h500_a270_T3a_0 --task kinematic2 --batch-size 4096 --seed 0 --drag --stiff-elbow --release-angle 270 --arm-handover 0.5 --timesteps 10000000 --set-log-std -3.2 --lagrangian 0.01 --resume-from checkpoints/kin_bowl_torque_b4096_h500_bctau0_a270_T3a_0.zip

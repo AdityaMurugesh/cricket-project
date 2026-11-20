@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import numpy as np
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
@@ -30,6 +31,41 @@ from envs.runup_imitation_env import RunupImitationEnv
 
 ROOT = Path(__file__).resolve().parent.parent
 TERMS = ("pose", "vel", "ends", "root")
+
+
+class LagrangeCallback(BaseCallback):
+    """PPO-Lagrangian's multiplier: after every rollout, lambda += lr * (mean episode cost - target), kept >= 0,
+    and sent to every env (KinematicBowlEnv2.set_lambda). Logs one row per rollout to lagrange.csv."""
+
+    def __init__(self, target, lr, csv_path, lam0=0.0):
+        super().__init__()
+        self.target, self.lr, self.lam = target, lr, lam0
+        self.csv_path, self.costs = Path(csv_path), []
+
+    def _on_training_start(self):
+        self.csv_path.parent.mkdir(parents=True, exist_ok=True)
+        self.f = open(self.csv_path, "w", newline="")
+        self.w = csv.writer(self.f)
+        self.w.writerow(["timesteps", "episodes", "mean_cost", "lambda"])
+        self.training_env.env_method("set_lambda", self.lam)
+
+    def _on_step(self):
+        for info, done in zip(self.locals["infos"], self.locals["dones"]):
+            if done:
+                self.costs.append(float(info.get("cost", 0.0)))
+        return True
+
+    def _on_rollout_end(self):
+        if self.costs:
+            c = float(np.mean(self.costs))
+            self.lam = max(0.0, self.lam + self.lr * (c - self.target))
+            self.training_env.env_method("set_lambda", self.lam)
+            self.w.writerow([self.num_timesteps, len(self.costs), round(c, 4), round(self.lam, 4)])
+            self.f.flush()
+            self.costs = []
+
+    def _on_training_end(self):
+        self.f.close()
 
 
 class EpisodeLogger(BaseCallback):
@@ -116,6 +152,10 @@ def main():
     p.add_argument("--actuator", default="damping", choices=["damping", "hill"], help="kinematic2")
     p.add_argument("--omega-max", type=float, default=40.0, help="kinematic2, hill: zero-torque speed (rad/s)")
     p.add_argument("--torque-scale", type=float, default=1.0, help="kinematic2: arm motor budget multiplier")
+    p.add_argument("--lagrangian", type=float, default=None, metavar="TARGET",
+                   help="kinematic2: constrained RL (PPO-Lagrangian): the elbow law is a cost with this target rate "
+                        "(e.g. 0.01) instead of part of the reward")
+    p.add_argument("--lagrange-lr", type=float, default=2.0, help="lambda step per rollout per unit of excess cost")
     p.add_argument("--limits", default=None, choices=["human", "g1", "h1"],
                    help="kinematic2: the arm's actuator and joint limits (envs/arm_limits.py)")
     p.add_argument("--drag", action="store_true",
@@ -150,6 +190,8 @@ def main():
         env2_kw["tolerance_target"] = a.tolerance_target
     if a.limits:
         env2_kw["limits"] = a.limits
+    if a.lagrangian is not None:
+        env2_kw["lagrangian"] = True
     if a.drag:
         from envs.ballistics import CRICKET_DRAG_K
         env2_kw["drag_k"] = CRICKET_DRAG_K
@@ -206,6 +248,8 @@ def main():
         Path(a.model_path).parent.mkdir(parents=True, exist_ok=True)
         json.dump(env2_kw, open(a.model_path + ".env2.json", "w"), indent=1)
     callbacks = [EpisodeLogger(Path(a.log_dir) / "episodes.csv")]
+    if a.lagrangian is not None:
+        callbacks.append(LagrangeCallback(a.lagrangian, a.lagrange_lr, Path(a.log_dir) / "lagrange.csv"))
     if a.checkpoint_every > 0:
         callbacks.append(CheckpointCallback(save_freq=max(1, a.checkpoint_every // a.n_envs),
                                             save_path=a.model_path + "_ckpts", name_prefix="step"))

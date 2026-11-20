@@ -26,6 +26,11 @@ untouched so that every earlier result stays reproducible.
   limits = "human" | "g1" | "h1"   the arm's actuator and joint limits from envs/arm_limits.py (peak torque and
       torque-speed curve per motor, joint ranges, shoulder cone); the linear damping is then 5% of peak / no-load
       speed, for numerical stability only. None: the skeleton's own (250 N m, 40 rad/s damping), as before.
+  lagrangian   constrained RL (PPO-Lagrangian, Ray, Achiam & Amodei 2019): the ICC law leaves the reward and becomes a
+      cost. A delivery pays as if legal (in the band: 1 + 0.5 speed; else -distance; no illegal penalty) and reports
+      cost = 1 if the elbow straightened more than the law allows (with the tolerance reward: the expected illegal
+      fraction over release timing). The reward is task - lambda * cost, and train_runup's LagrangeCallback raises
+      lambda while the illegal rate is above its target and lowers it (to >= 0) below (set_lambda).
   tolerance_target = t   (with tolerance_reward_sd_ms) the good part of the expected reward is divided by
       max(p, t): above good rate t only speed pays, below it tolerance does, so the bowler settles at p = t at
       the most speed it can. Plain expected reward (t = 0) favours p ~ 0.85-0.95 on every skill frontier.
@@ -53,7 +58,7 @@ def land(p, v, k=0.0):
 
 class KinematicBowlEnv2(KinematicBowlEnv):
     def __init__(self, tolerance_reward_sd_ms=0.0, learned_release=False, target_sample=None,
-                 actuator="damping", omega_max=40.0, torque_scale=1.0, tolerance_target=0.0, limits=None, **kw):
+                 actuator="damping", omega_max=40.0, torque_scale=1.0, tolerance_target=0.0, limits=None, lagrangian=False, **kw):
         kw["arm_control"] = "torque"
         super().__init__(**kw)
         m = self.m
@@ -72,6 +77,8 @@ class KinematicBowlEnv2(KinematicBowlEnv):
         elif actuator != "damping":
             raise ValueError(actuator)
         self.limits = limits
+        self.lagrangian = lagrangian
+        self.lam = 0.0
         if limits is not None and limits != "model":
             from envs.arm_limits import PROFILES
             if actuator != "damping" or torque_scale != 1.0:
@@ -160,8 +167,12 @@ class KinematicBowlEnv2(KinematicBowlEnv):
         out = {"released": True, "speed_m_s": float(np.linalg.norm(v)), "land_x": x, "lateral_m": y,
                "extension_deg": ext, "legal": legal, "release_t": t, "release_height_m": float(p[2]),
                "arm_out_of_plane_deg": plane}
-        out["good"] = bool(legal and self.target_min <= x <= self.target_max and abs(y) <= self.line_tol_m)
+        zone = bool(self.target_min <= x <= self.target_max and abs(y) <= self.line_tol_m)
+        out["good"] = bool(legal and zone)
         self._outcome = out
+        if self.lagrangian:                       # the law is a cost, not part of the reward
+            out["zone"], out["cost"] = zone, float(not legal)
+            return self._task_reward(x, True, y), out
         return self._task_reward(x, legal, y), out
 
     def _no_ball_at(self, why):
@@ -176,20 +187,27 @@ class KinematicBowlEnv2(KinematicBowlEnv):
         offs = (np.arange(lo, hi + 1) - c) * h
         w = np.exp(-0.5 * (offs / self.tolerance_reward_sd_s) ** 2)
         w /= w.sum()
-        R, P, G = 0.0, 0.0, 0.0
+        R, P, G, Cst = 0.0, 0.0, 0.0, 0.0
         for wi, i in zip(w, range(lo, hi + 1)):
             r, o = self._score_instant(i)
+            pays = o.get("zone", o["good"]) if self.lagrangian else o["good"]
             R += wi * r
-            P += wi * float(o["good"])
-            G += wi * r * float(o["good"])
+            P += wi * float(pays)
+            G += wi * r * float(pays)
+            Cst += wi * o.get("cost", 0.0)
         if self.tolerance_target > 0 and P > 0:
             # target tolerance: the good part pays G / max(P, target). Above the target that is the good
             # deliveries' mean reward (speed only); below it, P / target of it (tolerance pays)
             R = R - G + G / max(P, self.tolerance_target)
         r0, o0 = self._score_instant(c)            # the nominal release, for logging
         o0 = dict(o0, p_jit=P, expected_reward=R)
+        if self.lagrangian:
+            o0["cost"] = Cst
         self._outcome = o0
         return R, o0
+
+    def set_lambda(self, lam):
+        self.lam = float(lam)
 
     # -- step ------------------------------------------------------------------
     def step(self, action):
@@ -243,8 +261,9 @@ class KinematicBowlEnv2(KinematicBowlEnv):
             else:
                 task = self._no_ball("still holding the ball")
         done = task is not None
-        r = self.task_weight * task if done else 0.0
-        info = {"terms": dict.fromkeys(("pose", "vel", "ends", "root"), 0.0), "fell": False, "t": self.t,
+        cost = float((self._outcome or {}).get("cost", 0.0)) if done and self.lagrangian else 0.0
+        r = self.task_weight * (task - self.lam * cost) if done else 0.0
+        info = {"cost": cost, "terms": dict.fromkeys(("pose", "vel", "ends", "root"), 0.0), "fell": False, "t": self.t,
                 "start_t": self._start_t, "drift_m": 0.0,
                 "reached_release": bool(self._outcome is not None and self._outcome.get("released")),
                 "task_reward": task, "outcome": self._outcome}
