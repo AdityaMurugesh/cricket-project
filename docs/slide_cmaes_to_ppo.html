@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CMA-ES to PPO</title>
+<style>
+  :root {
+    --ink: #0b0b0b; --ink2: #52514e; --line: #d9d7d2; --bg: #fcfcfb;
+    --blue: #2a78d6; --blue-bg: #eaf2fc; --orange: #eb6834; --orange-bg: #fdefe8;
+    --green: #1baf7a; --green-bg: #e6f6ef; --grey-bg: #f1f0ed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 720px; background: var(--bg); }
+  body { font-family: "Segoe UI", Inter, Arial, sans-serif; color: var(--ink); padding: 34px 44px 26px; position: relative; }
+  h1 { font-size: 30px; font-weight: 650; letter-spacing: -0.3px; }
+  h1 span { color: var(--ink2); font-weight: 400; }
+  .sub { margin-top: 6px; font-size: 16px; color: var(--ink2); }
+  .options { display: flex; gap: 14px; margin-top: 16px; }
+  .opt { flex: 1; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 14px; font-size: 15px; color: var(--ink2); background: #fff; }
+  .opt.yes { border-color: var(--green); background: var(--green-bg); color: var(--ink); }
+  .opt b { color: var(--ink); }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .6px; padding: 2px 8px; border-radius: 20px; margin-right: 8px; vertical-align: 1px; }
+  .tag.no { background: var(--grey-bg); color: var(--ink2); }
+  .tag.ok { background: var(--green); color: #fff; }
+  .flow { display: grid; grid-template-columns: 1fr 34px 1fr 34px 1fr; margin-top: 20px; align-items: stretch; }
+  .step { border-radius: 12px; padding: 14px 16px 12px; border: 1.5px solid; background: #fff; }
+  .s1 { border-color: var(--blue); }
+  .s2 { border-color: var(--ink2); }
+  .s3 { border-color: var(--orange); }
+  .step .n { font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .s1 .n { color: var(--blue); } .s2 .n { color: var(--ink2); } .s3 .n { color: var(--orange); }
+  .step h2 { font-size: 21px; margin: 3px 0 2px; font-weight: 650; }
+  .step .file { font-family: Consolas, monospace; font-size: 12.5px; color: var(--ink2); }
+  .step ul { margin: 9px 0 0 17px; font-size: 14.5px; line-height: 1.38; }
+  .step li { margin-bottom: 4px; }
+  .out { margin-top: 9px; padding: 7px 10px; border-radius: 8px; font-size: 13.5px; line-height: 1.35; }
+  .s1 .out { background: var(--blue-bg); } .s2 .out { background: var(--grey-bg); } .s3 .out { background: var(--orange-bg); }
+  .arrow { display: flex; align-items: center; justify-content: center; }
+  .arrow svg { width: 30px; height: 30px; }
+  .why { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .why div { border-left: 4px solid var(--line); padding: 4px 12px; font-size: 14.5px; line-height: 1.4; color: var(--ink2); }
+  .why div b { color: var(--ink); }
+  .why .k { border-color: var(--green); }
+  .foot { position: absolute; left: 44px; right: 44px; bottom: 16px; font-size: 11.5px; color: var(--ink2); display: flex; justify-content: space-between; }
+  code { font-family: Consolas, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>How CMA-ES connects to PPO: <span>a warm start, not a reward term</span></h1>
+  <div class="sub">CMA-ES finds one fast, legal delivery. Its torques are copied into PPO's own network, and PPO carries on training with the normal task reward.</div>
+
+  <div class="options">
+    <div class="opt"><span class="tag no">NOT USED</span><b>Imitation reward:</b> add a term that pays the policy for staying close to the reference trajectory.</div>
+    <div class="opt yes"><span class="tag ok">USED</span><b>Initialise the policy from the reference:</b> behaviour cloning, then PPO with the unchanged task reward.</div>
+  </div>
+
+  <div class="flow">
+    <div class="step s1">
+      <div class="n">Step 1: optimise</div>
+      <h2>CMA-ES</h2>
+      <div class="file">scripts/kin_frontier.py</div>
+      <ul>
+        <li>Searches <b>238 numbers</b>: 7 arm motors × 34 knots, one every 20 ms from the hand-over (0.5 s before release).</li>
+        <li>Fitness: <b>-speed</b> if the ball is legal (elbow ≤ 15°), on a good length and line, and good often enough under timing error; otherwise a penalty that grows with the violation.</li>
+        <li>Release angle fixed per search (270° / 290°); the release time follows from the motion.</li>
+      </ul>
+      <div class="out"><b>Output:</b> one open-loop torque plan, e.g. 130 km/h, legal, on a good length.</div>
+    </div>
+    <div class="arrow"><svg viewBox="0 0 30 30"><path d="M4 15h19M17 8l7 7-7 7" fill="none" stroke="#52514e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="step s2">
+      <div class="n">Step 2: copy</div>
+      <h2>Behaviour cloning</h2>
+      <div class="file">scripts/bc_from_frontier.py</div>
+      <ul>
+        <li>Bowl the plan from 41 start times, 8 times each, with small random action noise, so the data also covers states <i>near</i> the plan.</li>
+        <li>Label every state with the plan's torque at that moment.</li>
+        <li><b>Actor</b> (PPO's policy network) trained to output those torques (mean-squared error). <b>Critic</b> trained on each rollout's delivery reward. Exploration noise set small.</li>
+      </ul>
+      <div class="out"><b>Output:</b> a PPO network that already bowls the CMA-ES delivery.</div>
+    </div>
+    <div class="arrow"><svg viewBox="0 0 30 30"><path d="M4 15h19M17 8l7 7-7 7" fill="none" stroke="#52514e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="step s3">
+      <div class="n">Step 3: improve</div>
+      <h2>PPO fine-tuning</h2>
+      <div class="file">scripts/train_runup.py --resume-from</div>
+      <ul>
+        <li>The <b>same network</b> keeps training with the normal task reward (<code>_task_reward</code>):
+          good ball → 1 + 0.5 × speed (m/s); miss → −distance; illegal → −distance − 2; all × 10.</li>
+        <li>For a timing skill, the reward is the expected value over release-timing error.</li>
+        <li>No term rewards staying close to the CMA-ES plan: PPO is free to move away from it.</li>
+      </ul>
+      <div class="out"><b>Output:</b> a feedback policy: it sees the arm every 20 ms and can correct.</div>
+    </div>
+  </div>
+
+  <div class="why">
+    <div><b>What CMA-ES alone cannot do:</b> its plan is open loop (the same torques whatever happens). Release-timing error alone hits a plan and a policy alike. Error <i>during</i> the swing (motor noise) can only be corrected by a policy.</div>
+    <div class="k" id="result"><b>Same-noise test (running on the HPC):</b> CMA-ES plan vs its clone vs clone + PPO, all scored under identical timing error and motor noise (<code>scripts/compare_cmaes_rl.py</code>).</div>
+  </div>
+
+  <div class="foot"><span>ACOD310 · RL cricket bowling under the ICC elbow law</span><span>github.com/AdityaMurugesh/cricket-project</span></div>
+</body>
+</html>
