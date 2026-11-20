@@ -1,0 +1,858 @@
+{
+ "delivery": "T3aL",
+ "rate_hz": 100.0,
+ "windows": {
+  "-1.0:-0.6": {
+   "G1": {
+    "hip_pitch_r": {
+     "min_deg": -85.06272551823807,
+     "max_deg": 16.70877913591178,
+     "range_deg": [
+      -145.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 12.426347721482545,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_r": {
+     "min_deg": 8.956064082224602,
+     "max_deg": 51.89178028266759,
+     "range_deg": [
+      -170.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 4.903313432955625,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.36585365853658536,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_r": {
+     "min_deg": -10.400380068769048,
+     "max_deg": 82.30761512219138,
+     "range_deg": [
+      -158.0,
+      158.0
+     ],
+     "peak_speed_rad_s": 13.179809788102112,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_r": {
+     "min_deg": -11.093215791813947,
+     "max_deg": 77.62163764992162,
+     "range_deg": [
+      -5.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 8.861233675351171,
+     "speed_limit_rad_s": 20,
+     "frac_out_of_range": 0.12195121951219512,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "ankle_pitch_r": {
+     "min_deg": -34.67904812755347,
+     "max_deg": 33.79339634775884,
+     "range_deg": [
+      -50.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 14.986346050592214,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.12195121951219512,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_r": {
+     "min_deg": -2.7972953322811267,
+     "max_deg": 35.73754776662264,
+     "range_deg": [
+      -15.0,
+      15.0
+     ],
+     "peak_speed_rad_s": 13.315867723311442,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.1951219512195122,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_pitch_l": {
+     "min_deg": -31.789015827064702,
+     "max_deg": 18.553635186191453,
+     "range_deg": [
+      -145.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 12.643865926312115,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_l": {
+     "min_deg": 1.6068152349909475,
+     "max_deg": 53.41057184360165,
+     "range_deg": [
+      -30.0,
+      170.0
+     ],
+     "peak_speed_rad_s": 13.282168191656407,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_l": {
+     "min_deg": 43.80737530677913,
+     "max_deg": 80.64167919835224,
+     "range_deg": [
+      -158.0,
+      158.0
+     ],
+     "peak_speed_rad_s": 17.189101313643384,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_l": {
+     "min_deg": 13.678917227588975,
+     "max_deg": 78.1190418600474,
+     "range_deg": [
+      -5.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 13.498145215626387,
+     "speed_limit_rad_s": 20,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_l": {
+     "min_deg": -53.184125207348806,
+     "max_deg": 51.52687889140069,
+     "range_deg": [
+      -50.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 25.190672134374775,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.34146341463414637,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "ankle_roll_l": {
+     "min_deg": -31.447195286857877,
+     "max_deg": 2.779761767969394,
+     "range_deg": [
+      -15.0,
+      15.0
+     ],
+     "peak_speed_rad_s": 12.477665831265128,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.4634146341463415,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_yaw": {
+     "min_deg": -4.205913733966574,
+     "max_deg": 37.7863164935193,
+     "range_deg": [
+      -150.0,
+      150.0
+     ],
+     "peak_speed_rad_s": 5.731270293795472,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_roll": {
+     "min_deg": -3.8371084683841996,
+     "max_deg": 21.028661917789115,
+     "range_deg": [
+      -29.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 4.475601050280709,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_pitch": {
+     "min_deg": -12.97412872155405,
+     "max_deg": 5.121756878185568,
+     "range_deg": [
+      -29.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 3.829233950683458,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    }
+   },
+   "H1": {
+    "hip_pitch_r": {
+     "min_deg": -86.85829637965114,
+     "max_deg": -1.0281313156569558,
+     "range_deg": [
+      -179.9,
+      145.0
+     ],
+     "peak_speed_rad_s": 10.98179102576614,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_r": {
+     "min_deg": -10.44190523114264,
+     "max_deg": 19.007201692726948,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 10.204765861684816,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_r": {
+     "min_deg": 37.97080060625666,
+     "max_deg": 82.98802625081443,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 10.839673393519778,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_r": {
+     "min_deg": -11.093215791813947,
+     "max_deg": 77.62163764992162,
+     "range_deg": [
+      -14.9,
+      117.5
+     ],
+     "peak_speed_rad_s": 8.861233675351171,
+     "speed_limit_rad_s": 14,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "ankle_pitch_r": {
+     "min_deg": -34.67904812755347,
+     "max_deg": 33.79339634775884,
+     "range_deg": [
+      -49.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 14.986346050592214,
+     "speed_limit_rad_s": 9,
+     "frac_out_of_range": 0.12195121951219512,
+     "frac_over_speed": 0.2926829268292683,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_r": {
+     "min_deg": -2.7972953322811267,
+     "max_deg": 35.73754776662264,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 13.315867723311442,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "hip_pitch_l": {
+     "min_deg": -55.68049257680251,
+     "max_deg": 5.712570158592136,
+     "range_deg": [
+      -179.9,
+      145.0
+     ],
+     "peak_speed_rad_s": 17.187832842840773,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_l": {
+     "min_deg": -1.10947624120778,
+     "max_deg": 20.619235875005888,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 4.57264734763789,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_l": {
+     "min_deg": 53.98333580632423,
+     "max_deg": 80.30987920647448,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 15.828953362415676,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_l": {
+     "min_deg": 13.678917227588975,
+     "max_deg": 78.1190418600474,
+     "range_deg": [
+      -14.9,
+      117.5
+     ],
+     "peak_speed_rad_s": 13.498145215626387,
+     "speed_limit_rad_s": 14,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_l": {
+     "min_deg": -53.184125207348806,
+     "max_deg": 51.52687889140069,
+     "range_deg": [
+      -49.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 25.190672134374775,
+     "speed_limit_rad_s": 9,
+     "frac_out_of_range": 0.34146341463414637,
+     "frac_over_speed": 0.5609756097560976,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "ankle_roll_l": {
+     "min_deg": -31.447195286857877,
+     "max_deg": 2.779761767969394,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 12.477665831265128,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "waist_yaw": {
+     "min_deg": -4.205913733966574,
+     "max_deg": 37.7863164935193,
+     "range_deg": [
+      -134.6,
+      134.6
+     ],
+     "peak_speed_rad_s": 5.731270293795472,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_roll": {
+     "min_deg": -3.8371084683841996,
+     "max_deg": 21.028661917789115,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 4.475601050280709,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "waist_pitch": {
+     "min_deg": -12.97412872155405,
+     "max_deg": 5.121756878185568,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 3.829233950683458,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    }
+   }
+  },
+  "-0.6:0.3": {
+   "G1": {
+    "hip_pitch_r": {
+     "min_deg": -70.61279279597878,
+     "max_deg": 12.185092077495023,
+     "range_deg": [
+      -145.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 12.271335523439648,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_r": {
+     "min_deg": -13.959127442008267,
+     "max_deg": 47.35625643889651,
+     "range_deg": [
+      -170.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 8.834219884301131,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.054945054945054944,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_r": {
+     "min_deg": -8.294084276010413,
+     "max_deg": 7.6935589971535885,
+     "range_deg": [
+      -158.0,
+      158.0
+     ],
+     "peak_speed_rad_s": 5.441938799510848,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "knee_r": {
+     "min_deg": -4.728743991238223,
+     "max_deg": 75.5948097734684,
+     "range_deg": [
+      -5.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 22.118143259508365,
+     "speed_limit_rad_s": 20,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.02197802197802198,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_r": {
+     "min_deg": -19.226218936745294,
+     "max_deg": 24.103747844165962,
+     "range_deg": [
+      -50.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 19.883805533513083,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_r": {
+     "min_deg": -1.6825924337110132,
+     "max_deg": 5.104250865889851,
+     "range_deg": [
+      -15.0,
+      15.0
+     ],
+     "peak_speed_rad_s": 4.138352180333544,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_pitch_l": {
+     "min_deg": -51.15526086502853,
+     "max_deg": 10.175049480225743,
+     "range_deg": [
+      -145.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 13.556933328734779,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_l": {
+     "min_deg": -6.556347422242928,
+     "max_deg": 41.37233618850903,
+     "range_deg": [
+      -30.0,
+      170.0
+     ],
+     "peak_speed_rad_s": 5.723726108742266,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_l": {
+     "min_deg": -16.112891570457244,
+     "max_deg": 64.0638242483582,
+     "range_deg": [
+      -158.0,
+      158.0
+     ],
+     "peak_speed_rad_s": 25.98676947248407,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_l": {
+     "min_deg": 5.121174920521409,
+     "max_deg": 65.98457612931905,
+     "range_deg": [
+      -5.0,
+      165.0
+     ],
+     "peak_speed_rad_s": 17.47545329568088,
+     "speed_limit_rad_s": 20,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_l": {
+     "min_deg": 0.6476495610432577,
+     "max_deg": 53.787756470236246,
+     "range_deg": [
+      -50.0,
+      30.0
+     ],
+     "peak_speed_rad_s": 16.453058724362236,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.5604395604395604,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_l": {
+     "min_deg": -30.44483930971147,
+     "max_deg": 0.05551954323882521,
+     "range_deg": [
+      -15.0,
+      15.0
+     ],
+     "peak_speed_rad_s": 7.815463711269555,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.42857142857142855,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_yaw": {
+     "min_deg": -14.25735926255009,
+     "max_deg": 65.38521860592135,
+     "range_deg": [
+      -150.0,
+      150.0
+     ],
+     "peak_speed_rad_s": 9.027843368573013,
+     "speed_limit_rad_s": 32,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_roll": {
+     "min_deg": -50.51388112510282,
+     "max_deg": 18.153482574467443,
+     "range_deg": [
+      -29.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 8.927657205679473,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.2087912087912088,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_pitch": {
+     "min_deg": -11.810691307230336,
+     "max_deg": 42.36430472084994,
+     "range_deg": [
+      -29.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 6.9293318831936785,
+     "speed_limit_rad_s": 30,
+     "frac_out_of_range": 0.24175824175824176,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    }
+   },
+   "H1": {
+    "hip_pitch_r": {
+     "min_deg": -76.41733425142206,
+     "max_deg": 12.155328703629243,
+     "range_deg": [
+      -179.9,
+      145.0
+     ],
+     "peak_speed_rad_s": 12.411471887619657,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_r": {
+     "min_deg": -14.241957033365413,
+     "max_deg": 16.87402806822205,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 5.731866883090541,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_r": {
+     "min_deg": -8.937889183541754,
+     "max_deg": 45.033371463797,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 8.108981829755946,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.054945054945054944,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "knee_r": {
+     "min_deg": -4.728743991238223,
+     "max_deg": 75.5948097734684,
+     "range_deg": [
+      -14.9,
+      117.5
+     ],
+     "peak_speed_rad_s": 22.118143259508365,
+     "speed_limit_rad_s": 14,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.04395604395604396,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_r": {
+     "min_deg": -19.226218936745294,
+     "max_deg": 24.103747844165962,
+     "range_deg": [
+      -49.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 19.883805533513083,
+     "speed_limit_rad_s": 9,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.08791208791208792,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_r": {
+     "min_deg": -1.6825924337110132,
+     "max_deg": 5.104250865889851,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 4.138352180333544,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "hip_pitch_l": {
+     "min_deg": -58.2913888974412,
+     "max_deg": -13.100784806718302,
+     "range_deg": [
+      -179.9,
+      145.0
+     ],
+     "peak_speed_rad_s": 7.192505453677225,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_roll_l": {
+     "min_deg": -7.245190924995904,
+     "max_deg": 26.948108831296363,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 9.34217276624969,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.06593406593406594,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "hip_yaw_l": {
+     "min_deg": -10.758318703581976,
+     "max_deg": 69.04215319667945,
+     "range_deg": [
+      -24.6,
+      24.6
+     ],
+     "peak_speed_rad_s": 19.435753425480083,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.6043956043956044,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": true
+    },
+    "knee_l": {
+     "min_deg": 5.121174920521409,
+     "max_deg": 65.98457612931905,
+     "range_deg": [
+      -14.9,
+      117.5
+     ],
+     "peak_speed_rad_s": 17.47545329568088,
+     "speed_limit_rad_s": 14,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.01098901098901099,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_pitch_l": {
+     "min_deg": 0.6476495610432577,
+     "max_deg": 53.787756470236246,
+     "range_deg": [
+      -49.8,
+      29.8
+     ],
+     "peak_speed_rad_s": 16.453058724362236,
+     "speed_limit_rad_s": 9,
+     "frac_out_of_range": 0.5604395604395604,
+     "frac_over_speed": 0.03296703296703297,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "ankle_roll_l": {
+     "min_deg": -30.44483930971147,
+     "max_deg": 0.05551954323882521,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 7.815463711269555,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "waist_yaw": {
+     "min_deg": -14.25735926255009,
+     "max_deg": 65.38521860592135,
+     "range_deg": [
+      -134.6,
+      134.6
+     ],
+     "peak_speed_rad_s": 9.027843368573013,
+     "speed_limit_rad_s": 23,
+     "frac_out_of_range": 0.0,
+     "frac_over_speed": 0.0,
+     "no_joint": false,
+     "beyond_human": false
+    },
+    "waist_roll": {
+     "min_deg": -50.51388112510282,
+     "max_deg": 18.153482574467443,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 8.927657205679473,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    },
+    "waist_pitch": {
+     "min_deg": -11.810691307230336,
+     "max_deg": 42.36430472084994,
+     "range_deg": [
+      0.0,
+      0.0
+     ],
+     "peak_speed_rad_s": 6.9293318831936785,
+     "speed_limit_rad_s": 0,
+     "frac_out_of_range": 1.0,
+     "frac_over_speed": 1.0,
+     "no_joint": true,
+     "beyond_human": false
+    }
+   }
+  }
+ }
+}
