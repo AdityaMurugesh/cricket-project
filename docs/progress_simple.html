@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cricket Project, Simply</title>
+<style>
+  @page { size: A4; margin: 18mm 18mm 18mm 18mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --accent:#1f6f8b; --good:#1e8449; --warn:#a04000; --soft:#f3f6fa; --line:#d9dee7; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); font-size: 12.5pt; line-height: 1.6; margin: 0; background:#fff; }
+  h1 { font-size: 24pt; margin: 0 0 2px; color: var(--accent); }
+  h2 { font-size: 16pt; margin: 26px 0 6px; color: var(--accent); break-after: avoid; }
+  h2 .n { display:inline-block; width: 30px; height: 30px; line-height: 30px; text-align:center; border-radius: 50%;
+          background: var(--accent); color:#fff; font-size: 13pt; margin-right: 8px; }
+  p { margin: 6px 0 9px; }
+  .sub { color: var(--muted); font-size: 11pt; }
+  .one { font-size: 13.5pt; font-weight: 600; margin: 4px 0 10px; }
+  .box { background: var(--soft); border-radius: 8px; padding: 10px 14px; margin: 10px 0; break-inside: avoid; }
+  .say { background: #eef8f1; border-left: 5px solid var(--good); border-radius: 6px; padding: 9px 14px; margin: 12px 0; break-inside: avoid; }
+  .say b:first-child { color: var(--good); }
+  .catch { background: #fdf2e9; border-left: 5px solid var(--warn); border-radius: 6px; padding: 9px 14px; margin: 12px 0; break-inside: avoid; }
+  .catch b:first-child { color: var(--warn); }
+  table { border-collapse: collapse; margin: 8px 0 10px; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 5px 12px; text-align: left; }
+  th { background: var(--soft); }
+  td.n { text-align: right; font-weight: 600; }
+  img { max-width: 100%; display: block; margin: 8px auto; }
+  figure { margin: 10px 0; break-inside: avoid; }
+  figcaption { font-size: 10.5pt; color: var(--muted); text-align: center; }
+  ul, ol { margin: 4px 0 10px; padding-left: 24px; } li { margin: 4px 0; }
+  .pb { break-before: page; }
+  code { font-family: Consolas, monospace; font-size: 10.5pt; background: var(--soft); padding: 0 4px; }
+  .qa p { margin: 2px 0 12px; }
+  .qa .q { font-weight: 700; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>The cricket project, explained simply</h1>
+<p class="sub">What we did since the 6 Nov meeting. Read it top to bottom once, and you can explain it. The green boxes are
+lines you can say as they are. The full version, with every number, is <code>docs/progress_since_6nov.pdf</code>.</p>
+
+<div class="box">
+<p class="one">The whole story in one paragraph</p>
+<p>Our computer bowler could be <b>fast</b> or <b>accurate</b>, never both. We found out why. To land a fast ball
+on a good length, you have to let go of it at <b>almost exactly the right moment</b>, within about a thousandth of a
+second. A slow ball is much more forgiving. So <b>pace depends on timing skill</b>: a bowler with perfect timing can bowl
+fast <i>and</i> accurately, but a bowler with ordinary timing can't. We then got the RL bowler to reach that limit.
+Finally, we made the simulation more realistic and checked that the answer stays the same.</p>
+</div>
+
+<!-- 1 -->
+<h2><span class="n">1</span>Where we were on 6 Nov</h2>
+<p class="one">Our bowlers were either fast but unreliable, or reliable but slow.</p>
+<ul>
+  <li>The bowler's body is a real person's motion capture, played back exactly. Only the <b>bowling arm</b> is
+  controlled by the learning program (RL, specifically PPO).</li>
+  <li>A <b>good ball</b> means three things: a legal arm (elbow straightens 15° or less), it pitches on a good length
+  (10.9–12.9 m), and it stays on line.</li>
+  <li>Real people can't let go of the ball at exactly the same moment every time. We add that wobble on purpose: the
+  ball leaves a few milliseconds early or late at random.</li>
+  <li>With that wobble, our bowlers were accurate at only <b>45–55 km/h</b>. The faster ones missed most of the time.</li>
+</ul>
+<p><b>The open question:</b> is that the arm's real limit, or is the learning program just not good enough?</p>
+
+<!-- 2 -->
+<h2><span class="n">2</span>We stopped tuning and asked the physics directly</h2>
+<p class="one">We used a second method to work out the best ball the arm can <i>possibly</i> bowl.</p>
+<p>Think of two people. A <b>coach</b> (RL) teaches a bowler through thousands of practice balls. An <b>engineer</b> (an
+optimiser called CMA-ES) takes one ball and tweaks every muscle command until it is as fast as possible. The engineer's
+answer is the <b>ceiling</b>: the best the coach could ever hope for.</p>
+<p>We asked the engineer: "What is the fastest ball that is still good 25% of the time? 50%? 90%?"</p>
+<p><b>Answer:</b> with perfect timing the arm can reach about 113–130 km/h. As soon as you ask for reliability, the speed
+falls fast. Our reliable RL bowlers were already sitting <b>on</b> that ceiling.</p>
+<div class="say"><b>Say:</b> "Our slow, reliable bowlers weren't a training failure. An independent optimiser shows that
+this is the physical limit for that level of reliability."</div>
+
+<!-- 3 -->
+<h2><span class="n">3</span>Why: the "launch window"</h2>
+<p class="one">The faster the ball, the less time you have to let go of it.</p>
+<p>The hand moves in a circle. If you let go a tiny bit late, the ball points a little more downwards. If you let go
+early, it points more upwards. For a slow ball that barely matters. For a fast ball, a tiny change in angle moves the
+landing spot a long way. On top of that, a faster arm turns further in the same instant.</p>
+<figure>
+<img src="../results/kinematic/launch_window.png" style="width:82%">
+<figcaption>Where the ball lands if it's released a few ms early or late. The green band is a good length.
+The fast ball (red) is only in the band for about 1–2 ms. The slow ball (blue) stays in it for about 60 ms.</figcaption>
+</figure>
+<table>
+<tr><th>Ball</th><th>How precisely you must let go</th></tr>
+<tr><td>about 100 km/h</td><td class="n">within about 1 ms</td></tr>
+<tr><td>about 55 km/h</td><td class="n">anywhere in a 20–60 ms window</td></tr>
+</table>
+<p>The research literature on throwing says the same: accurate fast throws need about 1 ms precision (Calvin 1983;
+Chowdhary &amp; Challis 1999).</p>
+<div class="say"><b>Say:</b> "Fast bowling is a timing problem. A 100 km/h ball must leave the hand within about one
+millisecond to pitch on a length. That's physics, and it matches the throwing research."</div>
+
+<!-- 4 -->
+<h2><span class="n">4</span>The main result: pace is a timing skill</h2>
+<p class="one">The same arm bowls fast and accurately only if its timing is very good.</p>
+<p>We asked: "If a bowler's release timing wobbles by X milliseconds, what is the fastest ball that still pitches on a
+good length 90% of the time?"</p>
+<table>
+<tr><th>Bowler's timing wobble</th><th>Who has timing like this</th><th>Fastest reliable ball (90% good)</th></tr>
+<tr><td>1 ms</td><td>elite (top pitchers, estimated)</td><td class="n">about 90 km/h</td></tr>
+<tr><td>2 ms</td><td>elite</td><td class="n">about 80–87 km/h</td></tr>
+<tr><td>4 ms</td><td>very good</td><td class="n">about 70–78 km/h</td></tr>
+<tr><td>8 ms</td><td>good amateur</td><td class="n">about 60–66 km/h</td></tr>
+<tr><td>12 ms</td><td>ordinary (like our participant)</td><td class="n">about 51–58 km/h</td></tr>
+</table>
+<div class="say"><b>Say:</b> "With elite timing the same arm bowls about 90 km/h reliably. With ordinary timing it only
+manages about 55. Pace isn't only about strength, it's also about timing."</div>
+
+<!-- 5 -->
+<h2><span class="n">5</span>Getting the RL bowler up to the limit</h2>
+<p class="one">Three tricks took the RL bowler from 77 km/h to 110 km/h, and onto the limit at every timing level.</p>
+<ol>
+  <li><b>Start from the engineer's answer.</b> RL learning from nothing got stuck at 77 km/h. So we first copied the
+  optimiser's fast ball into the RL network (this is called <b>behaviour cloning</b>), then let RL improve it.
+  To make one plan work every time, the arm follows the real person's motion until 0.5 s before release, then the network takes
+  over (the <b>arm handover</b>).</li>
+  <li><b>Make RL experiment less.</b> RL learns by trying slightly random moves. For a ball that must be timed to 1 ms,
+  those random moves make it miss, so RL "plays safe" and bowls slower (the copied ball dropped from 106 to 85 km/h). Turning the
+  randomness down kept the pace. Result: <b>104 km/h</b>, and <b>110 km/h</b> in the newer, more realistic model.</li>
+  <li><b>Tell RL how reliable to be.</b> Our reward quietly preferred very safe, slow balls. We added a setting that says,
+  for example, "aim for 75% good". The bowlers then got 15–23 km/h faster at the reliability we asked for, matching or
+  slightly beating the optimiser.</li>
+</ol>
+<p>We also made the training signal less random. Instead of "hit or miss" for each ball, the simulator now works out the
+exact chance of a good ball and pays that.</p>
+<div class="say"><b>Say:</b> "RL from scratch stalls at 77 km/h. It's a starting-point problem, not a training-time
+problem. We start RL from the optimiser's ball, lower its exploration noise, and tell it how reliable to be. Then it
+reaches the physical limit."</div>
+
+<!-- 6 -->
+<h2><span class="n">6</span>Things we checked, which didn't change the answer</h2>
+<table>
+<tr><th>We tested…</th><th>Result</th></tr>
+<tr><td>A stronger arm (half to 1.5× the strength)</td><td>Barely faster with perfect timing. <b>No faster</b> with wobble. Timing is the limit, not strength.</td></tr>
+<tr><td>Removing the 15° elbow rule (allowing chucking)</td><td>Found <b>nothing faster</b>. The best legal balls keep the elbow straight anyway.</td></tr>
+<tr><td>Air resistance on the ball</td><td>Balls land 0.2–0.5 m shorter, but the pace-vs-timing result is <b>the same</b>.</td></tr>
+<tr><td>A proper elbow stop (the old elbow could bend backwards too far)</td><td><b>Same</b> result.</td></tr>
+<tr><td>Three other recorded run-ups from the same person</td><td>Same pattern, within about 5–8 km/h.</td></tr>
+</table>
+<p>For the air and elbow tests we ran a <b>fair comparison</b>: old model and new model with identical settings. On
+average they differ by only 0.2 km/h.</p>
+<p>We also found and fixed a small <b>measuring bug</b>. The simulator works in 2 ms steps, which made very good timers
+look a bit better than they are. All the numbers here use the fixed version.</p>
+<div class="say"><b>Say:</b> "We made the model more realistic and re-ran everything with a fair control. The answer
+didn't move, so it isn't an artefact of our simplifications."</div>
+
+<!-- 7 -->
+<h2><span class="n">7</span>A surprise: a forgiving fast-ish ball</h2>
+<p class="one">The optimiser found an 83 km/h ball that still lands on a good length when it's released anywhere in a
+26 ms window.</p>
+<p>That should be impossible by section 3. The trick: when this ball is released early, it comes out
+<b>slower</b> and at a <b>different angle</b>, and the two mistakes cancel out, so it still lands in the same place.
+Different releases, same result. This is exactly the <b>equifinality</b> idea your supervisor asked about.</p>
+<div class="catch"><b>The catch:</b> the early releases are slower balls (down to 47 km/h). They're "good" because
+they land on a length, not because they're fast. It also only works about half the time. The RL bowler hasn't found
+this ball yet.</div>
+
+<!-- 8 -->
+<h2><span class="n">8</span>Honest limits</h2>
+<ul>
+  <li><b>One person.</b> All the motion comes from one participant (four of their deliveries).</li>
+  <li><b>Only the arm learns.</b> The body is played back. A real fast bowler gets a lot of pace from the trunk and front leg.</li>
+  <li><b>Simple ball flight.</b> Air resistance only: no swing, seam or bounce.</li>
+  <li><b>The optimiser's answers are "at least this good".</b> A better search can find faster balls, which is why RL sometimes
+  beats it slightly.</li>
+</ul>
+
+<!-- 9 -->
+<h2><span class="n">9</span>If they ask…</h2>
+<div class="qa">
+<p class="q">"Is 12 ms of timing wobble realistic?"</p>
+<p>Yes for a normal bowler. Measured human release timing varies by 3–15 ms. Elite throwers are estimated at 1–2 ms. That's
+why we give results for every timing level.</p>
+<p class="q">"How do you know RL isn't just bad?"</p>
+<p>A completely different method (the optimiser), using the same simulator and scoring, gives the same limit, and our RL bowlers reach it.</p>
+<p class="q">"What's new compared with other work?"</p>
+<p>Earlier bowling simulations find one perfect, noise-free fastest ball. We find the fastest ball <i>when timing is
+imperfect</i>, under the legal elbow rule, and show RL can reach it.</p>
+<p class="q">"Does the 15° law cost pace?"</p>
+<p>Not in our model. Taking the law away found nothing faster.</p>
+<p class="q">"Isn't this just one person's quirk?"</p>
+<p>Four different recorded run-ups give the same pattern. It's still one person, so more people are the next step.</p>
+<p class="q">"What next?"</p>
+<p>Motion capture from more bowlers (ideally elite ones), letting the trunk move too, putting a marker on the ball in the lab to
+measure real release timing, and a write-up.</p>
+</div>
+
+<!-- 10 -->
+<h2><span class="n">10</span>Words to know</h2>
+<table>
+<tr><td><b>RL / PPO</b></td><td>Learning by trial and error with rewards. PPO is the specific method we use.</td></tr>
+<tr><td><b>Optimiser (CMA-ES)</b></td><td>A search that keeps tweaking one ball's muscle commands to make it as fast as possible.</td></tr>
+<tr><td><b>Timing wobble (SD)</b></td><td>How much a bowler's release moment varies from ball to ball, in milliseconds.</td></tr>
+<tr><td><b>Launch window</b></td><td>How long you have to let go and still land on a length.</td></tr>
+<tr><td><b>Behaviour cloning</b></td><td>Copying a known good motion into the network before RL starts.</td></tr>
+<tr><td><b>Arm handover</b></td><td>The arm follows the real motion until 0.5 s before release, then the network takes over.</td></tr>
+<tr><td><b>Equifinality</b></td><td>Different movements giving the same outcome (here: different releases, same landing spot).</td></tr>
+<tr><td><b>v3 model</b></td><td>Our newest simulation: with air resistance, a proper elbow stop, and other run-ups.</td></tr>
+</table>
+
+<!-- 11 -->
+<h2><span class="n">11</span>Videos to show</h2>
+<p>In <code>results/kinematic/videos/</code>:</p>
+<ul>
+  <li><code>v3_rl_fast_110kmh_a270.mp4</code>: the RL bowler at 110 km/h (needs perfect timing).</li>
+  <li><code>v3_rl_12ms_56kmh_a290.mp4</code>: the RL bowler at 56 km/h, good 97% of the time with ordinary timing.
+  <b>Show these two together</b>: both pitch on a length, but they need very different timing.</li>
+  <li><code>v3_plateau_83kmh_a270.mp4</code>: the forgiving 83 km/h ball from section 7.</li>
+  <li><code>v3_fastest_a270.mp4</code>: the optimiser's fastest ball, 130 km/h.</li>
+</ul>
+
+</body>
+</html>
