@@ -275,6 +275,11 @@ def main():
                    help="tau refers to the good rate under signal-dependent motor noise of this SD as well "
                         "(the env's torque_noise_sd; kin_equifinality scores RL bowlers at 0.15); tag _tn<sd>")
     p.add_argument("--noise-seeds", type=int, default=16, help="motor-noise draws per candidate (common to all)")
+    p.add_argument("--limits", default=None, choices=["human", "g1", "h1"],
+                   help="the arm's actuator and joint limits (envs/arm_limits.py); tag _lim<name>")
+    p.add_argument("--warm-rescale", action="store_true",
+                   help="--warm-frontier starts made with other limits: ask for the torques they asked for "
+                        "(commands x old peak / new peak, saturating at +/-1)")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
     global DELIVERY
@@ -293,6 +298,8 @@ def main():
         ENV2["drag_k"] = CRICKET_DRAG_K
     if a.stiff_elbow:
         ENV2["elbow_solref"] = [0.004, 1.0]
+    if a.limits:
+        ENV2["limits"] = a.limits
     set_knots(a.handover, a.knot_dt)
     tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
         + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
@@ -302,7 +309,8 @@ def main():
         + (f"_x{a.max_extension_deg:g}" if a.max_extension_deg != 15.0 else "") \
         + ("_pc" if a.p_cont else "") + ("_drag" if a.drag else "") + ("_se" if a.stiff_elbow else "") \
         + (f"_{a.delivery}" if a.delivery != "T3a" else "") \
-        + (f"_tn{a.torque_noise_sd:g}".replace(".", "p") if a.torque_noise_sd > 0 else "")
+        + (f"_tn{a.torque_noise_sd:g}".replace(".", "p") if a.torque_noise_sd > 0 else "") \
+        + (f"_lim{a.limits}" if a.limits else "")
     import envs.legality as legality
     legality.LEGAL_EXTENSION_DEG = a.max_extension_deg    # the main process scores too (fitness/violation)
     global P_CONT
@@ -329,7 +337,14 @@ def main():
             path, t = spec.rsplit(":", 1)
             rec = next(q for q in json.load(open(path)) if abs(q["tau"] - float(t)) < 1e-9)
             assert np.allclose(rec["knot_times_s"], KNOTS), f"{spec}: other knots"
-            x = np.array(rec["knots"]).ravel()
+            x = np.array(rec["knots"])
+            if a.warm_rescale:
+                from envs.arm_limits import PROFILES
+                old = np.asarray(PROFILES[(rec.get("env2") or {}).get("limits") or "model"]["torque"])
+                old = old * (rec.get("env2") or {}).get("torque_scale", 1.0)
+                new = np.asarray(PROFILES[a.limits or "model"]["torque"])
+                x = np.clip(x * old / new, -1.0, 1.0)
+            x = x.ravel()
             r = pool.map(evaluate, [x])[0]
             starts[f"{Path(path).stem}@{t}"] = x
             log(f"warm start {spec}: {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "

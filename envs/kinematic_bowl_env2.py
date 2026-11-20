@@ -23,6 +23,9 @@ untouched so that every earlier result stays reproducible.
       zero at w_max, and full when it brakes. The linear damping (peak torque / arm_top_speed) is then
       reduced to 5% of it, for numerical stability only.
   torque_scale   multiplies the bowling arm's motor gears: the actuator budget (item 1)
+  limits = "human" | "g1" | "h1"   the arm's actuator and joint limits from envs/arm_limits.py (peak torque and
+      torque-speed curve per motor, joint ranges, shoulder cone); the linear damping is then 5% of peak / no-load
+      speed, for numerical stability only. None: the skeleton's own (250 N m, 40 rad/s damping), as before.
   tolerance_target = t   (with tolerance_reward_sd_ms) the good part of the expected reward is divided by
       max(p, t): above good rate t only speed pays, below it tolerance does, so the bowler settles at p = t at
       the most speed it can. Plain expected reward (t = 0) favours p ~ 0.85-0.95 on every skill frontier.
@@ -50,7 +53,7 @@ def land(p, v, k=0.0):
 
 class KinematicBowlEnv2(KinematicBowlEnv):
     def __init__(self, tolerance_reward_sd_ms=0.0, learned_release=False, target_sample=None,
-                 actuator="damping", omega_max=40.0, torque_scale=1.0, tolerance_target=0.0, **kw):
+                 actuator="damping", omega_max=40.0, torque_scale=1.0, tolerance_target=0.0, limits=None, **kw):
         kw["arm_control"] = "torque"
         super().__init__(**kw)
         m = self.m
@@ -68,6 +71,29 @@ class KinematicBowlEnv2(KinematicBowlEnv):
             m.dof_damping[self._arm_dofs] *= 0.05
         elif actuator != "damping":
             raise ValueError(actuator)
+        self.limits = limits
+        if limits is not None and limits != "model":
+            from envs.arm_limits import PROFILES
+            if actuator != "damping" or torque_scale != 1.0:
+                raise ValueError("limits replaces actuator/torque_scale")
+            P = PROFILES[limits]
+            tq = np.asarray(P["torque"], float)
+            g = m.actuator_gear[self._arm_acts, :3]
+            m.actuator_gear[self._arm_acts, :3] = g / np.linalg.norm(g, axis=1, keepdims=True) * tq[:, None]
+            om = np.asarray(P["omega_max"], float)
+            for a_, t_, o_ in zip(self._arm_acts, tq, om):
+                j = m.actuator_trnid[a_, 0]
+                da = m.jnt_dofadr[j]
+                nd = 3 if m.jnt_type[j] == mujoco.mjtJoint.mjJNT_BALL else 1
+                m.dof_damping[da:da + nd] = 0.05 * t_ / o_
+            for name, (lo, hi) in P.get("range_deg", {}).items():
+                j = m.joint(name).id
+                m.jnt_range[j] = np.radians([lo, hi])
+                m.jnt_limited[j] = 1
+            if P.get("shoulder_cone_deg"):
+                j = m.joint("shoulder_r").id
+                m.jnt_range[j] = [0.0, np.radians(P["shoulder_cone_deg"])]
+                m.jnt_limited[j] = 1
         self._gear_norm = np.linalg.norm(m.actuator_gear[self._arm_acts, :3], axis=1)
         self._continues = self.tolerance_reward_sd_s > 0 or self.release_timing_sd_ms > 0
         n_act = len(self._arm_action) + (1 if learned_release else 0)
@@ -104,6 +130,10 @@ class KinematicBowlEnv2(KinematicBowlEnv):
     # -- actuation -----------------------------------------------------------
     def _torques(self, a):
         u = np.array(a[: len(self._arm_action)], dtype=np.float64)
+        if self.limits is not None and self.limits != "model":
+            from envs.arm_limits import available
+            w = self.d.actuator_velocity[self._arm_acts] / self._gear_norm      # rad/s along each motor's axis
+            u = u * available(self.limits, w, u)
         if self.actuator == "hill":
             w = self.d.actuator_velocity[self._arm_acts] / self._gear_norm      # rad/s along each motor's axis
             conc = np.sign(w) == np.sign(u)
