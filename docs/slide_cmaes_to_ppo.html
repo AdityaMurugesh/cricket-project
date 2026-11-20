@@ -9,6 +9,7 @@
     --blue: #2a78d6; --blue-bg: #eaf2fc; --orange: #eb6834; --orange-bg: #fdefe8;
     --green: #1baf7a; --green-bg: #e6f6ef; --grey-bg: #f1f0ed;
   }
+  @page { size: 1280px 720px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1280px; height: 720px; background: var(--bg); }
   body { font-family: "Segoe UI", Inter, Arial, sans-serif; color: var(--ink); padding: 34px 44px 26px; position: relative; }
@@ -95,7 +96,7 @@
 
   <div class="why">
     <div><b>What CMA-ES alone cannot do:</b> its plan is open loop (the same torques whatever happens). Release-timing error alone hits a plan and a policy alike. Error <i>during</i> the swing (motor noise) can only be corrected by a policy.</div>
-    <div class="k" id="result"><b>Same-noise test (running on the HPC):</b> CMA-ES plan vs its clone vs clone + PPO, all scored under identical timing error and motor noise (<code>scripts/compare_cmaes_rl.py</code>).</div>
+    <div class="k" id="result"><b>Same-noise test (first results):</b> add 5% motor noise per command and the CMA-ES plans lose about half their good balls (12 ms timing: 77% → 35%), while the RL bowler hardly changes (85% → 83%). At 15%: plans 8–13%, RL 63–75%. Same noise draws for both.</div>
   </div>
 
   <div class="foot"><span>ACOD310 · RL cricket bowling under the ICC elbow law</span><span>github.com/AdityaMurugesh/cricket-project</span></div>
