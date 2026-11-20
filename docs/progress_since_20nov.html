@@ -170,6 +170,24 @@ robot files. The optimiser and RL are being re-run with each."</div>
 some joints, and a trained fast bowler is stronger than average. The robot arm keeps the human arm's size and weight;
 only the motors and joint limits change.</div>
 
+<p class="one">And the rest of the body?</p>
+<p>Only the arm is simulated; the legs and trunk replay the captured bowler. So we checked whether a robot could even
+make those movements: every leg and trunk joint, against the G1's and H1's joint ranges and top speeds from the same
+robot files (<code>scripts/body_vs_robot.py</code>).</p>
+<table>
+<tr><th>Movement</th><th>The bowler needs</th><th>Unitree G1</th><th>Unitree H1</th></tr>
+<tr><td>Trunk bend to the side, at release</td><td class="n">50°</td><td>±30° (too little)</td><td>no such joint</td></tr>
+<tr><td>Trunk bend forward, follow-through</td><td class="n">42°</td><td>±30° (too little)</td><td>no such joint</td></tr>
+<tr><td>Knee speed (peak)</td><td class="n">22 rad/s</td><td>20 rad/s (just over, briefly)</td><td>14 rad/s (too slow)</td></tr>
+<tr><td>Ankle speed (run-up)</td><td class="n">15–25 rad/s</td><td>30 rad/s (fine)</td><td>9 rad/s (too slow)</td></tr>
+<tr><td>Hip ranges and speeds</td><td></td><td>fine</td><td>hip twist only ±25°</td></tr>
+</table>
+<p>So a G1-class robot could almost follow the legs, but not the trunk: the big side-bend at release, typical of fast
+bowlers, is beyond its waist. The H1 is further away on every count.</p>
+<div class="catch"><b>Catch:</b> this checks angles and speeds only, not torques (that needs the ground forces, and both
+robots are smaller and lighter than the bowler). Some leg angles are not trustworthy: there are no leg markers after the
+jump, and the fit's hip rotation in the bound (about 80°) is beyond any human, so we don't count it.</div>
+
 <!-- 6 -->
 <h2><span class="n">6</span>Constrained RL</h2>
 <p>So far, legality was <b>inside the reward</b>: an illegal ball never counts as good and loses 2 more points. We
@@ -198,7 +216,9 @@ punish illegal balls so that at most 1% are illegal."</div>
 
 <!-- 8 -->
 <h2><span class="n">8</span>What is waiting on the HPC</h2>
-<p>The cluster was full all night (other users' jobs of up to 100 hours), so these are queued and start as nodes free up:</p>
+<p>The cluster was full all night: another group has the CPU nodes reserved until 10:00 (UAE time) on 21 Nov, and the
+rest run jobs of up to 100 hours. The jobs are sized to start as soon as those nodes free up (the CMA-ES ones take
+about 3 hours, the RL ones 3–5), so results should come in during the afternoon:</p>
 <ul>
   <li>the full same-noise test, including CMA-ES optimised <i>under</i> motor noise, and RL trained with motor noise;</li>
   <li>CMA-ES with human, G1 and H1 limits, then RL from each;</li>
@@ -223,6 +243,10 @@ touched down and lifted.</p>
 <p class="q">"Where do the robot numbers come from?"</p>
 <p>Unitree's official robot description files (the maximum torque and speed of every joint), the same ones used in the
 MuJoCo robot library.</p>
+<p class="q">"Could a real robot do the whole delivery?"</p>
+<p>Not yet. The arm now has robot motors, but the body still copies the bowler. Checking the body against the robots'
+joints: the G1 could almost follow the legs, but its waist bends only 30° and the bowler bends 50° sideways at release.
+The H1's knees and ankles are too slow, and it can't bend its trunk at all.</p>
 <p class="q">"What does constrained RL change?"</p>
 <p>Instead of us picking the penalty for an illegal ball, the program adjusts it itself to hit a target illegal rate.
 We'll compare it with our old penalty.</p>
@@ -234,7 +258,7 @@ We'll compare it with our old penalty.</p>
 1. CMA-ES to PPO: one slide attached. It's a warm start (behaviour cloning of the CMA-ES delivery into the PPO network), then PPO with the normal task reward. No imitation term.
 2. CMA-ES alone vs CMA-ES + RL, same noise: with release-timing error only they're equal. With 5% motor noise per command, the CMA-ES plans lose about half their good balls (12 ms: 77% to 35%), the RL bowler stays at 83%. Plot attached. Full run on the HPC.
 3. Legs: no leg markers after the jump, so I took the foot contacts from the lab video, pinned the feet, interpolated and filtered. Foot sliding 4.0 m to 0.7 m; the arm's delivery is unchanged.
-4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES and RL runs queued.
+4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES and RL runs queued. Also checked the captured body (legs, trunk) against the G1/H1 joint ranges and speeds: the trunk side-bend at release (~50°) is beyond the G1's waist (±30°), and the H1's knees and ankles are too slow (14 and 9 rad/s vs up to 22 and 25 needed).
 5. Constrained RL (PPO-Lagrangian, legality as a cost) implemented, runs queued.
 Code: github.com/AdityaMurugesh/cricket-project</div>
 
