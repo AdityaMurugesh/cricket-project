@@ -107,10 +107,11 @@ P_CONT = False     # True: tau refers to the continuous (interpolated) good rate
 
 
 def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd_ms=12.0, max_ext_deg=15.0,
-          p_cont=False, delivery="T3a"):
-    global _env, _M, ENV2, P_CONT, DELIVERY
+          p_cont=False, delivery="T3a", torque_noise=(0.0, 0)):
+    global _env, _M, ENV2, P_CONT, DELIVERY, TORQUE_NOISE
     P_CONT = p_cont
     DELIVERY = delivery
+    TORQUE_NOISE = tuple(torque_noise)
     import scripts.kin_equifinality as ke
     ke.JITTER_SD_S = jitter_sd_ms / 1000.0     # "p_jitter_12ms" is then the good rate under N(0, this)
     import envs.legality as legality
@@ -121,10 +122,19 @@ def _init(angle, target_range, handover=None, knot_dt=None, env2=None, jitter_sd
     _M = interp_matrix(decision_times(_env))
 
 
+TORQUE_NOISE = (0.0, 0)   # --torque-noise-sd, --noise-seeds: tau then refers to the good rate under motor noise too
+
+
 def evaluate(x):
-    """x: knot values (len(KNOTS) x 7, flattened) -> the delivery's metrics."""
+    """x: knot values (len(KNOTS) x 7, flattened) -> the delivery's metrics.
+
+    With --torque-noise-sd s the plan is also bowled with signal-dependent motor noise (each decision's command
+    u -> u (1 + s N(0, 1)), the env's torque_noise_sd) for seeds 1..N, the same N noise draws for every
+    candidate (common random numbers). p_jitter_12ms is then the mean good rate under motor noise AND release
+    timing (a ball that is not released counts 0); the noise-free delivery's own rate is p_jitter_nominal."""
     from scripts.kin_equifinality import delivery
     table = np.clip(_M @ x.reshape(len(KNOTS), -1), -1.0, 1.0)
+    _env.torque_noise_sd = 0.0
     try:
         r, curve = delivery(_env, OpenLoop(_env, table), BEFORE_S, 0)
     except AssertionError as e:       # the scorer's own consistency checks: count it as no delivery
@@ -134,6 +144,26 @@ def evaluate(x):
                                  "elevation_deg")}
     if P_CONT and out.get("p_jitter_cont") is not None:
         out["p_jitter_grid"], out["p_jitter_12ms"] = out["p_jitter_12ms"], out["p_jitter_cont"]
+    sd, n = TORQUE_NOISE
+    if sd > 0 and out["released"]:
+        key = "p_jitter_cont" if P_CONT else "p_jitter_12ms"
+        ps, speeds = [], []
+        _env.torque_noise_sd = sd
+        try:
+            for s in range(1, n + 1):
+                try:
+                    rn, _ = delivery(_env, OpenLoop(_env, table), BEFORE_S, s)
+                except AssertionError:
+                    rn = {"released": False}
+                ps.append(float(rn.get(key) or 0.0) if rn.get("released") else 0.0)
+                if rn.get("released"):
+                    speeds.append(rn["speed_m_s"] * 3.6)
+        finally:
+            _env.torque_noise_sd = 0.0
+        out["p_jitter_nominal"] = out["p_jitter_12ms"]
+        out["p_jitter_12ms"] = float(np.mean(ps))
+        out["noisy_mean_kmh"] = float(np.mean(speeds)) if speeds else None
+        out["noisy_released"] = len(speeds)
     return out
 
 
@@ -215,7 +245,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--angle", type=float, required=True, help="release angle (deg), as the RL runs")
     p.add_argument("--tau", type=float, nargs="+", default=[0.0, 0.25, 0.5, 0.75, 0.9])
-    p.add_argument("--warm", nargs="+", required=True, help="PPO runs (checkpoints/<run>.zip) to start from")
+    p.add_argument("--warm", nargs="*", default=[], help="PPO runs (checkpoints/<run>.zip) to start from")
     p.add_argument("--knot-dt", type=float, default=None, help="uniform knots this far apart (0.02 = every decision)")
     p.add_argument("--diagonal", action="store_true", help="separable CMA (for many knots)")
     p.add_argument("--handover", type=float, default=None, help="arm_handover_s (s before release); tag _h<ms>")
@@ -241,6 +271,10 @@ def main():
     p.add_argument("--stiff-elbow", action="store_true",
                    help="hard elbow hyperextension stop (KinematicBowlEnv elbow_solref 0.004); tag _se")
     p.add_argument("--delivery", default="T3a", help="captured body (data/mocap/ref_<D>.npz); tag _<D> if not T3a")
+    p.add_argument("--torque-noise-sd", type=float, default=0.0,
+                   help="tau refers to the good rate under signal-dependent motor noise of this SD as well "
+                        "(the env's torque_noise_sd; kin_equifinality scores RL bowlers at 0.15); tag _tn<sd>")
+    p.add_argument("--noise-seeds", type=int, default=16, help="motor-noise draws per candidate (common to all)")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
     global DELIVERY
@@ -267,7 +301,8 @@ def main():
         + (f"_j{a.jitter_sd_ms:g}".replace(".", "p") if a.jitter_sd_ms != 12.0 else "") \
         + (f"_x{a.max_extension_deg:g}" if a.max_extension_deg != 15.0 else "") \
         + ("_pc" if a.p_cont else "") + ("_drag" if a.drag else "") + ("_se" if a.stiff_elbow else "") \
-        + (f"_{a.delivery}" if a.delivery != "T3a" else "")
+        + (f"_{a.delivery}" if a.delivery != "T3a" else "") \
+        + (f"_tn{a.torque_noise_sd:g}".replace(".", "p") if a.torque_noise_sd > 0 else "")
     import envs.legality as legality
     legality.LEGAL_EXTENSION_DEG = a.max_extension_deg    # the main process scores too (fitness/violation)
     global P_CONT
@@ -281,7 +316,8 @@ def main():
 
     with mp.Pool(a.workers, initializer=_init, initargs=(a.angle, tr, a.handover, a.knot_dt, ENV2,
                                                                a.jitter_sd_ms, a.max_extension_deg,
-                                                               a.p_cont, a.delivery)) as pool:
+                                                               a.p_cont, a.delivery,
+                                                               (a.torque_noise_sd, a.noise_seeds))) as pool:
         starts = {}
         for run in a.warm:
             x = warm_start(run, a.angle, tr, a.handover)
@@ -311,7 +347,7 @@ def main():
                     best = (*b, run)
             f, x, r, run = best
             prev = x
-            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "max_extension_deg": a.max_extension_deg, "p_cont": a.p_cont, "delivery": a.delivery, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
+            rec = {"angle": a.angle, "handover_s": a.handover, "env2": ENV2, "jitter_sd_ms": a.jitter_sd_ms, "max_extension_deg": a.max_extension_deg, "p_cont": a.p_cont, "delivery": a.delivery, "torque_noise_sd": a.torque_noise_sd, "noise_seeds": a.noise_seeds if a.torque_noise_sd > 0 else 0, "tau": tau, "fitness": f, "warm": run, "feasible": f < 0,
                    "speed_kmh": (r.get("speed_m_s") or 0) * 3.6, **r, "knots": x.reshape(len(KNOTS), -1).tolist(),
                    "knot_times_s": KNOTS.tolist()}
             results.append(rec)

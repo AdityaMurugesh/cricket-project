@@ -42,7 +42,16 @@ class Plan:
         return np.clip([np.interp(t_rel, self.t, self.k[:, j]) for j in range(self.k.shape[1])], -1.0, 1.0)
 
 
-def make_env(angle, handover=None, seed=0):
+def make_env(angle, handover=None, seed=0, env2=None):
+    """The plan's own model: a frontier record's env2 (drag, stiff elbow, ...) selects KinematicBowlEnv2, whose
+    observation and actions are KinematicBowlEnv's, so train_runup --task kinematic2 can resume the clone."""
+    if env2:
+        from envs.kinematic_bowl_env2 import KinematicBowlEnv2
+        kw = dict(env2)
+        if kw.get("elbow_solref") is not None:
+            kw["elbow_solref"] = list(kw["elbow_solref"])
+        return KinematicBowlEnv2(delivery="T3a", rsi=True, release_angle_deg=angle, arm_handover_s=handover,
+                                 seed=seed, **kw)
     return KinematicBowlEnv(delivery="T3a", rsi=True, release_angle_deg=angle, arm_control="torque",
                             arm_handover_s=handover, seed=seed)
 
@@ -96,16 +105,16 @@ def main():
     p.add_argument("--out", required=True)
     a = p.parse_args()
     rec = next(r for r in json.load(open(a.frontier)) if abs(r["tau"] - a.tau) < 1e-9)
-    angle, ho = rec["angle"], rec.get("handover_s")
+    angle, ho, env2 = rec["angle"], rec.get("handover_s"), rec.get("env2") or {}
     print(f"plan: a{int(angle)} tau {a.tau}: {rec['speed_kmh']:.1f} km/h, p_jit {rec['p_jitter_12ms']:.2f}")
     plan = Plan(rec)
-    env = make_env(angle, ho)
+    env = make_env(angle, ho, env2=env2)
     rng = np.random.default_rng(0)
     X, Y, G = collect(env, plan, np.linspace(0.8, 1.2, a.starts), a.explore_sd, a.reps, rng)
     print(f"{len(X)} labelled decisions; mean delivery reward {G.mean():.2f}")
 
     # the same PPO settings as train_runup.py --task kinematic, so --resume-from continues as usual
-    model = PPO("MlpPolicy", DummyVecEnv([lambda: make_env(angle, ho)]), seed=0, learning_rate=3e-4, gamma=0.9999,
+    model = PPO("MlpPolicy", DummyVecEnv([lambda: make_env(angle, ho, env2=env2)]), seed=0, learning_rate=3e-4, gamma=0.9999,
                 ent_coef=0.003, target_kl=0.03, batch_size=a.batch_size, device="cpu")
     pol = model.policy
     Xt, Yt, Gt = torch.tensor(X), torch.tensor(Y), torch.tensor(G)
@@ -133,11 +142,11 @@ def main():
             print(f"epoch {ep:4d}  actor mse {la / n:.5f}  critic mse {lc / n:.3f}", flush=True)
     with torch.no_grad():
         pol.log_std.fill_(a.log_std)
-    good, kmh, _ = check(make_env(angle, ho), model)
+    good, kmh, _ = check(make_env(angle, ho, env2=env2), model)
     print(f"cloned policy, deterministic over 21 starts: good {good}/21 at {kmh:.1f} km/h")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     model.save(a.out)
-    json.dump({"frontier": a.frontier, "tau": a.tau, "angle": angle, "handover_s": ho, "plan_kmh": rec["speed_kmh"],
+    json.dump({"frontier": a.frontier, "tau": a.tau, "angle": angle, "handover_s": ho, "env2": env2, "plan_kmh": rec["speed_kmh"],
                "plan_p_jit": rec["p_jitter_12ms"], "clone_good_of_21": good, "clone_kmh": kmh},
               open(Path(a.out).with_suffix(".json"), "w"), indent=1)
     print("saved", a.out)
