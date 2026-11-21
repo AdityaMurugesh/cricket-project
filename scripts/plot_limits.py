@@ -61,8 +61,7 @@ def main():
         ax.set_title(f"release angle {angle}°", color=INK, fontsize=11, loc="left")
         ax.set_xlabel(f"required good balls under {a.sd} ms release error (%)", color=INK, fontsize=9.5)
         ax.set_xticks([100 * t for t in a.taus])
-        ax.set_xticklabels([f"{100 * t:g}" + ("
-(fastest)" if t == 0 else "") for t in a.taus])
+        ax.set_xticklabels([f"{100 * t:g}" + ("\n(fastest)" if t == 0 else "") for t in a.taus])
         ax.grid(color=GRID, lw=0.8)
         ax.set_ylim(bottom=0)
         for s in ("top", "right"):
