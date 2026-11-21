@@ -58,7 +58,7 @@ waiting on the HPC.</p>
 <tr><td>One slide: how CMA-ES connects to PPO</td><td class="done">Done</td><td><code>docs/slide_cmaes_to_ppo.pdf</code> (and .png)</td></tr>
 <tr><td>CMA-ES alone vs CMA-ES + RL, at the same noise</td><td class="done">Done (full size)</td><td>section 3; the noise-optimised and noise-trained extras are running</td></tr>
 <tr><td>Fix the legs in the reference motion</td><td class="done">Done</td><td>section 4; video <code>results/kinematic/videos/legs_before_after.mp4</code></td></tr>
-<tr><td>Humanoid model: human-like and real-robot limits</td><td class="done">CMA-ES done; RL queued</td><td>section 5; <code>envs/arm_limits.py</code></td></tr>
+<tr><td>Humanoid model: human-like and real-robot limits</td><td class="done">Done (CMA-ES and RL)</td><td>section 5; <code>envs/arm_limits.py</code></td></tr>
 <tr><td>Constrained RL (from 6 Nov)</td><td class="run">Built, runs queued</td><td>section 6</td></tr>
 <tr><td>Keep the tables; code on GitHub; update in Teams</td><td class="done">Done</td><td>README added to the repo; Teams post at the end of this doc</td></tr>
 </table>
@@ -189,7 +189,18 @@ fastest ball drops from 130 to about 95 km/h, and the accurate one only from 80 
 the human arm</b>, although its motors are 3 times weaker. Both have the same reason: a muscle loses force quickly as it
 speeds up, an electric motor much more slowly. At 20 rad/s, mid-swing, the human shoulder and elbow can push only
 12–14 N·m, and the G1's motors 11.5, so in the fast part of the delivery they are equally strong. The H1 is slowest
-because its shoulder motors stop pushing at 9 rad/s. RL now continues from each of these deliveries (queued).</p>
+because its shoulder motors stop pushing at 9 rad/s.</p>
+<p><b>Then RL (HPC, 21 Nov):</b> each arm's "half good" delivery was cloned into PPO and trained for 4 million more
+steps with that arm's limits. Good balls with very good timing (4 ms), and all deliveries legal:</p>
+<table>
+<tr><th>Arm</th><th>CMA-ES plan</th><th>The clone</th><th>After RL</th></tr>
+<tr><td>Human-like</td><td>73&nbsp;km/h, 53%</td><td>73&nbsp;km/h, 20%</td><td><b>67&nbsp;km/h, 57%</b></td></tr>
+<tr><td>Unitree G1</td><td>71&nbsp;km/h, 53%</td><td>71&nbsp;km/h, 54%</td><td><b>67&nbsp;km/h, 58%</b></td></tr>
+<tr><td>Unitree H1</td><td>63&nbsp;km/h, 57%</td><td>62&nbsp;km/h, 49%</td><td><b>61&nbsp;km/h, 58%</b></td></tr>
+</table>
+<p>So the CMA-ES&nbsp;→&nbsp;clone&nbsp;→&nbsp;PPO pipeline works with weak arms too. For the human arm the clone copied
+the plan badly (20%), and RL repaired it. As in section 3, with timing error only RL matches CMA-ES rather than
+beating it, trading a few km/h for a few more good balls; its advantage is under motor noise.</p>
 <div class="say"><b>Say:</b> "Our arm was about three times stronger than a person's, and ten times stronger than a
 Unitree G1's. We now have human-like limits from published strength data, and real-robot limits from Unitree's own
 robot files. With a human-strength arm, CMA-ES still finds a legal, good-length ball at 94 km/h, and 72 km/h when
@@ -293,7 +304,7 @@ We'll compare it with our old penalty.</p>
 1. CMA-ES to PPO: one slide attached. It's a warm start (behaviour cloning of the CMA-ES delivery into the PPO network), then PPO with the normal task reward. No imitation term.
 2. CMA-ES alone vs CMA-ES + RL, same noise (210 deliveries per point): with release-timing error only, CMA-ES is as good or better. With 5% motor noise per command, every CMA-ES plan loses half its good balls or more (12 ms: 90% to 37%), while the RL bowler stays at 83%. At 15%: CMA-ES 3-15%, RL 19-70%. Plot attached. CMA-ES re-optimised under noise and RL trained with noise are running on the HPC.
 3. Legs: no leg markers after the jump, so I took the foot contacts from the lab video, pinned the feet, interpolated and filtered. Foot sliding 4.0 m to 0.7 m; the arm's delivery is unchanged.
-4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES re-optimised for each (4 ms timing, 270°): fastest legal good-length ball 94 km/h human, 95 G1, 86 H1 (skeleton model 130); at 75% good balls 72 / 68 / 59 (model 80). The G1 keeps up because a motor loses torque with speed much more slowly than a muscle (both ~12 N m at 20 rad/s). RL from these is queued. Also checked the captured body (legs, trunk) against the G1/H1 joint ranges and speeds: the trunk side-bend at release (~50°) is beyond the G1's waist (±30°), and the H1's knees and ankles are too slow (14 and 9 rad/s vs up to 22 and 25 needed).
+4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES re-optimised for each (4 ms timing, 270°): fastest legal good-length ball 94 km/h human, 95 G1, 86 H1 (skeleton model 130); at 75% good balls 72 / 68 / 59 (model 80). The G1 keeps up because a motor loses torque with speed much more slowly than a muscle (both ~12 N m at 20 rad/s). RL from these: human 67 km/h at 57% good, G1 67 at 58%, H1 61 at 58% (4 ms timing), all legal. Also checked the captured body (legs, trunk) against the G1/H1 joint ranges and speeds: the trunk side-bend at release (~50°) is beyond the G1's waist (±30°), and the H1's knees and ankles are too slow (14 and 9 rad/s vs up to 22 and 25 needed).
 5. Constrained RL (PPO-Lagrangian, legality as a cost) implemented, runs queued.
 Code: github.com/AdityaMurugesh/cricket-project</div>
 
