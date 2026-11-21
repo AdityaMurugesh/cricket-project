@@ -295,20 +295,33 @@ training:</p>
 <figcaption>Top: illegal balls. Middle: speed of the good balls. Bottom: λ, the price the program puts on an illegal
 ball.</figcaption></figure>
 <table>
-<tr><th>Run</th><th>Illegal balls</th><th>Good-ball speed, old penalty</th><th>Good-ball speed, constrained</th></tr>
-<tr><td>From scratch, 12 ms, target 1%</td><td class="n">0%</td><td class="n">54.2&nbsp;km/h</td><td class="n">56.5&nbsp;km/h</td></tr>
-<tr><td>From scratch, 12 ms, target 5%</td><td class="n">0.1%</td><td class="n">54.2&nbsp;km/h</td><td class="n">56.1&nbsp;km/h</td></tr>
-<tr><td>Fast bowler, target 1%</td><td class="n">0%</td><td class="n">107.2&nbsp;km/h</td><td class="n">106.6&nbsp;km/h</td></tr>
+<tr><th>Run (compared at the end of the constrained run)</th><th>Illegal balls</th><th>Good-ball speed, old penalty</th><th>Good-ball speed, constrained</th></tr>
+<tr><td>From scratch, 12 ms, target 1% (15 M steps)</td><td class="n">0%</td><td class="n">53.2&nbsp;km/h</td><td class="n">56.3&nbsp;km/h</td></tr>
+<tr><td>From scratch, 12 ms, target 5% (15 M steps)</td><td class="n">0%</td><td class="n">53.2&nbsp;km/h</td><td class="n">55.4&nbsp;km/h</td></tr>
+<tr><td>Fast bowler, target 1% (25 M steps)</td><td class="n">0%</td><td class="n">107.2&nbsp;km/h</td><td class="n">106.6&nbsp;km/h</td></tr>
 </table>
 <p>From scratch, about half the first balls are illegal. λ climbs (to 5.5 with the 1% target) until they stop, after
-about 3 million steps, then falls again because the bowler stays legal. The constrained bowlers end up about
-<b>2 km/h faster</b> than with the old penalty at the same step, because once they are legal nothing pushes them
+about 3 million steps, then falls again because the bowler stays legal. The constrained bowlers end up
+<b>2–3 km/h faster</b> than with the old penalty at the same step, because once they are legal nothing pushes them
 further from the limit. The fast bowler never bowled an illegal ball, so λ stayed at 0 and it trained just like the
 baseline.</p>
+<p>Scoring the finished bowlers the usual way (21 start times, and 210 deliveries with 15% motor noise; all balls
+legal):</p>
+<table>
+<tr><th>From scratch, 12 ms</th><th>Speed</th><th>Good balls, 15% motor noise</th><th>Good balls with 12 ms timing error</th></tr>
+<tr><td>Old penalty (30 M steps)</td><td class="n">50.9&nbsp;km/h</td><td class="n">78%</td><td class="n">96%</td></tr>
+<tr><td>Constrained, target 1% (15 M)</td><td class="n">56.5&nbsp;km/h</td><td class="n">99%</td><td class="n">76%</td></tr>
+<tr><td>Constrained, target 5% (15 M)</td><td class="n">54.2&nbsp;km/h</td><td class="n">93%</td><td class="n">80%</td></tr>
+</table>
+<p>The constrained bowlers are faster and handle motor noise better, but are less forgiving of timing error, the
+usual price of a faster ball. (The old-penalty bowler trained twice as long and kept getting slower, so this is not a
+same-step comparison.) The fast bowler, continued with the constraint, bowls at the same speed (103 vs 104 km/h under
+noise) with fewer good balls under motor noise (55% vs 73%), after 10 M fewer steps.</p>
 <div class="say"><b>Say:</b> "We now treat the ICC law as a constraint, not a penalty: the program learns how hard to
 punish illegal balls so that at most 1% are illegal. It gets to zero illegal balls as fast as our hand-picked
-penalty did, and bowls about 2 km/h faster at the same point in training."</div>
-<div class="catch"><b>Catch:</b> one run each, and 2 km/h is a small gap. Our old penalty already worked; the gain is
+penalty did, and bowls 2 to 3 km/h faster at the same point in training."</div>
+<div class="catch"><b>Catch:</b> one run each, and 2–3 km/h is a small gap; the faster bowlers are also less
+forgiving of timing error. Our old penalty already worked; the gain is
 mostly that the penalty is no longer a number we chose by hand.</div>
 
 <!-- 7 -->
@@ -362,7 +375,7 @@ joints: the G1 could almost follow the legs, but its waist bends only 30° and t
 The H1's knees and ankles are too slow, and it can't bend its trunk at all.</p>
 <p class="q">"What does constrained RL change?"</p>
 <p>Instead of us picking the penalty for an illegal ball, the program adjusts it itself to hit a target illegal rate.
-Compared with our old penalty, it got to zero illegal balls just as fast and was about 2 km/h faster at the same
+Compared with our old penalty, it got to zero illegal balls just as fast and was 2–3 km/h faster at the same
 point in training.</p>
 <p class="q">"Did you try optimising CMA-ES under the noise too?"</p>
 <p>Yes. On fresh noise it helps only a little (10% to 15–30% good balls under heavy noise) and costs 15–25 km/h,
@@ -377,7 +390,7 @@ with noise 41–79%.</p>
 2. CMA-ES alone vs CMA-ES + RL, same noise (210 deliveries per point): with release-timing error only, CMA-ES is as good or better. With 5% motor noise per command, every CMA-ES plan loses half its good balls or more (12 ms: 90% to 37%), while the RL bowler stays at 83%. At 15%: CMA-ES 3-15%, RL 19-70%. Plot attached. CMA-ES's best shot (re-optimised under 15% motor noise) scored 15-30% on fresh noise, 15-25 km/h slower; RL from the same plan 32-49%, RL trained with noise 41-79%.
 3. Legs: no leg markers after the jump, so I took the foot contacts from the lab video, pinned the feet, interpolated and filtered. Foot sliding 4.0 m to 0.7 m; the arm's delivery is unchanged.
 4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES re-optimised for each (4 ms timing, 270°): fastest legal good-length ball 94 km/h human, 95 G1, 86 H1 (skeleton model 130); at 75% good balls 72 / 68 / 59 (model 80). The G1 keeps up because a motor loses torque with speed much more slowly than a muscle (both ~12 N m at 20 rad/s). RL from these: human 67 km/h at 57% good, G1 67 at 58%, H1 61 at 58% (4 ms timing), all legal. Also checked the captured body (legs, trunk) against the G1/H1 joint ranges and speeds: the trunk side-bend at release (~50°) is beyond the G1's waist (±30°), and the H1's knees and ankles are too slow (14 and 9 rad/s vs up to 22 and 25 needed).
-5. Constrained RL (PPO-Lagrangian, legality as a cost, target 1% or 5% illegal): reaches 0% illegal as fast as the hand-tuned penalty, and is about 2 km/h faster at the same training step (56.5 vs 54.2 km/h, 12 ms).
+5. Constrained RL (PPO-Lagrangian, legality as a cost, target 1% or 5% illegal): reaches 0% illegal as fast as the hand-tuned penalty, and is 2-3 km/h faster at the same training step (56.3 vs 53.2 km/h at 15M steps, 12 ms timing).
 Code: github.com/AdityaMurugesh/cricket-project</div>
 
 </body>
