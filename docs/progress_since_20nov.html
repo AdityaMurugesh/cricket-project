@@ -39,16 +39,17 @@
 
 <h1>After the 20 Nov meeting: what we did</h1>
 <p class="sub">Everything the supervisor asked for on 20 Nov, in plain words. The green boxes are lines you can say as they
-are. The orange boxes are the honest catches: say them before you are asked. Written on the night of 20–21 Nov.</p>
+are. The orange boxes are the honest catches: say them before you are asked. Written 20–21 Nov; HPC results added on 21 Nov.</p>
 
 <div class="box">
 <p class="one">The whole story in one paragraph</p>
 <p>The supervisor asked <b>why we need RL if CMA-ES already gives a delivery</b>. We tested it: the CMA-ES delivery
 and the RL bowler, under exactly the same noise. With only release-timing error they are equal. But add a little
 <b>noise in the muscles during the swing</b> and the CMA-ES delivery falls apart, while the RL bowler hardly
-notices, because RL <b>watches the arm and corrects</b>. We also <b>fixed the sliding feet</b> using the lab video,
-built <b>human-like and real-robot strength limits</b> for the arm, and built <b>constrained RL</b>. Those runs are
-waiting on the HPC.</p>
+notices, because RL <b>watches the arm and corrects</b>. Even CMA-ES re-optimised under that noise does not catch
+up. We also <b>fixed the sliding feet</b> using the lab video, gave the arm <b>human-like and real-robot (Unitree G1,
+H1) strength limits</b> (it still bowls legal, good-length balls at 60–95 km/h), and ran <b>constrained RL</b>, which
+treats the ICC law as a constraint instead of a hand-picked penalty.</p>
 </div>
 
 <!-- 1 -->
@@ -56,10 +57,10 @@ waiting on the HPC.</p>
 <table>
 <tr><th>Asked on 20 Nov</th><th>Status</th><th>Where</th></tr>
 <tr><td>One slide: how CMA-ES connects to PPO</td><td class="done">Done</td><td><code>docs/slide_cmaes_to_ppo.pdf</code> (and .png)</td></tr>
-<tr><td>CMA-ES alone vs CMA-ES + RL, at the same noise</td><td class="done">Done (full size)</td><td>section 3; the noise-optimised and noise-trained extras are running</td></tr>
+<tr><td>CMA-ES alone vs CMA-ES + RL, at the same noise</td><td class="done">Done</td><td>section 3, including CMA-ES re-optimised under noise and RL trained with noise</td></tr>
 <tr><td>Fix the legs in the reference motion</td><td class="done">Done</td><td>section 4; video <code>results/kinematic/videos/legs_before_after.mp4</code></td></tr>
 <tr><td>Humanoid model: human-like and real-robot limits</td><td class="done">Done (CMA-ES and RL)</td><td>section 5; <code>envs/arm_limits.py</code></td></tr>
-<tr><td>Constrained RL (from 6 Nov)</td><td class="run">Built, runs queued</td><td>section 6</td></tr>
+<tr><td>Constrained RL (from 6 Nov)</td><td class="done">Done</td><td>section 6</td></tr>
 <tr><td>Keep the tables; code on GitHub; update in Teams</td><td class="done">Done</td><td>README added to the repo; Teams post at the end of this doc</td></tr>
 </table>
 
@@ -117,8 +118,57 @@ change, because they watch the arm and correct. At 15%, CMA-ES keeps 3 to 15% go
 we need RL on top of CMA-ES."</div>
 <div class="catch"><b>Catch:</b> the 8 ms RL bowler is a weak one even without noise (49% against CMA-ES's 75%); it
 is level at 5% and only wins at 15%. These RL bowlers were never trained with motor noise, so their robustness comes
-from feedback alone. Still running on the HPC: CMA-ES <i>re-optimised under</i> motor noise (CMA-ES's best shot), and
-RL <i>trained with</i> motor noise. (The first laptop test, 63 deliveries per point, gave the same picture.)</div>
+from feedback alone. (The first laptop test, 63 deliveries per point, gave the same picture.)</div>
+
+<p class="one">The final test: CMA-ES's best shot against RL's best shot</p>
+<p>The supervisor could fairly say: "the CMA-ES plan was never told about motor noise". So we gave CMA-ES its best
+shot and <b>re-optimised the plan under 15% motor noise</b>. On the RL side we trained new bowlers from the same
+CMA-ES plan for 6 million steps, once <b>without</b> and once <b>with</b> motor noise. Then all of them were bowled on
+<b>fresh noise draws</b> that none of them had seen, the same draws for every bowler, 210 deliveries per point.</p>
+<figure><img src="../results/kinematic/cmaes_vs_rl/cmaes_vs_rl.png" alt="final same-noise test">
+<figcaption>Blue: the CMA-ES plan. Green: CMA-ES re-optimised under motor noise (the best of its three). Grey: the
+plan copied into the network. Orange: RL from that copy. Yellow: RL trained with motor noise.</figcaption></figure>
+<table>
+<tr><th>Timing skill</th><th>Bowler</th><th>No motor noise</th><th>5%</th><th>15%</th></tr>
+<tr><td rowspan="4">2 ms</td><td>CMA-ES, 77&nbsp;km/h</td><td class="n">76%</td><td class="n">38%</td><td class="n">10%</td></tr>
+<tr><td>CMA-ES noise-optimised, 55&nbsp;km/h</td><td class="n">72%</td><td class="n">63%</td><td class="n">30%</td></tr>
+<tr><td>RL, 75&nbsp;km/h</td><td class="n">88%</td><td class="n">82%</td><td class="n">35%</td></tr>
+<tr><td>RL noise-trained, 67&nbsp;km/h</td><td class="n">59%</td><td class="n">72%</td><td class="n">65%</td></tr>
+<tr><td rowspan="4">4 ms</td><td>CMA-ES, 80&nbsp;km/h</td><td class="n">81%</td><td class="n">37%</td><td class="n">10%</td></tr>
+<tr><td>CMA-ES noise-optimised, 66&nbsp;km/h</td><td class="n">75%</td><td class="n">51%</td><td class="n">15%</td></tr>
+<tr><td>RL, 78&nbsp;km/h</td><td class="n">87%</td><td class="n">77%</td><td class="n">32%</td></tr>
+<tr><td>RL noise-trained, 76&nbsp;km/h</td><td class="n">69%</td><td class="n">61%</td><td class="n">41%</td></tr>
+<tr><td rowspan="4">8 ms</td><td>CMA-ES, 73&nbsp;km/h</td><td class="n">75%</td><td class="n">43%</td><td class="n">11%</td></tr>
+<tr><td>CMA-ES noise-optimised, 53&nbsp;km/h</td><td class="n">66%</td><td class="n">60%</td><td class="n">22%</td></tr>
+<tr><td>RL, 70&nbsp;km/h</td><td class="n">81%</td><td class="n">80%</td><td class="n">49%</td></tr>
+<tr><td>RL noise-trained, 57&nbsp;km/h</td><td class="n">88%</td><td class="n">87%</td><td class="n">79%</td></tr>
+<tr><td rowspan="4">12 ms</td><td>CMA-ES, 66&nbsp;km/h</td><td class="n">77%</td><td class="n">39%</td><td class="n">9%</td></tr>
+<tr><td>CMA-ES noise-optimised, 48&nbsp;km/h</td><td class="n">92%</td><td class="n">72%</td><td class="n">22%</td></tr>
+<tr><td>RL, 62&nbsp;km/h</td><td class="n">87%</td><td class="n">82%</td><td class="n">38%</td></tr>
+<tr><td>RL noise-trained, 60&nbsp;km/h</td><td class="n">79%</td><td class="n">80%</td><td class="n">60%</td></tr>
+</table>
+<p>What it shows:</p>
+<ul>
+  <li><b>Re-optimising CMA-ES under noise helps only a little, and costs 15–25 km/h.</b> At 15% noise it goes from
+  about 10% to 15–30% good balls. It also <b>over-fits</b>: on the 12 noise draws it practised on it scored 47–74%,
+  on fresh draws only 15–30%. A fixed plan can only be tuned to the noise it has seen.</li>
+  <li><b>RL from the same plan keeps nearly all its speed</b> (2–4 km/h less) and gets 32–49% at 15% noise, 3 to 4
+  times the plan.</li>
+  <li><b>RL trained with motor noise is the most robust of all</b>: 41–79% at 15% noise. At 2 and 8 ms it paid for it
+  in speed (8–13 km/h).</li>
+  <li>The fastest ball (130 km/h) was too hard to copy (the copy bowled no good balls); RL rebuilt it into a
+  115 km/h bowler with 26% good balls, and 11% at 15% noise against the plan's 3%.</li>
+</ul>
+<figure><img src="../results/kinematic/cmaes_vs_rl/cvr_learning.png" alt="learning curves">
+<figcaption>How RL moves away from the copied plan. Solid: no motor noise; dashed: 15% motor noise. Blue lines: the
+CMA-ES plan. Step 0 is the copy.</figcaption></figure>
+<div class="say"><b>Say:</b> "We gave CMA-ES its best shot: optimise the plan under the same motor noise. On fresh
+noise it barely helps and costs 15 to 25 km/h, because a fixed plan can only be tuned to the noise it practised on.
+RL started from the same plan keeps its speed and is 3 to 4 times more accurate under heavy noise, and RL trained with
+noise keeps 41 to 79% of its good balls."</div>
+<div class="catch"><b>Catch:</b> one training run per bowler (no repeats with other seeds), 6 million steps each.
+Without motor noise RL is not above the CMA-ES speed–accuracy curve: it gives up 2–4 km/h for its extra good balls,
+which a slower CMA-ES plan can also do. Its advantage is under motor noise.</div>
 
 <!-- 4 -->
 <h2><span class="n">4</span>The legs are fixed</h2>
@@ -239,10 +289,27 @@ chose that penalty by hand. Constrained RL (here PPO-Lagrangian, as in OpenAI's 
   <li>a weight λ (lambda) on that cost <b>adjusts itself</b> during training: up while too many balls are illegal,
   down when the rate is under target (for example 1%).</li>
 </ul>
-<p>Built and tested; three runs are queued (two from scratch with targets of 1% and 5%, one continuing the fast bowler),
-each against an existing run with the old penalty as the baseline.</p>
+<p>Three runs on the HPC (21 Nov), each against an existing run with the old penalty, compared at the same point in
+training:</p>
+<figure><img src="../results/kinematic/constrained/constrained_rl.png" alt="constrained RL">
+<figcaption>Top: illegal balls. Middle: speed of the good balls. Bottom: λ, the price the program puts on an illegal
+ball.</figcaption></figure>
+<table>
+<tr><th>Run</th><th>Illegal balls</th><th>Good-ball speed, old penalty</th><th>Good-ball speed, constrained</th></tr>
+<tr><td>From scratch, 12 ms, target 1%</td><td class="n">0%</td><td class="n">54.2&nbsp;km/h</td><td class="n">56.5&nbsp;km/h</td></tr>
+<tr><td>From scratch, 12 ms, target 5%</td><td class="n">0.1%</td><td class="n">54.2&nbsp;km/h</td><td class="n">56.1&nbsp;km/h</td></tr>
+<tr><td>Fast bowler, target 1%</td><td class="n">0%</td><td class="n">107.2&nbsp;km/h</td><td class="n">106.6&nbsp;km/h</td></tr>
+</table>
+<p>From scratch, about half the first balls are illegal. λ climbs (to 5.5 with the 1% target) until they stop, after
+about 3 million steps, then falls again because the bowler stays legal. The constrained bowlers end up about
+<b>2 km/h faster</b> than with the old penalty at the same step, because once they are legal nothing pushes them
+further from the limit. The fast bowler never bowled an illegal ball, so λ stayed at 0 and it trained just like the
+baseline.</p>
 <div class="say"><b>Say:</b> "We now treat the ICC law as a constraint, not a penalty: the program learns how hard to
-punish illegal balls so that at most 1% are illegal."</div>
+punish illegal balls so that at most 1% are illegal. It gets to zero illegal balls as fast as our hand-picked
+penalty did, and bowls about 2 km/h faster at the same point in training."</div>
+<div class="catch"><b>Catch:</b> one run each, and 2 km/h is a small gap. Our old penalty already worked; the gain is
+mostly that the penalty is no longer a number we chose by hand.</div>
 
 <!-- 7 -->
 <h2><span class="n">7</span>Also finished: RL from scratch in the new model</h2>
@@ -256,15 +323,15 @@ punish illegal balls so that at most 1% are illegal."</div>
 <p>The same as in the old model: from scratch, RL is slow but very reliable. Starting from CMA-ES is what makes it fast.</p>
 
 <!-- 8 -->
-<h2><span class="n">8</span>What is waiting on the HPC</h2>
-<p>The cluster was full all night: another group had the CPU nodes reserved until 10:00 (UAE time) on 21 Nov, and the
-rest ran jobs of up to 100 hours. A node freed early, and the first two jobs started at 08:07 (the same-noise test
-above came from one of them). The rest start as nodes free up (the CMA-ES ones take about 2–3 hours, the RL ones
-3–5), so results should come in during the afternoon:</p>
+<h2><span class="n">8</span>What ran on the HPC</h2>
+<p>The cluster was full all night: another group had the CPU nodes reserved until 10:00 (UAE time) on 21 Nov. A node
+freed early, so the first jobs started at 08:07 and the rest at 10:00; the results were all in by about 13:10:</p>
 <ul>
-  <li>the full same-noise test, including CMA-ES optimised <i>under</i> motor noise, and RL trained with motor noise;</li>
-  <li>CMA-ES with human, G1 and H1 limits, then RL from each;</li>
-  <li>constrained RL (three runs).</li>
+  <li>CMA-ES re-optimised under motor noise, for four timing skills (two jobs, about 2 h 20 min each);</li>
+  <li>RL from the CMA-ES plans, with and without motor noise (10 bowlers, 2 h 40 min);</li>
+  <li>CMA-ES with human, G1 and H1 arm limits (1 h 40 min), then RL from each (1 h 50 min);</li>
+  <li>constrained RL (three runs);</li>
+  <li>the final scoring of every bowler on the same fresh noise draws (30 min).</li>
 </ul>
 
 <!-- 9 -->
@@ -295,17 +362,22 @@ joints: the G1 could almost follow the legs, but its waist bends only 30° and t
 The H1's knees and ankles are too slow, and it can't bend its trunk at all.</p>
 <p class="q">"What does constrained RL change?"</p>
 <p>Instead of us picking the penalty for an illegal ball, the program adjusts it itself to hit a target illegal rate.
-We'll compare it with our old penalty.</p>
+Compared with our old penalty, it got to zero illegal balls just as fast and was about 2 km/h faster at the same
+point in training.</p>
+<p class="q">"Did you try optimising CMA-ES under the noise too?"</p>
+<p>Yes. On fresh noise it helps only a little (10% to 15–30% good balls under heavy noise) and costs 15–25 km/h,
+because a fixed plan over-fits the noise draws it practised on. RL from the same plan gets 32–49%, and RL trained
+with noise 41–79%.</p>
 </div>
 
 <!-- 10 -->
 <h2><span class="n">10</span>Teams update (to paste)</h2>
 <div class="post">Update after Friday's meeting:
 1. CMA-ES to PPO: one slide attached. It's a warm start (behaviour cloning of the CMA-ES delivery into the PPO network), then PPO with the normal task reward. No imitation term.
-2. CMA-ES alone vs CMA-ES + RL, same noise (210 deliveries per point): with release-timing error only, CMA-ES is as good or better. With 5% motor noise per command, every CMA-ES plan loses half its good balls or more (12 ms: 90% to 37%), while the RL bowler stays at 83%. At 15%: CMA-ES 3-15%, RL 19-70%. Plot attached. CMA-ES re-optimised under noise and RL trained with noise are running on the HPC.
+2. CMA-ES alone vs CMA-ES + RL, same noise (210 deliveries per point): with release-timing error only, CMA-ES is as good or better. With 5% motor noise per command, every CMA-ES plan loses half its good balls or more (12 ms: 90% to 37%), while the RL bowler stays at 83%. At 15%: CMA-ES 3-15%, RL 19-70%. Plot attached. CMA-ES's best shot (re-optimised under 15% motor noise) scored 15-30% on fresh noise, 15-25 km/h slower; RL from the same plan 32-49%, RL trained with noise 41-79%.
 3. Legs: no leg markers after the jump, so I took the foot contacts from the lab video, pinned the feet, interpolated and filtered. Foot sliding 4.0 m to 0.7 m; the arm's delivery is unchanged.
 4. Humanoid limits: added a human-like set (published joint strengths) and Unitree G1/H1 limits from their URDFs. CMA-ES re-optimised for each (4 ms timing, 270°): fastest legal good-length ball 94 km/h human, 95 G1, 86 H1 (skeleton model 130); at 75% good balls 72 / 68 / 59 (model 80). The G1 keeps up because a motor loses torque with speed much more slowly than a muscle (both ~12 N m at 20 rad/s). RL from these: human 67 km/h at 57% good, G1 67 at 58%, H1 61 at 58% (4 ms timing), all legal. Also checked the captured body (legs, trunk) against the G1/H1 joint ranges and speeds: the trunk side-bend at release (~50°) is beyond the G1's waist (±30°), and the H1's knees and ankles are too slow (14 and 9 rad/s vs up to 22 and 25 needed).
-5. Constrained RL (PPO-Lagrangian, legality as a cost) implemented, runs queued.
+5. Constrained RL (PPO-Lagrangian, legality as a cost, target 1% or 5% illegal): reaches 0% illegal as fast as the hand-tuned penalty, and is about 2 km/h faster at the same training step (56.5 vs 54.2 km/h, 12 ms).
 Code: github.com/AdityaMurugesh/cricket-project</div>
 
 </body>

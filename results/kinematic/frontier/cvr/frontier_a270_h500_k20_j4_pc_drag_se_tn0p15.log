@@ -1,0 +1,61 @@
+warm start results/kinematic/frontier/frontier_a270_h500_k20_j4_pc_drag_se.json:0.9: 77.9 km/h good True p_jit(4 ms) 0.06
+warm start results/kinematic/frontier/frontier_a270_h500_k20_j4_pc_drag_se.json:0.75: 80.2 km/h good True p_jit(4 ms) 0.16
+tau 0.75: from frontier_a270_h500_k20_j4_pc_drag_se@0.9
+    gen   25  best f   236.66   77.5 km/h  good True  p_jit 0.27  (168 s)
+    gen   50  best f   218.65   79.2 km/h  good True  p_jit 0.33  (338 s)
+    gen   75  best f   208.61   76.1 km/h  good True  p_jit 0.36  (506 s)
+    gen  100  best f   208.61   76.1 km/h  good True  p_jit 0.36  (674 s)
+    gen  125  best f   192.94   65.4 km/h  good True  p_jit 0.42  (841 s)
+    gen  150  best f   175.54   65.2 km/h  good False  p_jit 0.49  (1007 s)
+tau 0.75: from frontier_a270_h500_k20_j4_pc_drag_se@0.75
+    gen   25  best f   236.95   81.1 km/h  good False  p_jit 0.28  (166 s)
+    gen   50  best f   216.62   72.7 km/h  good False  p_jit 0.34  (334 s)
+    gen   75  best f   216.62   72.7 km/h  good False  p_jit 0.34  (503 s)
+    gen  100  best f   216.62   72.7 km/h  good False  p_jit 0.34  (669 s)
+    gen  125  best f   197.59   69.5 km/h  good True  p_jit 0.40  (835 s)
+    gen  150  best f   188.40   68.5 km/h  good True  p_jit 0.43  (1004 s)
+== a270 tau 0.75: infeasible 65.2 km/h p_jit 0.49 land 12.097481877468658 ext 7.992392943506976
+tau 0.5: from frontier_a270_h500_k20_j4_pc_drag_se@0.9
+    gen   25  best f   164.85   77.8 km/h  good False  p_jit 0.27  (167 s)
+    gen   50  best f   140.73   82.9 km/h  good True  p_jit 0.34  (335 s)
+    gen   75  best f   134.16   72.0 km/h  good True  p_jit 0.36  (503 s)
+    gen  100  best f   129.40   75.8 km/h  good True  p_jit 0.38  (671 s)
+    gen  125  best f   123.13   74.2 km/h  good True  p_jit 0.40  (838 s)
+    gen  150  best f   123.13   74.2 km/h  good True  p_jit 0.40  (1005 s)
+tau 0.5: from frontier_a270_h500_k20_j4_pc_drag_se@0.75
+    gen   25  best f   162.46   78.6 km/h  good True  p_jit 0.27  (168 s)
+    gen   50  best f   160.53   76.5 km/h  good True  p_jit 0.27  (338 s)
+    gen   75  best f   139.20   71.5 km/h  good True  p_jit 0.35  (509 s)
+    gen  100  best f   139.20   71.5 km/h  good True  p_jit 0.35  (678 s)
+    gen  125  best f   103.26   65.0 km/h  good True  p_jit 0.47  (848 s)
+    gen  150  best f   -61.54   61.5 km/h  good True  p_jit 0.51  (1018 s)
+tau 0.5: from previous_tau
+    gen   25  best f   100.54   65.2 km/h  good False  p_jit 0.49  (168 s)
+    gen   50  best f   -58.85   58.8 km/h  good True  p_jit 0.51  (336 s)
+    gen   75  best f   -58.85   58.8 km/h  good True  p_jit 0.51  (507 s)
+    gen  100  best f   -61.16   61.2 km/h  good True  p_jit 0.51  (677 s)
+    gen  125  best f   -64.48   64.5 km/h  good True  p_jit 0.57  (849 s)
+    gen  150  best f   -66.14   66.1 km/h  good True  p_jit 0.53  (1019 s)
+== a270 tau 0.5: FEASIBLE 66.1 km/h p_jit 0.53 land 12.000484851042252 ext -0.20135823821499166
+tau 0.25: from frontier_a270_h500_k20_j4_pc_drag_se@0.9
+    gen   25  best f   -78.14   78.1 km/h  good True  p_jit 0.27  (167 s)
+    gen   50  best f   -84.60   84.6 km/h  good True  p_jit 0.32  (334 s)
+    gen   75  best f   -87.22   87.2 km/h  good True  p_jit 0.26  (501 s)
+    gen  100  best f   -87.22   87.2 km/h  good True  p_jit 0.26  (669 s)
+    gen  125  best f   -87.22   87.2 km/h  good True  p_jit 0.26  (836 s)
+    gen  150  best f   -87.22   87.2 km/h  good True  p_jit 0.26  (1004 s)
+tau 0.25: from frontier_a270_h500_k20_j4_pc_drag_se@0.75
+    gen   25  best f   -78.61   78.6 km/h  good True  p_jit 0.27  (168 s)
+    gen   50  best f   -79.44   79.4 km/h  good True  p_jit 0.26  (339 s)
+    gen   75  best f   -79.44   79.4 km/h  good True  p_jit 0.26  (509 s)
+    gen  100  best f   -79.44   79.4 km/h  good True  p_jit 0.26  (679 s)
+    gen  125  best f   -79.44   79.4 km/h  good True  p_jit 0.26  (849 s)
+    gen  150  best f   -79.44   79.4 km/h  good True  p_jit 0.26  (1021 s)
+tau 0.25: from previous_tau
+    gen   25  best f   -70.20   70.2 km/h  good True  p_jit 0.29  (170 s)
+    gen   50  best f   -70.20   70.2 km/h  good True  p_jit 0.29  (341 s)
+    gen   75  best f   -72.02   72.0 km/h  good True  p_jit 0.30  (514 s)
+    gen  100  best f   -73.41   73.4 km/h  good True  p_jit 0.26  (684 s)
+    gen  125  best f   -75.92   75.9 km/h  good True  p_jit 0.26  (861 s)
+    gen  150  best f   -78.77   78.8 km/h  good True  p_jit 0.26  (1039 s)
+== a270 tau 0.25: FEASIBLE 87.2 km/h p_jit 0.26 land 11.146137279370873 ext -0.4296896119494491
