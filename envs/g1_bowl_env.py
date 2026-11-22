@@ -64,6 +64,10 @@ def build_g1(timestep=0.002, arm_torque=ARM_TORQUE):
         a.trntype = mujoco.mjtTrn.mjTRN_JOINT
         a.gear = [tq, 0, 0, 0, 0, 0]
         a.ctrllimited, a.ctrlrange = True, [-1.0, 1.0]
+    spec.visual.global_.offwidth, spec.visual.global_.offheight = 1280, 1080
+    # a floor and a light for the videos (contacts are off in the env: the body is prescribed)
+    spec.worldbody.add_geom(name="floor", type=mujoco.mjtGeom.mjGEOM_PLANE, size=[60, 20, 0.1], rgba=[0.45, 0.6, 0.4, 1])
+    spec.worldbody.add_light(pos=[0, 0, 6], dir=[0, 0, -1], type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL)
     spec.body("right_wrist_yaw_link").add_site(name="right_grip", pos=G1_GRIP, size=[0.036, 0, 0], rgba=[0.8, 0.1, 0.1, 1])
     return spec.compile()
 

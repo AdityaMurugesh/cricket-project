@@ -156,6 +156,9 @@ def main():
                    help="kinematic2: constrained RL (PPO-Lagrangian): the elbow law is a cost with this target rate "
                         "(e.g. 0.01) instead of part of the reward")
     p.add_argument("--lagrange-lr", type=float, default=2.0, help="lambda step per rollout per unit of excess cost")
+    p.add_argument("--robot", default=None, choices=["g1"],
+                   help="kinematic2: the whole bowler is the Unitree G1 (envs/g1_bowl_env.py; --delivery T3aL)")
+    p.add_argument("--arm-torque-scale", type=float, default=1.0, help="--robot: arm motor peaks x this")
     p.add_argument("--limits", default=None, choices=["human", "g1", "h1"],
                    help="kinematic2: the arm's actuator and joint limits (envs/arm_limits.py)")
     p.add_argument("--drag", action="store_true",
@@ -192,6 +195,10 @@ def main():
         env2_kw["limits"] = a.limits
     if a.lagrangian is not None:
         env2_kw["lagrangian"] = True
+    if a.robot:
+        env2_kw["robot"] = a.robot
+        if a.arm_torque_scale != 1.0:
+            env2_kw["arm_torque_scale"] = a.arm_torque_scale
     if a.drag:
         from envs.ballistics import CRICKET_DRAG_K
         env2_kw["drag_k"] = CRICKET_DRAG_K
@@ -199,6 +206,9 @@ def main():
         env2_kw["elbow_solref"] = [0.004, 1.0]
 
     def make(rank):
+        if a.task == "kinematic2" and a.robot:
+            from envs.g1_bowl_env import G1BowlEnv
+            return lambda: G1BowlEnv(seed=a.seed * 1000 + rank, **{k: v for k, v in env2_kw.items() if k != "robot"})
         if a.task == "kinematic2":
             return lambda: KinematicBowlEnv2(seed=a.seed * 1000 + rank, **env2_kw)
         if a.task == "kinematic":

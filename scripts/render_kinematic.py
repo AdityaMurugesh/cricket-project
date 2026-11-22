@@ -77,11 +77,25 @@ def main():
     p.add_argument("--label", default=None, help="what the arm is, for the caption (default: the run name)")
     p.add_argument("--delivery", default=None,
                    help="replay another captured body (e.g. T3aL, the legs cleaned by scripts/fix_legs.py)")
+    p.add_argument("--robot", default=None, choices=["g1"], help="the Unitree G1 bowler (envs/g1_bowl_env.py)")
+    p.add_argument("--captured-arm", action="store_true",
+                   help="with --robot: the arm too replays the (retargeted) capture, to the end: no policy")
+    p.add_argument("--angle", type=float, default=270.0, help="with --captured-arm: release angle")
+    p.add_argument("--any", action="store_true", help="with --frontier: the record even if infeasible")
     a = p.parse_args()
-    if a.frontier:                  # a trajectory-optimisation record: replay its knots open loop
+    if a.captured_arm:
+        from envs.g1_bowl_env import G1BowlEnv
+        from envs.ballistics import CRICKET_DRAG_K
+        env = G1BowlEnv(delivery=a.delivery or "T3aL", rsi=False, release_angle_deg=a.angle, arm_handover_s=-1.0,
+                        drag_k=CRICKET_DRAG_K)
+        model = type("Zero", (), {"predict": lambda self, o, deterministic=True: (np.zeros(7), None)})()
+        m = {"delivery": a.delivery or "T3aL"}
+        a.run = a.run or f"g1_captured_arm_a{int(a.angle)}"
+        a.label = a.label or "the captured arm, retargeted (no policy)"
+    elif a.frontier:                  # a trajectory-optimisation record: replay its knots open loop
         import json
         import scripts.kin_frontier as kf
-        recs = [r for r in json.load(open(a.frontier)) if r.get("feasible") and abs(r["tau"] - a.tau) < 1e-6]
+        recs = [r for r in json.load(open(a.frontier)) if (r.get("feasible") or a.any) and abs(r["tau"] - a.tau) < 1e-6]
         if not recs:
             sys.exit(f"no feasible record with tau {a.tau} in {a.frontier}")
         rec = recs[0]
@@ -94,7 +108,7 @@ def main():
         m = {"delivery": a.delivery or rec.get("delivery", "T3a")}
         a.run = a.run or f"{Path(a.frontier).stem}_tau{a.tau:g}"
     env2 = ROOT / "checkpoints" / f"{a.run}.env2.json"
-    if a.frontier:
+    if a.frontier or a.captured_arm:
         pass
     elif env2.exists():               # kinematic2 runs: rebuild the env as trained, without training noise
         import json
@@ -109,7 +123,7 @@ def main():
         env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
                                target_range=(10.9, 12.9), arm_control=m["ctl"],
                                arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
-    if not a.frontier:
+    if not (a.frontier or a.captured_arm):
         model = PPO.load(a.model_path or ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
 
     out1, rows, _, _, t0 = run_episode(env, model, a.before, 0)
@@ -141,10 +155,13 @@ def main():
     rend = mujoco.Renderer(env.m, H, W)
     tmp = Path(tempfile.mkdtemp(prefix="kinvid_"))
     land_x = out1["land_x"] + x0
+    g1v = hasattr(env, "_grip_site")
     for f, i in enumerate(range(0, n, stride)):
         d.qpos[:] = qpos[i]
         mujoco.mj_kinematics(env.m, d)
-        if i <= rel:
+        if i <= rel and hasattr(env, "_grip_site"):        # the G1's grip point on its hand
+            ball = d.site_xpos[env._grip_site].copy()
+        elif i <= rel:
             R = d.xmat[env._hand].reshape(3, 3)
             ball = d.xpos[env._hand] + R @ np.array([0.035, -0.09, 0.0])
         else:
@@ -155,8 +172,8 @@ def main():
         for view in ("side", "pitch"):
             cam = mujoco.MjvCamera()
             if view == "side":
-                cam.lookat[:] = [d.qpos[0], d.qpos[1], 1.0]
-                cam.distance, cam.azimuth, cam.elevation = 4.0, 90, -8
+                cam.lookat[:] = [d.qpos[0], d.qpos[1], 0.8 if g1v else 1.0]
+                cam.distance, cam.azimuth, cam.elevation = (3.0 if g1v else 4.0), 90, -8
             else:
                 cam.lookat[:] = [x0 + 6.0, 0.0, 0.6]
                 # from behind the bowler, a little to the off side, down the pitch (+x)
@@ -171,7 +188,9 @@ def main():
             imgs.append(rend.render().copy())
         plt.imsave(tmp / f"f_{f:05d}.png", np.concatenate(imgs, axis=1))
     o = out1
-    body = (f"motion capture replay ({m['delivery'][:-1]}), legs cleaned (feet planted at the video's contacts)"
+    g1 = hasattr(env, "_grip_site")
+    body = ("Unitree G1 humanoid (its own body, masses, joint ranges); body motion = the capture retargeted onto it"
+            if g1 else None) or (f"motion capture replay ({m['delivery'][:-1]}), legs cleaned (feet planted at the video's contacts)"
             if m["delivery"].endswith("L") else f"motion capture replay ({m['delivery']})")
     lines = [f"Body: {body}.  Bowling arm: {a.label or 'learned policy (' + a.run + ')'}.  "
              f"Ball: simulated{' with air drag' if dk > 0 else ''}.",

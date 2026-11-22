@@ -45,6 +45,12 @@ class Plan:
 def make_env(angle, handover=None, seed=0, env2=None):
     """The plan's own model: a frontier record's env2 (drag, stiff elbow, ...) selects KinematicBowlEnv2, whose
     observation and actions are KinematicBowlEnv's, so train_runup --task kinematic2 can resume the clone."""
+    if env2 and env2.get("robot") == "g1":      # the Unitree G1 bowler (envs/g1_bowl_env.py; its delivery T3aL)
+        from envs.g1_bowl_env import G1BowlEnv
+        kw = {k: v for k, v in env2.items() if k != "robot"}
+        if kw.get("elbow_solref") is not None:
+            kw["elbow_solref"] = list(kw["elbow_solref"])
+        return G1BowlEnv(rsi=True, release_angle_deg=angle, arm_handover_s=handover, seed=seed, **kw)
     if env2:
         from envs.kinematic_bowl_env2 import KinematicBowlEnv2
         kw = dict(env2)

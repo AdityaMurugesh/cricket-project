@@ -238,7 +238,11 @@ def make_env2(kw, torque_sd, target_m=None):
         kw["target_range"] = tuple(kw["target_range"])
     if kw.get("target_sample") is not None:
         kw["target_sample"] = tuple(kw["target_sample"])
-    env = KinematicBowlEnv2(**kw)
+    if kw.pop("robot", None) == "g1":             # the Unitree G1 bowler (envs/g1_bowl_env.py)
+        from envs.g1_bowl_env import G1BowlEnv
+        env = G1BowlEnv(**kw)
+    else:
+        env = KinematicBowlEnv2(**kw)
     if env.target_sample is not None:
         env.fixed_target_m = target_m if target_m is not None else sum(env.target_sample) / 2
     return env
