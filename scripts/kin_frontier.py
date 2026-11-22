@@ -86,6 +86,9 @@ DELIVERY = "T3a"   # --delivery: the captured body the arm rides on
 def make_env(angle, target_range, handover=None, env2=None):
     env2 = ENV2 if env2 is None else env2
     kw = dict(delivery=DELIVERY, rsi=False, release_angle_deg=angle, target_range=target_range, arm_handover_s=handover)
+    if env2.get("robot") == "g1":       # the Unitree G1's own body and arm (envs/g1_bowl_env.py)
+        from envs.g1_bowl_env import G1BowlEnv
+        return G1BowlEnv(**kw, **{k: v for k, v in env2.items() if k != "robot"})
     if env2:
         from envs.kinematic_bowl_env2 import KinematicBowlEnv2
         return KinematicBowlEnv2(**kw, **env2)
@@ -216,6 +219,16 @@ def warm_start(run, angle, target_range, handover=None):
     return np.clip(knots, -1.0, 1.0).ravel()
 
 
+def warm_start_id(angle, target_range, handover=None):
+    """G1: inverse-dynamics commands that would make the robot's arm follow the retargeted captured arm, clipped to
+    the motors' peaks and fitted onto the knots ("bowl like the human, as far as the motors allow")."""
+    env = make_env(angle, target_range, handover)
+    t = decision_times(env)
+    A = np.clip(env.captured_arm_torques(BEFORE_S), -1.0, 1.0)[: len(t)]
+    knots, *_ = np.linalg.lstsq(interp_matrix(t), A, rcond=None)
+    return np.clip(knots, -1.0, 1.0).ravel()
+
+
 def optimise(pool, x0, tau, target_range, sigma, gens, popsize, seed, log, diagonal=False):
     import cma
     es = cma.CMAEvolutionStrategy(x0, sigma, {"bounds": [-1.0, 1.0], "popsize": popsize, "seed": seed,
@@ -280,6 +293,15 @@ def main():
     p.add_argument("--warm-rescale", action="store_true",
                    help="--warm-frontier starts made with other limits: ask for the torques they asked for "
                         "(commands x old peak / new peak, saturating at +/-1)")
+    p.add_argument("--robot", default=None, choices=["g1"],
+                   help="the whole bowler is this humanoid robot (envs/g1_bowl_env.py: G1 body retargeted from "
+                        "--delivery, G1 arm and motors); tag _g1")
+    p.add_argument("--arm-torque-scale", type=float, default=1.0,
+                   help="--robot: the arm motors' peak torques x this (3 ~ human strength: Holzbaur 2007 shoulder "
+                        "77-84, elbow 70 N m vs the G1's 25); tag _ats<s>")
+    p.add_argument("--warm-id", action="store_true",
+                   help="--robot: also start from the inverse-dynamics commands that follow the captured arm")
+    p.add_argument("--warm-zero", action="store_true", help="also start from all-zero commands")
     p.add_argument("--out", default=str(ROOT / "results" / "kinematic" / "frontier"))
     a = p.parse_args()
     global DELIVERY
@@ -300,6 +322,12 @@ def main():
         ENV2["elbow_solref"] = [0.004, 1.0]
     if a.limits:
         ENV2["limits"] = a.limits
+    if a.robot:
+        if a.limits or a.torque_scale != 1.0 or a.actuator != "damping":
+            p.error("--robot has its own motors")
+        ENV2["robot"] = a.robot
+        if a.arm_torque_scale != 1.0:
+            ENV2["arm_torque_scale"] = a.arm_torque_scale
     set_knots(a.handover, a.knot_dt)
     tag = f"a{int(a.angle)}" + (f"_h{int(round(a.handover * 1000))}" if a.handover is not None else "") \
         + (f"_k{int(round(a.knot_dt * 1000))}" if a.knot_dt is not None else "") \
@@ -310,7 +338,7 @@ def main():
         + ("_pc" if a.p_cont else "") + ("_drag" if a.drag else "") + ("_se" if a.stiff_elbow else "") \
         + (f"_{a.delivery}" if a.delivery != "T3a" else "") \
         + (f"_tn{a.torque_noise_sd:g}".replace(".", "p") if a.torque_noise_sd > 0 else "") \
-        + (f"_lim{a.limits}" if a.limits else "")
+        + (f"_lim{a.limits}" if a.limits else "") + (f"_{a.robot}" if a.robot else "")         + (f"_ats{a.arm_torque_scale:g}".replace(".", "p") if a.arm_torque_scale != 1.0 else "")
     import envs.legality as legality
     legality.LEGAL_EXTENSION_DEG = a.max_extension_deg    # the main process scores too (fitness/violation)
     global P_CONT
@@ -333,6 +361,14 @@ def main():
             starts[run] = x
             log(f"warm start {run}: open-loop fit {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "
                 f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r.get('land_x')}")
+        for name, on in (("captured_arm_id", a.warm_id), ("zero", a.warm_zero)):
+            if not on:
+                continue
+            x = warm_start_id(a.angle, tr, a.handover) if name == "captured_arm_id" else np.zeros(len(KNOTS) * 7)
+            r = pool.map(evaluate, [x])[0]
+            starts[name] = x
+            log(f"warm start {name}: {(r.get('speed_m_s') or 0) * 3.6:.1f} km/h good {r.get('good')} "
+                f"p_jit {r.get('p_jitter_12ms') or 0:.2f} land {r.get('land_x')} line {r.get('lateral_m')}")
         for spec in a.warm_frontier:
             path, t = spec.rsplit(":", 1)
             rec = next(q for q in json.load(open(path)) if abs(q["tau"] - float(t)) < 1e-9)
