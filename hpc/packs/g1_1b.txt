@@ -1,0 +1,3 @@
+# Split of g1_1.txt into 12-CPU jobs (cpuq had only 12 free CPUs, 23 Nov): qsub -l select=1:ncpus=12:mem=24gb -l walltime=06:00:00 -v CMDS=hpc/packs/<this>,P=2 hpc/cmds.pbs
+python scripts/kin_frontier.py --robot g1 --delivery T3aL --angle 290 --handover 0.5 --knot-dt 0.02 --diagonal --sigma 0.3 --gens 600 --p-cont --drag --stiff-elbow --jitter-sd-ms 4 --tau 0 0.5 0.75 --warm-id --warm-zero --workers 5 --out results/kinematic/frontier/g1 > logs/g1_a290_j4.log 2>&1
+python scripts/kin_frontier.py --robot g1 --delivery T3aL --angle 250 --handover 0.5 --knot-dt 0.02 --diagonal --sigma 0.3 --gens 600 --p-cont --drag --stiff-elbow --jitter-sd-ms 4 --tau 0 0.5 0.75 --warm-id --warm-zero --workers 5 --out results/kinematic/frontier/g1 > logs/g1_a250_j4.log 2>&1
