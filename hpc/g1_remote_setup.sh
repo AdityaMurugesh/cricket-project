@@ -4,7 +4,7 @@
 #   bash ~/cricket-project/hpc/g1_remote_setup.sh          (add "nosubmit" to stop before qsub)
 set -e
 cd ~/cricket-project
-git pull --ff-only || { echo "git pull blocked (local changes on the HPC?): git status, stash, rerun"; git status --short | head; exit 1; }
+git fetch -q origin && git merge --ff-only origin/main || { echo "merge blocked (local changes on the HPC?): git status, stash, rerun"; git status --short | head; exit 1; }
 test -f data/mocap/ref_G1_T3aL.npz || { echo "data/mocap/ref_G1_T3aL.npz missing: scp it first"; exit 1; }
 module load python/3.14.0-gcc-12.5.0-4km4ttx
 source .venv/bin/activate
