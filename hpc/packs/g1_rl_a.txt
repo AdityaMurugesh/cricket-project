@@ -1,0 +1,4 @@
+# G1 RL early pair in the rest of H200 reservation A (R43470, 12 CPU, until Tue 24 11:25 UTC): seeds not used in g1_rl_b/c.
+# Also times a 4M-step G1 PPO run.   qsub -q R43470 -l select=1:ncpus=12:mem=100gb -l walltime=06:05:00 -v CONFIGS=hpc/packs/g1_rl_a.txt,NENVS=4 hpc/bc_pack.pbs
+kin2_g1_tt0p5_j4_h500_a270_T3aL_3 results/kinematic/frontier/g1/frontier_a270_h500_k20_j4_pc_drag_se_T3aL_g1.json 0.5 --task kinematic2 --robot g1 --delivery T3aL --batch-size 4096 --drag --stiff-elbow --timesteps 4000000 --checkpoint-every 1000000 --set-log-std -3.2 --seed 3 --release-angle 270 --arm-handover 0.5 --tolerance-reward-sd-ms 4 --tolerance-target 0.5
+kin2_g1_fast_h500_a270_T3aL_2 results/kinematic/frontier/g1/frontier_a270_h500_k20_j4_pc_drag_se_T3aL_g1.json 0 --task kinematic2 --robot g1 --delivery T3aL --batch-size 4096 --drag --stiff-elbow --timesteps 4000000 --checkpoint-every 1000000 --set-log-std -3.2 --seed 2 --release-angle 270 --arm-handover 0.5
