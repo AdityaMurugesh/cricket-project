@@ -192,7 +192,7 @@ def main():
     body = ("Unitree G1 humanoid (its own body, masses, joint ranges); body motion = the capture retargeted onto it"
             if g1 else None) or (f"motion capture replay ({m['delivery'][:-1]}), legs cleaned (feet planted at the video's contacts)"
             if m["delivery"].endswith("L") else f"motion capture replay ({m['delivery']})")
-    lines = [f"Body: {body}.  Bowling arm: {a.label or 'learned policy (' + a.run + ')'}.  "
+    lines = [f"Body: {body}.  Bowling arm: {a.label or (f'CMA-ES optimised torques, tau {a.tau:g}' if a.frontier else 'learned policy (' + a.run + ')')}.  "
              f"Ball: simulated{' with air drag' if dk > 0 else ''}.",
              f"{o['speed_m_s'] * 3.6:.0f} km/h, lands {o['land_x']:.1f} m, {abs(o['lateral_m']):.2f} m off line, "
              f"elbow extension {o['extension_deg']:.1f} deg ({'good' if o['good'] else 'not good'}).  "
