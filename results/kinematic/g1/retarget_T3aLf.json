@@ -1,0 +1,106 @@
+{
+ "delivery": "T3aL",
+ "scale": 0.7374809502740509,
+ "frames": 353,
+ "release_index": 312,
+ "bowler_leg_m": 0.8457196567025269,
+ "g1_leg_m": 0.6237021360904237,
+ "segment_error_deg": {
+  "thigh_r": {
+   "median": 2.148369528839341,
+   "p95": 16.085903205403962,
+   "release_window_max": 10.385211603691516,
+   "at_release": 0.2171293052497212
+  },
+  "shank_r": {
+   "median": 1.768986128120611,
+   "p95": 7.315507422267821,
+   "release_window_max": 7.694165386560958,
+   "at_release": 0.21331626097399828
+  },
+  "foot_r": {
+   "median": 2.257261440401143,
+   "p95": 20.431543724829496,
+   "release_window_max": 24.666957217853604,
+   "at_release": 0.6068431126558788
+  },
+  "upper_arm_r": {
+   "median": 0.8045774002170984,
+   "p95": 62.64582330565501,
+   "release_window_max": 22.784017176154972,
+   "at_release": 6.134355825786816
+  },
+  "forearm_r": {
+   "median": 0.7286438253454963,
+   "p95": 6.339231341218533,
+   "release_window_max": 17.420509456865535,
+   "at_release": 9.114836577345779
+  },
+  "hand_r": {
+   "median": 0.9809840296722562,
+   "p95": 5.881622175043356,
+   "release_window_max": 11.002612071864034,
+   "at_release": 3.6757056621537263
+  },
+  "thigh_l": {
+   "median": 2.3979391315442773,
+   "p95": 8.22766231214195,
+   "release_window_max": 11.73655329361338,
+   "at_release": 3.6235814931483366
+  },
+  "shank_l": {
+   "median": 3.156778681074285,
+   "p95": 8.51517707217134,
+   "release_window_max": 10.43558108795867,
+   "at_release": 2.0790605160767446
+  },
+  "foot_l": {
+   "median": 13.914223006630063,
+   "p95": 29.815172476629055,
+   "release_window_max": 46.04031180226099,
+   "at_release": 39.326356153522994
+  },
+  "upper_arm_l": {
+   "median": 0.6475237070665188,
+   "p95": 41.44963673070157,
+   "release_window_max": 2.0277393869911355,
+   "at_release": 0.247769399910644
+  },
+  "forearm_l": {
+   "median": 0.9036799157504769,
+   "p95": 33.217806383255095,
+   "release_window_max": 6.1286939465341055,
+   "at_release": 0.33052991927601627
+  },
+  "hand_l": {
+   "median": 0.7259384099004916,
+   "p95": 48.711290077421836,
+   "release_window_max": 55.75225044012704,
+   "at_release": 0.7889825506363451
+  },
+  "torso": {
+   "median": 0.8165456222962236,
+   "p95": 27.3290740899027,
+   "release_window_max": 21.2910633861129,
+   "at_release": 21.012642274184568
+  }
+ },
+ "joints_at_limit_frac": {
+  "left_knee_joint": 0.40509915014164305,
+  "left_ankle_pitch_joint": 0.07932011331444759,
+  "left_ankle_roll_joint": 0.09631728045325778,
+  "right_hip_roll_joint": 0.0821529745042493,
+  "right_knee_joint": 0.1529745042492918,
+  "right_ankle_pitch_joint": 0.0084985835694051,
+  "right_ankle_roll_joint": 0.0906515580736544,
+  "waist_roll_joint": 0.0906515580736544,
+  "waist_pitch_joint": 0.11331444759206799,
+  "left_shoulder_yaw_joint": 0.10198300283286119,
+  "left_elbow_joint": 0.042492917847025496,
+  "left_wrist_pitch_joint": 0.0764872521246459,
+  "left_wrist_yaw_joint": 0.0679886685552408,
+  "right_shoulder_pitch_joint": 0.0169971671388102,
+  "right_shoulder_roll_joint": 0.09631728045325778,
+  "right_shoulder_yaw_joint": 0.0113314447592068
+ }
+}
