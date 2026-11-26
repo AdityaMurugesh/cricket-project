@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Cricket project: study guide (27 Nov)</title>
+<style>
+  @page { size: A4; margin: 16mm 17mm 16mm 17mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --accent:#1f6f8b; --good:#1e8449; --warn:#a04000; --soft:#f3f6fa; --line:#d9dee7; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: var(--ink); font-size: 12pt; line-height: 1.55; margin: 0 auto; max-width: 860px; padding: 0 14px; background:#fff; }
+  h1 { font-size: 23pt; margin: 18px 0 2px; color: var(--accent); }
+  h2 { font-size: 15.5pt; margin: 26px 0 6px; color: var(--accent); break-after: avoid; }
+  h2 .n { display:inline-block; min-width: 30px; height: 30px; line-height: 30px; text-align:center; border-radius: 15px;
+          background: var(--accent); color:#fff; font-size: 12.5pt; margin-right: 8px; padding: 0 4px; }
+  h3 { font-size: 12.5pt; margin: 16px 0 4px; break-after: avoid; }
+  p { margin: 6px 0 9px; }
+  .sub { color: var(--muted); font-size: 10.5pt; }
+  .one { font-size: 13pt; font-weight: 600; margin: 4px 0 10px; }
+  .box { background: var(--soft); border-radius: 8px; padding: 9px 14px; margin: 10px 0; break-inside: avoid; }
+  .say { background: #eef8f1; border-left: 5px solid var(--good); border-radius: 6px; padding: 8px 14px; margin: 12px 0; break-inside: avoid; }
+  .say b:first-child { color: var(--good); }
+  .catch { background: #fdf2e9; border-left: 5px solid var(--warn); border-radius: 6px; padding: 8px 14px; margin: 12px 0; break-inside: avoid; }
+  .catch b:first-child { color: var(--warn); }
+  .eg { border-left: 4px solid var(--accent); padding: 2px 12px; margin: 8px 0; color: #2c3446; font-style: italic; }
+  table { border-collapse: collapse; margin: 8px 0 10px; break-inside: avoid; font-size: 11pt; }
+  th, td { border: 1px solid var(--line); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); }
+  td.r { text-align: right; }
+  img { max-width: 100%; display: block; margin: 8px auto; }
+  figure { margin: 10px 0; break-inside: avoid; }
+  figcaption { font-size: 10pt; color: var(--muted); text-align: center; }
+  ul, ol { margin: 4px 0 10px; padding-left: 24px; } li { margin: 3px 0; }
+  .pb { break-before: page; }
+  code { font-family: Consolas, monospace; font-size: 10pt; background: var(--soft); padding: 0 4px; }
+  .flow { display:flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; font-size: 10.5pt; }
+  .flow span { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+  .flow i { color: var(--muted); font-style: normal; }
+  .qa .q { font-weight: 700; margin: 12px 0 2px; }
+  .qa p { margin: 2px 0 8px; }
+  .toc li { margin: 1px 0; }
+</style></head><body>
+
+<h1>How the cricket project works: a study guide</h1>
+<p class="sub">Written overnight 26–27 Nov for the Fri 27 Nov meeting. Read it top to bottom once (about 40 minutes).
+Every idea comes as: what it means in one line, an everyday picture, then the numbers. <b>Green boxes</b> are lines
+you can say as they are. <b>Orange boxes</b> are the honest catches: say them before you're asked.
+Sections 1–4 are the whole project from the start. Sections 5–7 are the humanoid robot work since 20 Nov, including
+what was done tonight. Section 8 is a cheat sheet for the meeting.</p>
+
+<div class="box"><b>Contents</b>
+<ol class="toc">
+<li>The project in one paragraph</li>
+<li>The pipeline, piece by piece (motion capture → simulator → good ball → noise)</li>
+<li>The three "brains": CMA-ES, behaviour cloning, PPO</li>
+<li>What we found up to 20 Nov</li>
+<li>The humanoid robot: Unitree G1 (what was built 22–24 Nov)</li>
+<li>RL on the G1: new results (tonight)</li>
+<li>Can the real robot do the whole delivery? First dynamic test (tonight)</li>
+<li>Meeting cheat sheet: what to say, likely questions</li>
+<li>Glossary, and where everything is</li>
+</ol></div>
+
+<h2><span class="n">1</span>The project in one paragraph</h2>
+<p class="one">We teach a simulated bowler to bowl fast, accurate, LEGAL deliveries, and ask what limits it.</p>
+<p>A real person was recorded bowling in the motion-capture lab. We put that motion into a physics simulator. The
+body copies the recording, but the bowling arm is driven by motors that a computer program controls. The program has
+to bowl a ball that is legal (the elbow may straighten by 15° at most, the ICC rule), pitches on a good length and stays
+on line. We found that <b>pace is limited by timing</b>: a fast ball must leave the hand within about a millisecond
+of the right moment. We found that <b>RL is needed on top of a plain optimiser</b> because RL watches the arm and corrects
+it when the muscles don't do exactly what was asked. Since 20 Nov the whole bowler is a <b>real humanoid robot</b>
+(the Unitree G1), to see what a real machine could do.</p>
+
+<h2><span class="n">2</span>The pipeline, piece by piece</h2>
+<div class="flow"><span>Motion capture (lab, 1 Oct)</span><i>→</i><span>Skeleton fit (OpenSim-style model)</span><i>→</i>
+<span>Simulator (MuJoCo): body replays, arm is motors</span><i>→</i><span>Program picks the arm's torques</span><i>→</i>
+<span>Ball released, flies with air drag</span><i>→</i><span>Scored: legal? on length? on line?</span></div>
+
+<h3>2a. Motion capture</h3>
+<p><b>Meaning:</b> cameras track reflective markers on the bowler 100 times a second. That gives the 3-D path of every
+body part.</p>
+<p>Our recording: Qualisys system, IOR full-body marker set, captured on 1 Oct. A program fits a skeleton (bones and
+joints) to the markers. Our main delivery is called <code>T3a</code>. <code>T3aL</code> is the same delivery with the
+legs fixed ("L" = legs). After the jump no leg markers were tracked, so the fit had guessed the legs and the feet slid.
+We pinned the feet where the lab video shows them on the ground.</p>
+
+<h3>2b. The simulator</h3>
+<p><b>Meaning:</b> MuJoCo is a physics engine, like a video game's physics but accurate. It works out how bodies
+move under forces, 500 times per simulated second (2 ms steps).</p>
+<ul>
+<li><b>The body is "prescribed":</b> it is forced to follow the recording exactly. It is not balancing; it's like a
+puppet on very stiff strings.</li>
+<li><b>The bowling arm is free:</b> its joints are driven by motors, and the program chooses the motor torques
+every 20 ms (one "decision"). Torque = turning force, in newton-metres (N·m).</li>
+<li><b>The ball</b> sits in the hand and is let go at a set point of the swing (the "release angle": 250°, 270° or
+290° of arm rotation). Then it flies with air drag, and we see where it lands.</li>
+<li><b>Arm handover 0.5 s:</b> the arm follows the recorded human arm until 0.5 s before release, then the program
+takes over. This makes every delivery start from the same place.</li>
+</ul>
+
+<h3>2c. What counts as a good ball</h3>
+<table><tr><th>Rule</th><th>Meaning</th></tr>
+<tr><td>Legal</td><td>The elbow straightens by at most 15° between the arm passing horizontal and the release (ICC law). Measured from the simulated joint angle.</td></tr>
+<tr><td>On length</td><td>Pitches 10.9–12.9 m from the release point (a good length).</td></tr>
+<tr><td>On line</td><td>Within 0.5 m either side of the middle.</td></tr>
+</table>
+<p>Speeds are always given in <b>km/h</b> at release.</p>
+
+<h3>2d. Noise: why "fast and accurate" is hard</h3>
+<p><b>Meaning:</b> real bowlers are never perfectly repeatable, so we add two kinds of random error on purpose.</p>
+<ul>
+<li><b>Release-timing error</b> (the "timing skill", SD in milliseconds): the ball leaves a few ms early or late.
+4 ms = very good timing, 12 ms = ordinary, like our participant. The symbol <b>τ (tau)</b> means "how often must
+the ball be good", e.g. τ = 0.75 = three in four.</li>
+<li><b>Motor noise</b> (in %): each 20 ms torque command comes out a few percent stronger or weaker at random, like
+muscles that don't do exactly what the brain asked. 5% = a little, 15% = a lot.</li>
+</ul>
+<div class="eg">Picture: throwing a dart. Timing error = letting go a moment early or late. Motor noise = your arm
+wobbling during the throw. You can correct a wobble if you're watching; you can't correct a late release, because it
+happens after your last decision.</div>
+
+<h3>2e. Scoring a bowler fairly</h3>
+<p>Every bowler bowls <b>210 deliveries</b>: 21 different start times × 10 random motor-noise draws. All bowlers
+get <b>the same random draws</b> ("common random numbers"), so differences are the bowlers', not luck. For timing
+error we don't even sample: the simulator works out the exact chance of a good ball from where the ball would land if
+it left a little earlier or later.</p>
+
+<h2><span class="n">3</span>The three "brains": CMA-ES, behaviour cloning, PPO</h2>
+<p class="one">An engineer finds the best single ball; we copy it into a network; a coach then improves the network.</p>
+
+<h3>3a. CMA-ES: the engineer</h3>
+<p><b>Meaning:</b> an optimiser. It tries many versions of the arm's torque plan, keeps the best, tries variations of
+those, and repeats, until the ball is as fast as possible while still good.</p>
+<p>The plan is a list of torques over time, 20 "knots" joined by straight lines. It is <b>open loop</b>: the same
+torques whatever happens, like a recorded dance. Asking "what is the fastest ball that is still good with probability
+τ?" for several τ gives the <b>frontier</b>: the pace you must give up for reliability.</p>
+
+<h3>3b. Behaviour cloning (BC): copying</h3>
+<p><b>Meaning:</b> train a neural network to give the same torques as the CMA-ES plan in the same situations.</p>
+<p>We bowl the plan many times with small nudges, record "arm state → torque the plan used", and fit the network
+to it. The copy (the "clone") is not perfect: it can be a bit off, especially for very fast, precise balls.</p>
+
+<h3>3c. PPO: the coach (reinforcement learning)</h3>
+<p><b>Meaning:</b> RL learns by practice. The bowler bowls thousands of balls, and gets a reward (points for pace and
+for landing on a good length; nothing for an illegal ball). The network is nudged towards whatever earned more reward.
+PPO (Proximal Policy Optimisation) is the standard RL method that does this in small, safe steps.</p>
+<ul>
+<li>The PPO network is <b>closed loop</b>: every 20 ms it looks at the arm (joint angles and speeds) and decides.
+So it can correct a wobble. That's the whole reason it beats the CMA-ES plan under motor noise.</li>
+<li>It starts from the clone (the "warm start"), not from nothing. RL from nothing got stuck at 77 km/h.</li>
+<li><b>Exploration noise</b> is kept small (<code>log std −3.2</code>), because random tries ruin a ball that must be timed
+to 1 ms.</li>
+<li><b>Tolerance target</b> (<code>tt0p5</code> = 0.5): tells RL "aim for half the balls good under timing error", so
+it doesn't drift to safe, slow balls.</li>
+</ul>
+<div class="say"><b>Say:</b> "CMA-ES gives the best single delivery. We copy it into PPO's network by behaviour cloning,
+then PPO trains with the normal task reward. CMA-ES is a starting point, not a reward term."</div>
+
+<h3>3d. Where it runs: the HPC</h3>
+<p>Training needs a lot of computing, so it runs on the university cluster (the HPC), never on the laptop. You
+connect through FortiClient VPN and SSH. A <b>job</b> is a request for some processors for some hours. A
+<b>pack</b> (<code>hpc/packs/*.txt</code>) is a list of runs that one job does side by side. The scheduler is PBS
+(<code>qsub</code> = submit, <code>qstat</code> = check).</p>
+
+<h2 class="pb"><span class="n">4</span>What we found up to 20 Nov</h2>
+<table><tr><th>Finding</th><th>In numbers</th></tr>
+<tr><td><b>Pace is a timing skill.</b> The faster the ball, the narrower the moment you may let go.</td><td>~100 km/h: release within ~1 ms. ~55 km/h: anywhere in a 20–60 ms window. Fastest reliable ball: ~90 km/h with elite timing (1 ms), ~55 with ordinary (12 ms).</td></tr>
+<tr><td><b>RL is needed on top of CMA-ES</b> because of motor noise.</td><td>With timing error only, they're equal (CMA-ES is the ceiling). At 15% motor noise: CMA-ES plans keep 3–15% good balls, RL 19–70%. Even CMA-ES re-optimised under noise only reaches 15–30%.</td></tr>
+<tr><td><b>Weak arms still bowl legally</b> (human-like and robot motor limits).</td><td>Human-like arm: 94 km/h fastest, 72 at 3-in-4 good. G1 arm on the human body: 95 / 68. H1: 86 / 59.</td></tr>
+<tr><td><b>Constrained RL</b> (the ICC law as a constraint, PPO-Lagrangian).</td><td>Gets to 0% illegal as fast as the hand-picked penalty, 2–3 km/h faster.</td></tr>
+</table>
+<p class="sub">Full details: docs/progress_since_6nov.pdf and docs/progress_since_20nov.pdf.</p>
+
+<h2><span class="n">5</span>The humanoid robot: Unitree G1</h2>
+<p class="one">Supervisor, 20 Nov: "the main next step is an actual humanoid robot model". Now the whole bowler is a G1.</p>
+<p>Until 20 Nov only the <i>arm</i> had robot limits. It was still attached to the human skeleton. Now
+<b>everything is the robot</b>: the G1's own body, link lengths, masses, joint ranges and motors. The model is the
+official one from MuJoCo Menagerie (29 joints, 1.32 m, 33 kg).</p>
+
+<h3>5a. Retargeting: putting a human motion on a smaller robot</h3>
+<p><b>Meaning:</b> the G1 is shorter than the bowler (its legs are 0.74× as long), so it can't copy positions. It
+copies <b>directions</b>: for every frame, find the robot joint angles that point its thigh, shin, foot, upper arm,
+forearm and hand the same way as the bowler's. This is "inverse kinematics" (IK), solved frame by frame inside the
+robot's joint limits.</p>
+<ul>
+<li>Leg errors and arm errors before release: about 2° or less. Good.</li>
+<li>Trunk error at release: 21°, because the G1's waist only bends ±30° and the bowler side-bends about 50°.</li>
+<li>A smoothing filter (10 Hz) stops the solution flipping between two answers (without it the shoulder spun at 126 rad/s).</li>
+</ul>
+
+<h3>5b. The G1 bowling environment</h3>
+<p>Same task and scoring as before, but: the body is the G1 replaying the retargeted motion, and the bowling arm is the
+G1's own 7-joint arm with its real motors: <b>25 N·m</b> at shoulder and elbow (a human shoulder is ~45–84),
+5 N·m at the wrist, top speed 37 rad/s. The G1's elbow counts 0 at a right angle and +90° straight, so we convert
+before applying the 15° rule.</p>
+
+<h3>5c. Could the G1 make the body motion at all? (feasibility)</h3>
+<table><tr><th>Check</th><th>Result</th></tr>
+<tr><td>Joint speeds in the delivery stride</td><td>All within the G1's motors</td></tr>
+<tr><td>Copying the human arm swing</td><td>Needs 3.4–3.7× the G1's shoulder torque. Replayed anyway: 46 km/h, 1.8 m off line</td></tr>
+<tr><td>Waist torque around release</td><td>Needs roll 207 N·m and pitch 111 N·m against a 50 N·m limit (2–4×). <b>The waist is the bottleneck.</b></td></tr>
+</table>
+
+<h3>5d. The G1's pace/accuracy frontier (CMA-ES, 23 Nov)</h3>
+<table><tr><th>Setting</th><th>Fastest (no timing error)</th><th>Good half the time (τ 0.5)</th><th>3 in 4 (τ 0.75)</th></tr>
+<tr><td>270°, very good timing (4 ms)</td><td class="r"><b>70.9</b></td><td class="r">54.8</td><td class="r">48.5</td></tr>
+<tr><td>250°, 4 ms</td><td class="r">77.2</td><td class="r">54.4</td><td class="r">48.7</td></tr>
+<tr><td>290°, 4 ms</td><td class="r">67.2</td><td class="r">58.3</td><td class="r">54.9</td></tr>
+<tr><td>270°, ordinary timing (12 ms)</td><td class="r">70.9</td><td class="r">47.0</td><td class="r">44.1</td></tr>
+<tr><td>270°, arm motors ×3 (≈ human strength)</td><td class="r"><b>88.2</b></td><td class="r">57.5</td><td class="r">53.1</td></tr>
+<tr><td>270°, arm free from the start (no human swing)</td><td class="r">76.6</td><td class="r">53.7</td><td class="r">54.7</td></tr>
+</table>
+<p class="sub">km/h. The human-limit model with the same settings bowled 130 km/h.</p>
+<div class="say"><b>Say:</b> "On the full G1 body the fastest legal, on-length ball is about 71 km/h, half the human-limit
+model's 130. Tripling its arm motors only gets 88, so most of the gap isn't motor strength. It is the smaller body
+(0.74×) and the G1's limited waist."</div>
+
+<h2 class="pb"><span class="n">6</span>RL on the G1 (new results)</h2>
+<p class="one">The same CMA-ES → clone → PPO pipeline, now on the robot. 17 PPO runs (24 Nov, H200 node), scored tonight.</p>
+<p>Each CMA-ES optimum above was cloned into a network, and PPO trained it for 4 million more steps on the G1. Then
+the plan, the clone and the trained bowler were all bowled under exactly the same noise.</p>
+<!--G1CVR-->
+
+<h2 class="pb"><span class="n">7</span>Can the real robot do the whole delivery? (first dynamic test, tonight)</h2>
+<p class="one">Short answer: not yet. With only its joint motors following the motion, the G1 falls over within half a second.</p>
+<p><b>Why this test:</b> everything so far had the body <i>prescribed</i>: forced along the motion, no floor, no
+balance. A real robot has to stand on the floor and balance itself. So tonight's new script
+(<code>scripts/g1_dynamic.py</code>) simulates the <b>whole G1 physically</b>: floor contact through its feet, gravity,
+and all 29 joints on Unitree's own position motors with their real torque limits (hips and knees 88–139 N·m, ankles
+50, waist 50–88, arms 25). Each motor tries to follow the retargeted delivery.</p>
+
+<h3>7a. First problem found: the feet were under the floor</h3>
+<p>The retarget had never checked the feet against the ground. In the G1 motion the lower foot was <b>7 cm under
+the floor</b> on average (11 cm at worst), and the "planted" foot <b>slid at about 2 m/s</b>. In the old prescribed
+model this didn't matter (there was no floor), but a real robot can't do it.</p>
+<p><b>Fix</b> (<code>retarget_g1.py --feet --froude</code>, new reference <code>T3aLf</code>): the IK now also solves where
+the pelvis is, keeps every foot point above the floor, and pins a foot flat to the ground while the bowler's foot is
+planted. Result: feet on the floor (within ~2 cm), sliding down from 2.2 to 0.6 m/s, and smoother (the pelvis's
+hardest accelerations 2.8 g → 2.4 g).</p>
+<p><b>Froude scaling</b> (the <code>--froude</code> part): a smaller body moving with the same timing as the human is not
+physically similar, because gravity doesn't shrink. The standard rule (equal Froude number) is: lengths × 0.74, so
+time × √0.74 = 0.86. The robot version therefore plays 14% slower. Like a small animal's stride compared with a big
+one's.</p>
+
+<h3>7b. Does it stay up?</h3>
+<figure><img src="../results/kinematic/g1/dynamic_T3aLf.png" alt="dynamic G1 test">
+<figcaption>Top left: lower foot height (fixed reference). Top right: trunk tilt. Above 60° = fallen.
+Bottom left: the "help" force needed. Bottom right: how hard each joint motor works (red = at its limit).</figcaption></figure>
+<table><tr><th>Run</th><th>What happens</th></tr>
+<tr><td>Motors only, no help</td><td>Falls ~0.15 s after the start (original reference: ~0.45 s). Trunk tips past 60°.</td></tr>
+<tr><td>Motors + "help": a virtual spring holding the pelvis on its path</td><td>Gets through the delivery, but the spring has to push up to about <b>2× body weight</b> (p95) at the strongest setting. Weaker springs aren't enough: it still falls.</td></tr>
+<tr><td>Joint motors (with help)</td><td>Bowling arm and waist at their torque limit most of the time; hip pitch and one ankle at their limit too.</td></tr>
+</table>
+<p><b>Why it falls:</b> it starts mid run-up, leaning forward ~16° and moving at 2.5 m/s. Motors that only copy joint
+angles have no idea about balance. A human (and every walking robot) constantly adjusts to stay up. The robot needs a
+<b>balance controller</b>, and for a motion this violent that means training one with RL (motion-tracking RL, as in
+DeepMimic or the recent G1 papers), on GPUs.</p>
+<div class="say"><b>Say:</b> "We took the first step to a real robot delivery: the whole G1 simulated with floor
+contact and its own motors. Two things came out. The retargeted motion put the feet under the floor and let them
+slide, which we fixed by pinning the feet and scaling time for the smaller body. And joint motors alone can't
+balance it: it falls in under half a second and needs about twice its body weight of outside help to get through. So
+the next step is an RL balance-and-tracking controller for the whole body."</div>
+<div class="catch"><b>Catch:</b> this is a first test from one evening. The motor gains are Unitree's model defaults,
+the run-up start is mid-stride, and the "help" spring is a measuring tool, not a solution. The bowling arm still needs
+about 3× the G1's torque to copy the human swing. On the robot's shorter legs the human's bound (0.38 s with both feet
+off the ground) almost disappears, so the robot version is closer to a fast walk into the crease.</div>
+<p class="sub">Videos (on the laptop, not on GitHub): results/kinematic/videos/g1_dynamic_fixed_nohelp.mp4 (falls),
+g1_dynamic_fixed_help3000.mp4 (with help).</p>
+
+<h2 class="pb"><span class="n">8</span>Meeting cheat sheet</h2>
+<h3>Five things to say, in order</h3>
+<ol>
+<li><b>The whole bowler is now a real robot</b> (Unitree G1): its body, masses, joint limits and motors. The human motion
+was retargeted onto it.</li>
+<li><b>G1 frontier:</b> fastest legal on-length ball ~71 km/h (human-limit model: 130). ×3 arm motors gives 88, so the gap is
+mostly body size and the waist, not motor strength.</li>
+<li><b>RL on the G1:</b> <!--SAY_RL--></li>
+<li><b>First dynamic whole-body test:</b> falls in under 0.5 s with joint motors alone. We found and fixed feet under the
+floor and sliding. It needs ~2× body weight of help, so the next step is an RL balance controller.</li>
+<li><b>Next:</b> RL whole-body tracking on the G1 (GPU), then bowling on top of it; constrained RL on the G1.</li>
+</ol>
+
+<div class="qa">
+<p class="q">Q: Is the body physically simulated now?</p>
+<p>In the bowling results (sections 5–6), no: the body is prescribed and only the arm is torque-driven, as before. Tonight's dynamic
+test (section 7) is the first fully physical one, and it shows the robot can't yet balance through the delivery
+without a learned controller.</p>
+<p class="q">Q: Why is the G1 so much slower than the human-limit model?</p>
+<p>Weak arm motors (25 N·m) are only part of it: ×3 motors only lifts 71 → 88 km/h. The rest is the smaller body (0.74×
+length, so a shorter lever and slower hand at the same joint speed) and the waist, which can't side-bend like a fast
+bowler's trunk.</p>
+<p class="q">Q: What are your "two sets of limits"?</p>
+<p>Real robot = G1 body + G1 motors. Human-like = the human-strength arm (from published strength data), or the G1 with
+×3 arm motors.</p>
+<p class="q">Q: Why do you still need RL if CMA-ES finds the delivery?</p>
+<p>A CMA-ES plan is open loop and falls apart under motor noise. RL watches the arm every 20 ms and corrects. Same-noise
+tests show it on the human-limit model, and now on the G1 too (section 6).</p>
+<p class="q">Q: What is Froude scaling?</p>
+<p>The rule for making a small model move in a physically similar way to a big one: keep gravity's effect the same.
+Lengths × 0.74 means times × √0.74 ≈ 0.86. Engineers use it for ship models, and biologists to compare animal gaits.</p>
+<p class="q">Q: How would you make the robot balance?</p>
+<p>Train a whole-body tracking policy with RL: it gets all 29 joints and the body's state, and is rewarded for staying
+close to the reference motion without falling (DeepMimic-style). It runs on GPUs (MuJoCo's MJX, or Isaac). Then put the
+bowling objective on top.</p>
+<p class="q">Q: Is the elbow law still checked on the robot?</p>
+<p>Yes, the same ≤15° rule. The G1's elbow angle is converted (flexion = 90° − joint angle). Every G1 delivery reported is legal.</p>
+</div>
+
+<h2><span class="n">9</span>Glossary, and where everything is</h2>
+<table>
+<tr><th>Word</th><th>Plain meaning</th></tr>
+<tr><td>Torque (N·m)</td><td>Turning force at a joint.</td></tr>
+<tr><td>Prescribed / kinematic</td><td>Forced to follow a recorded motion; doesn't balance.</td></tr>
+<tr><td>Dynamic</td><td>Moved only by forces (motors, gravity, floor), so it can fall.</td></tr>
+<tr><td>Open loop / closed loop</td><td>A fixed plan / a controller that watches and reacts.</td></tr>
+<tr><td>Retargeting, IK</td><td>Fitting a motion onto a different body; finding joint angles that put body parts where you want.</td></tr>
+<tr><td>Frontier</td><td>Fastest ball at each required reliability (τ).</td></tr>
+<tr><td>τ (tau)</td><td>Required chance of a good ball under timing error.</td></tr>
+<tr><td>Timing SD (ms)</td><td>How much the release moment wobbles: 4 ms very good, 12 ms ordinary.</td></tr>
+<tr><td>Motor noise (%)</td><td>Each torque command randomly a few % off.</td></tr>
+<tr><td>Behaviour cloning</td><td>Training a network to copy a plan.</td></tr>
+<tr><td>PPO</td><td>The RL method: learn by practice and reward, in small steps.</td></tr>
+<tr><td>BW</td><td>Body weight (the G1: 33 kg ≈ 327 N).</td></tr>
+<tr><td>HPC, job, pack</td><td>The university cluster; a request for processors; a list of runs in one job.</td></tr>
+</table>
+<table>
+<tr><th>What</th><th>Where</th></tr>
+<tr><td>G1 bowling environment</td><td><code>envs/g1_bowl_env.py</code></td></tr>
+<tr><td>Retarget (and the new --feet --froude)</td><td><code>scripts/retarget_g1.py</code></td></tr>
+<tr><td>Dynamic whole-body test (new)</td><td><code>scripts/g1_dynamic.py</code> → results/kinematic/g1/dynamic_*.png/json</td></tr>
+<tr><td>CMA-ES frontier</td><td><code>scripts/kin_frontier.py</code> → results/kinematic/frontier/g1/</td></tr>
+<tr><td>Clone, PPO, scoring</td><td><code>scripts/bc_from_frontier.py</code>, <code>train_runup.py</code>, <code>kin_equifinality.py</code></td></tr>
+<tr><td>Same-noise comparison</td><td><code>scripts/compare_cmaes_rl.py</code> → results/kinematic/cmaes_vs_rl/g1_*.json</td></tr>
+<tr><td>Videos</td><td>results/kinematic/videos/ (laptop only)</td></tr>
+<tr><td>Meeting prep</td><td>docs/meeting_2026-11-27.md</td></tr>
+</table>
+</body></html>

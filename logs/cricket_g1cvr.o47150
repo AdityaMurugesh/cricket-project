@@ -1,0 +1,195 @@
+Loading python/3.14.0-gcc-12.5.0-4km4ttx
+  Loading requirement: glibc/2.34-none-none-ppxsf4c
+    gcc-runtime/11.5.0-none-none-7vgrrum bzip2/1.0.8-gcc-11.5.0-3kxpqq4
+    gcc-runtime/12.5.0-none-none-of3rcdm libmd/1.1.0-gcc-12.5.0-he3hbve
+    libbsd/0.12.2-gcc-12.5.0-d5fxx77 expat/2.7.3-gcc-12.5.0-vftcugp
+    ncurses/6.5-20250705-gcc-11.5.0-yq6tjea readline/8.3-gcc-11.5.0-5mynowt
+    gdbm/1.25-gcc-11.5.0-xxzhozp libiconv/1.18-gcc-11.5.0-tetgn7i
+    xz/5.6.3-gcc-11.5.0-fxvxcob zlib/1.2.13-gcc-11.5.0-53opvyf
+    libxml2/2.13.5-gcc-11.5.0-zpkpf76 pigz/2.8-gcc-11.5.0-ivjoony
+    zstd/1.5.7-gcc-11.5.0-t5tyekd tar/1.35-gcc-11.5.0-mb3wczy
+    gettext/0.23.1-gcc-11.5.0-2xyhh3w libffi/3.5.2-gcc-12.5.0-p5bwus5
+    openssl/3.6.0-gcc-11.5.0-4nbgyad sqlite/3.50.4-gcc-12.5.0-5itg6w3
+    util-linux-uuid/2.41-gcc-12.5.0-wuhhqf7
+g1_free_fast           cmaes      none      0.0 km/h  released 0/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_free_j4_t0.5        cmaes      none      0.0 km/h  released 0/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_a270_j4_t0.5        cmaes      none     54.8 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.89  p4=0.58  p8=0.31  p12=0.21
+g1_a270_fast           cmaes      none     70.9 km/h  released 1/1  exact-release good 1  p1=0.41  p2=0.24  p4=0.13  p8=0.06  p12=0.04
+g1_a290_j4_t0.5        cmaes      none     58.3 km/h  released 1/1  exact-release good 1  p1=0.68  p2=0.59  p4=0.55  p8=0.49  p12=0.40
+g1_a250_j4_t0.5        cmaes      none     54.4 km/h  released 1/1  exact-release good 1  p1=0.83  p2=0.68  p4=0.51  p8=0.30  p12=0.21
+g1_a250_fast           cmaes      none     77.2 km/h  released 1/1  exact-release good 1  p1=0.49  p2=0.27  p4=0.14  p8=0.07  p12=0.05
+g1_ats3_j4_t0.5        cmaes      none     57.5 km/h  released 1/1  exact-release good 1  p1=0.89  p2=0.73  p4=0.58  p8=0.37  p12=0.26
+g1_ats3_fast           cmaes      none     88.2 km/h  released 1/1  exact-release good 1  p1=0.33  p2=0.17  p4=0.09  p8=0.04  p12=0.03
+g1_a290_fast           cmaes      none     67.2 km/h  released 1/1  exact-release good 1  p1=0.58  p2=0.32  p4=0.16  p8=0.08  p12=0.05
+g1_a270_j12_t0.75      cmaes      none     44.1 km/h  released 1/1  exact-release good 1  p1=1.00  p2=1.00  p4=1.00  p8=0.93  p12=0.77
+g1_a270_fast_ck        rl_1000000_steps none     64.9 km/h  released 1/1  exact-release good 1  p1=0.66  p2=0.38  p4=0.20  p8=0.10  p12=0.07
+g1_a270_j4_t0.5_ck     rl_1000000_steps none     50.5 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.96  p4=0.70  p8=0.40  p12=0.27
+kin2_g1_tt0p5_j4_h500_a270_T3aL_0 released 53.0 km/h land 11.765315600462227 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a270_T3aL_0.json
+kin2_g1_tt0p5_j4_h500_a270_T3aL_1 released 53.9 km/h land 11.944261684400963 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a270_T3aL_1.json
+kin2_g1_tt0p5_j4_h500_a270_T3aL_2 released 53.1 km/h land 12.014722555837487 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a270_T3aL_2.json
+kin2_g1_tt0p5_j4_h500_a270_T3aL_3 released 52.5 km/h land 11.895557957944664 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a270_T3aL_3.json
+kin2_g1_fast_h500_a270_T3aL_0 released 64.5 km/h land 11.666993829985367 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_fast_h500_a270_T3aL_0.json
+kin2_g1_fast_h500_a270_T3aL_1 released 61.0 km/h land 12.331617026436685 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_fast_h500_a270_T3aL_1.json
+kin2_g1_fast_h500_a270_T3aL_2 released 63.1 km/h land 11.423475416295792 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_fast_h500_a270_T3aL_2.json
+kin2_g1_tt0p5_j4_h500_a250_T3aL_0 released 53.9 km/h land 12.175299614332365 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a250_T3aL_0.json
+kin2_g1_fast_h500_a250_T3aL_0 released 66.8 km/h land 11.508020530084632 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_fast_h500_a250_T3aL_0.json
+kin2_g1_tt0p5_j4_h500_a290_T3aL_0 released 53.9 km/h land 12.264450358830084 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p5_j4_h500_a290_T3aL_0.json
+kin2_g1_fast_h500_a290_T3aL_0 released 62.1 km/h land 11.715377533062734 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_fast_h500_a290_T3aL_0.json
+kin2_g1_ats3_tt0p5_j4_h500_a270_T3aL_0 released 54.1 km/h land 12.308293437354282 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_ats3_tt0p5_j4_h500_a270_T3aL_0.json
+kin2_g1_ats3_tt0p5_j4_h500_a270_T3aL_1 released 56.2 km/h land 11.787230412831498 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_ats3_tt0p5_j4_h500_a270_T3aL_1.json
+kin2_g1_ats3_fast_h500_a270_T3aL_0 released 67.3 km/h land 11.808257888456913 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_ats3_fast_h500_a270_T3aL_0.json
+kin2_g1_tt0p75_j12_h500_a270_T3aL_0 released 41.5 km/h land 11.613663925256667 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_tt0p75_j12_h500_a270_T3aL_0.json
+kin2_g1_free_tt0p5_j4_a270_T3aL_0 released 40.9 km/h land 11.512980614742483 good True -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_free_tt0p5_j4_a270_T3aL_0.json
+kin2_g1_free_fast_a270_T3aL_0 released 47.0 km/h land 9.676620950174257 good False -> /shared-home/24a1cseb0002/cricket-project/results/kinematic/actions/kin2_g1_free_fast_a270_T3aL_0.json
+g1_free_fast           cmaes      t0.05    63.7 km/h  released 130/210  exact-release good 6  p1=0.03  p2=0.03  p4=0.02  p8=0.02  p12=0.01
+g1_free_j4_t0.5        cmaes      t0.05    47.2 km/h  released 134/210  exact-release good 15  p1=0.07  p2=0.05  p4=0.04  p8=0.02  p12=0.01
+g1_a270_fast           cmaes      t0.05    70.2 km/h  released 199/210  exact-release good 33  p1=0.19  p2=0.15  p4=0.09  p8=0.05  p12=0.03
+g1_a290_j4_t0.5        cmaes      t0.05    57.5 km/h  released 210/210  exact-release good 186  p1=0.79  p2=0.68  p4=0.54  p8=0.40  p12=0.32
+g1_a270_j4_t0.5        cmaes      t0.05    54.6 km/h  released 208/210  exact-release good 158  p1=0.75  p2=0.66  p4=0.44  p8=0.24  p12=0.17
+g1_ats3_j4_t0.5        cmaes      t0.05    56.6 km/h  released 210/210  exact-release good 93  p1=0.42  p2=0.36  p4=0.27  p8=0.17  p12=0.12
+g1_a250_fast           cmaes      t0.05    76.6 km/h  released 210/210  exact-release good 74  p1=0.25  p2=0.16  p4=0.09  p8=0.04  p12=0.03
+g1_a250_j4_t0.5        cmaes      t0.05    53.6 km/h  released 210/210  exact-release good 209  p1=0.91  p2=0.74  p4=0.50  p8=0.28  p12=0.19
+g1_a290_fast           cmaes      t0.05    66.9 km/h  released 210/210  exact-release good 79  p1=0.30  p2=0.23  p4=0.15  p8=0.08  p12=0.05
+g1_ats3_fast           cmaes      t0.05    87.3 km/h  released 210/210  exact-release good 54  p1=0.21  p2=0.13  p4=0.07  p8=0.04  p12=0.03
+g1_a270_j12_t0.75      cmaes      t0.05    42.5 km/h  released 210/210  exact-release good 193  p1=0.93  p2=0.91  p4=0.91  p8=0.85  p12=0.70
+g1_a270_fast_ck        rl_1000000_steps t0.15    64.4 km/h  released 205/210  exact-release good 102  p1=0.38  p2=0.26  p4=0.14  p8=0.07  p12=0.05
+g1_a270_fast_ck        rl_2000000_steps none     67.5 km/h  released 1/1  exact-release good 1  p1=0.73  p2=0.42  p4=0.22  p8=0.11  p12=0.07
+g1_a270_j4_t0.5_ck     rl_1000000_steps t0.15    50.1 km/h  released 203/210  exact-release good 138  p1=0.61  p2=0.52  p4=0.36  p8=0.21  p12=0.14
+g1_a270_j4_t0.5_ck     rl_2000000_steps none     51.7 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.90  p4=0.63  p8=0.36  p12=0.24
+g1_a270_fast           cmaes      t0.15    67.9 km/h  released 150/210  exact-release good 29  p1=0.13  p2=0.09  p4=0.05  p8=0.03  p12=0.02
+g1_free_fast           cmaes      t0.15    61.0 km/h  released 119/210  exact-release good 4  p1=0.02  p2=0.02  p4=0.02  p8=0.01  p12=0.01
+g1_free_j4_t0.5        cmaes      t0.15    47.9 km/h  released 136/210  exact-release good 13  p1=0.06  p2=0.05  p4=0.04  p8=0.02  p12=0.02
+g1_a270_j4_t0.5        cmaes      t0.15    54.8 km/h  released 146/210  exact-release good 81  p1=0.37  p2=0.31  p4=0.21  p8=0.12  p12=0.08
+g1_free_fast           bc_0       none      0.0 km/h  released 0/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_a270_fast           bc_0       none     70.8 km/h  released 1/1  exact-release good 0  p1=0.39  p2=0.26  p4=0.14  p8=0.07  p12=0.05
+g1_free_j4_t0.5        bc_0       none     53.3 km/h  released 1/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_a270_j4_t0.5        bc_0       none     54.4 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.82  p4=0.50  p8=0.27  p12=0.18
+g1_a290_j4_t0.5        cmaes      t0.15    57.4 km/h  released 210/210  exact-release good 75  p1=0.34  p2=0.31  p4=0.26  p8=0.20  p12=0.16
+g1_a290_j4_t0.5        bc_0       none     58.5 km/h  released 1/1  exact-release good 1  p1=0.98  p2=0.78  p4=0.47  p8=0.27  p12=0.21
+g1_ats3_j4_t0.5        cmaes      t0.15    54.1 km/h  released 209/210  exact-release good 11  p1=0.06  p2=0.06  p4=0.05  p8=0.04  p12=0.03
+g1_a250_fast           cmaes      t0.15    75.1 km/h  released 210/210  exact-release good 35  p1=0.16  p2=0.11  p4=0.07  p8=0.03  p12=0.02
+g1_a250_j4_t0.5        cmaes      t0.15    53.0 km/h  released 208/210  exact-release good 133  p1=0.59  p2=0.50  p4=0.35  p8=0.21  p12=0.14
+g1_ats3_j4_t0.5        bc_0       none     56.4 km/h  released 1/1  exact-release good 0  p1=0.01  p2=0.14  p4=0.24  p8=0.19  p12=0.14
+g1_a290_fast           cmaes      t0.15    65.5 km/h  released 204/210  exact-release good 22  p1=0.11  p2=0.10  p4=0.08  p8=0.05  p12=0.04
+g1_a250_fast           bc_0       none     77.0 km/h  released 1/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_a250_j4_t0.5        bc_0       none     54.2 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.84  p4=0.52  p8=0.28  p12=0.19
+g1_ats3_fast           cmaes      t0.15    83.6 km/h  released 210/210  exact-release good 26  p1=0.10  p2=0.07  p4=0.05  p8=0.02  p12=0.02
+g1_a290_fast           bc_0       none     67.0 km/h  released 1/1  exact-release good 0  p1=0.32  p2=0.27  p4=0.16  p8=0.08  p12=0.05
+g1_a270_j12_t0.75      cmaes      t0.15    43.3 km/h  released 210/210  exact-release good 98  p1=0.47  p2=0.48  p4=0.48  p8=0.44  p12=0.36
+g1_ats3_fast           bc_0       none     87.5 km/h  released 1/1  exact-release good 0  p1=0.24  p2=0.16  p4=0.09  p8=0.04  p12=0.03
+g1_a270_j12_t0.75      bc_0       none     42.6 km/h  released 1/1  exact-release good 1  p1=1.00  p2=1.00  p4=1.00  p8=0.92  p12=0.75
+g1_a270_fast_ck        rl_2000000_steps t0.15    65.6 km/h  released 201/210  exact-release good 124  p1=0.46  p2=0.30  p4=0.17  p8=0.09  p12=0.06
+g1_a270_fast_ck        rl_3000000_steps none     66.3 km/h  released 1/1  exact-release good 1  p1=0.52  p2=0.38  p4=0.22  p8=0.11  p12=0.08
+g1_a270_j4_t0.5_ck     rl_2000000_steps t0.15    51.7 km/h  released 208/210  exact-release good 156  p1=0.71  p2=0.61  p4=0.42  p8=0.23  p12=0.16
+g1_a270_j4_t0.5_ck     rl_3000000_steps none     53.3 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.90  p4=0.60  p8=0.32  p12=0.22
+g1_free_fast           bc_0       t0.05    58.8 km/h  released 81/210  exact-release good 0  p1=0.00  p2=0.01  p4=0.01  p8=0.01  p12=0.01
+g1_a270_fast           bc_0       t0.05    70.3 km/h  released 185/210  exact-release good 27  p1=0.17  p2=0.15  p4=0.09  p8=0.05  p12=0.03
+g1_free_j4_t0.5        bc_0       t0.05    51.5 km/h  released 136/210  exact-release good 10  p1=0.05  p2=0.04  p4=0.03  p8=0.02  p12=0.01
+g1_a270_j4_t0.5        bc_0       t0.05    53.7 km/h  released 204/210  exact-release good 153  p1=0.71  p2=0.63  p4=0.42  p8=0.24  p12=0.16
+g1_a290_j4_t0.5        bc_0       t0.05    59.2 km/h  released 210/210  exact-release good 178  p1=0.74  p2=0.59  p4=0.38  p8=0.24  p12=0.18
+g1_ats3_j4_t0.5        bc_0       t0.05    56.8 km/h  released 210/210  exact-release good 55  p1=0.27  p2=0.27  p4=0.23  p8=0.16  p12=0.11
+g1_a250_fast           bc_0       t0.05    76.6 km/h  released 210/210  exact-release good 29  p1=0.10  p2=0.06  p4=0.03  p8=0.02  p12=0.01
+g1_a250_j4_t0.5        bc_0       t0.05    53.5 km/h  released 210/210  exact-release good 207  p1=0.94  p2=0.78  p4=0.50  p8=0.27  p12=0.18
+g1_a290_fast           bc_0       t0.05    66.9 km/h  released 210/210  exact-release good 61  p1=0.29  p2=0.23  p4=0.15  p8=0.08  p12=0.05
+g1_free_fast           bc_0       t0.15    58.3 km/h  released 69/210  exact-release good 2  p1=0.01  p2=0.01  p4=0.01  p8=0.01  p12=0.01
+g1_free_fast           rl_0       none     47.8 km/h  released 1/1  exact-release good 0  p1=0.00  p2=0.00  p4=0.00  p8=0.00  p12=0.00
+g1_ats3_fast           bc_0       t0.05    86.9 km/h  released 210/210  exact-release good 48  p1=0.18  p2=0.11  p4=0.06  p8=0.03  p12=0.02
+g1_a270_j12_t0.75      bc_0       t0.05    43.2 km/h  released 210/210  exact-release good 203  p1=0.96  p2=0.95  p4=0.94  p8=0.84  p12=0.69
+g1_a270_fast_ck        rl_3000000_steps t0.15    65.1 km/h  released 197/210  exact-release good 126  p1=0.46  p2=0.30  p4=0.17  p8=0.09  p12=0.06
+g1_a270_fast_ck        rl_4000000_steps none     64.7 km/h  released 1/1  exact-release good 1  p1=0.79  p2=0.48  p4=0.25  p8=0.13  p12=0.09
+g1_a270_j4_t0.5_ck     rl_3000000_steps t0.15    52.5 km/h  released 210/210  exact-release good 172  p1=0.78  p2=0.67  p4=0.45  p8=0.25  p12=0.17
+g1_a270_j4_t0.5_ck     rl_4000000_steps none     53.2 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.89  p4=0.60  p8=0.33  p12=0.22
+g1_a270_fast           bc_0       t0.15    68.4 km/h  released 143/210  exact-release good 25  p1=0.12  p2=0.09  p4=0.06  p8=0.03  p12=0.02
+g1_a270_fast           rl_0       none     64.5 km/h  released 1/1  exact-release good 1  p1=0.78  p2=0.48  p4=0.26  p8=0.13  p12=0.09
+g1_free_j4_t0.5        bc_0       t0.15    50.3 km/h  released 137/210  exact-release good 8  p1=0.04  p2=0.04  p4=0.03  p8=0.02  p12=0.01
+g1_free_j4_t0.5        rl_0       none     42.4 km/h  released 1/1  exact-release good 1  p1=0.89  p2=0.73  p4=0.57  p8=0.36  p12=0.25
+g1_a270_j4_t0.5        bc_0       t0.15    53.6 km/h  released 151/210  exact-release good 80  p1=0.36  p2=0.31  p4=0.21  p8=0.12  p12=0.08
+g1_a270_j4_t0.5        rl_0       none     53.0 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.91  p4=0.61  p8=0.33  p12=0.23
+g1_a290_j4_t0.5        bc_0       t0.15    57.8 km/h  released 210/210  exact-release good 87  p1=0.38  p2=0.33  p4=0.26  p8=0.19  p12=0.15
+g1_a290_j4_t0.5        rl_0       none     53.9 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.97  p4=0.82  p8=0.56  p12=0.40
+g1_ats3_j4_t0.5        bc_0       t0.15    56.3 km/h  released 209/210  exact-release good 21  p1=0.10  p2=0.09  p4=0.07  p8=0.05  p12=0.04
+g1_ats3_j4_t0.5        rl_0       none     54.1 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.95  p4=0.68  p8=0.38  p12=0.26
+g1_a250_fast           bc_0       t0.15    75.0 km/h  released 210/210  exact-release good 41  p1=0.16  p2=0.11  p4=0.06  p8=0.03  p12=0.02
+g1_a250_fast           rl_0       none     66.8 km/h  released 1/1  exact-release good 1  p1=0.64  p2=0.37  p4=0.19  p8=0.10  p12=0.06
+g1_a250_j4_t0.5        bc_0       t0.15    53.4 km/h  released 210/210  exact-release good 140  p1=0.61  p2=0.51  p4=0.34  p8=0.20  p12=0.14
+g1_a250_j4_t0.5        rl_0       none     53.9 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.95  p4=0.68  p8=0.38  p12=0.26
+g1_free_fast           rl_0       t0.05    46.9 km/h  released 190/210  exact-release good 20  p1=0.10  p2=0.08  p4=0.06  p8=0.04  p12=0.02
+g1_a290_fast           bc_0       t0.15    65.9 km/h  released 208/210  exact-release good 20  p1=0.10  p2=0.10  p4=0.08  p8=0.05  p12=0.04
+g1_a290_fast           rl_0       none     62.1 km/h  released 1/1  exact-release good 1  p1=0.80  p2=0.50  p4=0.26  p8=0.13  p12=0.09
+g1_a270_fast_ck        rl_4000000_steps t0.15    63.4 km/h  released 203/210  exact-release good 144  p1=0.53  p2=0.35  p4=0.19  p8=0.10  p12=0.07
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a270_fast_ck.json
+g1_ats3_fast           bc_0       t0.15    83.4 km/h  released 210/210  exact-release good 19  p1=0.10  p2=0.07  p4=0.05  p8=0.02  p12=0.02
+g1_ats3_fast           rl_0       none     67.3 km/h  released 1/1  exact-release good 1  p1=0.73  p2=0.44  p4=0.23  p8=0.12  p12=0.08
+g1_a270_j12_t0.75      bc_0       t0.15    44.1 km/h  released 209/210  exact-release good 96  p1=0.48  p2=0.49  p4=0.50  p8=0.45  p12=0.36
+g1_a270_j12_t0.75      rl_0       none     41.5 km/h  released 1/1  exact-release good 1  p1=1.00  p2=1.00  p4=1.00  p8=0.93  p12=0.82
+g1_a270_fast           rl_0       t0.05    64.4 km/h  released 210/210  exact-release good 204  p1=0.72  p2=0.46  p4=0.25  p8=0.13  p12=0.08
+g1_a270_j4_t0.5_ck     rl_4000000_steps t0.15    53.5 km/h  released 210/210  exact-release good 171  p1=0.77  p2=0.64  p4=0.43  p8=0.24  p12=0.16
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a270_j4_t0.5_ck.json
+g1_a270_j4_t0.5        rl_0       t0.05    53.7 km/h  released 210/210  exact-release good 210  p1=0.99  p2=0.87  p4=0.58  p8=0.32  p12=0.22
+g1_free_j4_t0.5        rl_0       t0.05    41.5 km/h  released 210/210  exact-release good 154  p1=0.70  p2=0.63  p4=0.48  p8=0.30  p12=0.21
+g1_a290_j4_t0.5        rl_0       t0.05    52.7 km/h  released 210/210  exact-release good 210  p1=0.99  p2=0.97  p4=0.84  p8=0.58  p12=0.42
+g1_ats3_j4_t0.5        rl_0       t0.05    53.8 km/h  released 210/210  exact-release good 198  p1=0.93  p2=0.85  p4=0.61  p8=0.35  p12=0.24
+g1_a250_fast           rl_0       t0.05    66.8 km/h  released 210/210  exact-release good 179  p1=0.58  p2=0.36  p4=0.19  p8=0.10  p12=0.06
+g1_a250_j4_t0.5        rl_0       t0.05    53.5 km/h  released 210/210  exact-release good 210  p1=1.00  p2=0.93  p4=0.67  p8=0.39  p12=0.27
+g1_free_fast           rl_0       t0.15    45.4 km/h  released 191/210  exact-release good 11  p1=0.06  p2=0.06  p4=0.05  p8=0.03  p12=0.02
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_free_fast.json
+g1_a290_fast           rl_0       t0.05    61.5 km/h  released 210/210  exact-release good 207  p1=0.75  p2=0.50  p4=0.27  p8=0.14  p12=0.10
+g1_ats3_fast           rl_0       t0.05    66.9 km/h  released 210/210  exact-release good 186  p1=0.67  p2=0.45  p4=0.25  p8=0.13  p12=0.09
+g1_a270_fast           rl_0       t0.15    63.4 km/h  released 204/210  exact-release good 137  p1=0.51  p2=0.34  p4=0.19  p8=0.10  p12=0.06
+g1_a270_fast           bc_1       none     70.8 km/h  released 1/1  exact-release good 0  p1=0.39  p2=0.26  p4=0.14  p8=0.07  p12=0.05
+g1_a270_j12_t0.75      rl_0       t0.05    42.0 km/h  released 210/210  exact-release good 210  p1=1.00  p2=1.00  p4=1.00  p8=0.93  p12=0.81
+g1_a270_j4_t0.5        rl_0       t0.15    53.4 km/h  released 210/210  exact-release good 172  p1=0.77  p2=0.65  p4=0.43  p8=0.24  p12=0.16
+g1_a270_j4_t0.5        bc_1       none     54.4 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.82  p4=0.50  p8=0.27  p12=0.18
+g1_free_j4_t0.5        rl_0       t0.15    41.3 km/h  released 205/210  exact-release good 89  p1=0.42  p2=0.40  p4=0.33  p8=0.23  p12=0.17
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_free_j4_t0.5.json
+g1_a290_j4_t0.5        rl_0       t0.15    52.6 km/h  released 210/210  exact-release good 170  p1=0.80  p2=0.77  p4=0.64  p8=0.44  p12=0.32
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a290_j4_t0.5.json
+g1_a250_fast           rl_0       t0.15    66.4 km/h  released 210/210  exact-release good 130  p1=0.45  p2=0.29  p4=0.16  p8=0.08  p12=0.06
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a250_fast.json
+g1_ats3_j4_t0.5        rl_0       t0.15    52.7 km/h  released 210/210  exact-release good 64  p1=0.30  p2=0.27  p4=0.20  p8=0.12  p12=0.08
+g1_ats3_j4_t0.5        bc_1       none     56.4 km/h  released 1/1  exact-release good 0  p1=0.01  p2=0.14  p4=0.24  p8=0.19  p12=0.14
+g1_a250_j4_t0.5        rl_0       t0.15    52.6 km/h  released 210/210  exact-release good 187  p1=0.84  p2=0.74  p4=0.54  p8=0.34  p12=0.25
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a250_j4_t0.5.json
+g1_a270_fast           bc_1       t0.05    70.3 km/h  released 185/210  exact-release good 27  p1=0.17  p2=0.15  p4=0.09  p8=0.05  p12=0.03
+g1_a290_fast           rl_0       t0.15    60.0 km/h  released 210/210  exact-release good 124  p1=0.51  p2=0.39  p4=0.24  p8=0.13  p12=0.10
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a290_fast.json
+g1_ats3_fast           rl_0       t0.15    67.6 km/h  released 210/210  exact-release good 81  p1=0.31  p2=0.23  p4=0.14  p8=0.08  p12=0.05
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_ats3_fast.json
+g1_a270_j12_t0.75      rl_0       t0.15    41.9 km/h  released 210/210  exact-release good 155  p1=0.74  p2=0.74  p4=0.73  p8=0.67  p12=0.58
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a270_j12_t0.75.json
+g1_a270_j4_t0.5        bc_1       t0.05    53.7 km/h  released 204/210  exact-release good 153  p1=0.71  p2=0.63  p4=0.42  p8=0.24  p12=0.16
+g1_a270_fast           bc_1       t0.15    68.4 km/h  released 143/210  exact-release good 25  p1=0.12  p2=0.09  p4=0.06  p8=0.03  p12=0.02
+g1_a270_fast           rl_1       none     61.0 km/h  released 1/1  exact-release good 1  p1=0.79  p2=0.53  p4=0.29  p8=0.15  p12=0.10
+g1_ats3_j4_t0.5        bc_1       t0.05    56.8 km/h  released 210/210  exact-release good 55  p1=0.27  p2=0.27  p4=0.23  p8=0.16  p12=0.11
+g1_a270_j4_t0.5        bc_1       t0.15    53.6 km/h  released 151/210  exact-release good 80  p1=0.36  p2=0.31  p4=0.21  p8=0.12  p12=0.08
+g1_a270_j4_t0.5        rl_1       none     53.9 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.88  p4=0.59  p8=0.32  p12=0.22
+g1_a270_fast           rl_1       t0.05    61.1 km/h  released 210/210  exact-release good 206  p1=0.79  p2=0.52  p4=0.28  p8=0.15  p12=0.10
+g1_ats3_j4_t0.5        bc_1       t0.15    56.3 km/h  released 209/210  exact-release good 21  p1=0.10  p2=0.09  p4=0.07  p8=0.05  p12=0.04
+g1_ats3_j4_t0.5        rl_1       none     56.2 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.91  p4=0.71  p8=0.44  p12=0.31
+g1_a270_j4_t0.5        rl_1       t0.05    53.8 km/h  released 210/210  exact-release good 210  p1=0.99  p2=0.87  p4=0.58  p8=0.32  p12=0.21
+g1_a270_fast           rl_1       t0.15    61.1 km/h  released 208/210  exact-release good 169  p1=0.63  p2=0.41  p4=0.23  p8=0.12  p12=0.08
+g1_a270_fast           bc_2       none     70.8 km/h  released 1/1  exact-release good 0  p1=0.39  p2=0.26  p4=0.14  p8=0.07  p12=0.05
+g1_ats3_j4_t0.5        rl_1       t0.05    55.5 km/h  released 210/210  exact-release good 201  p1=0.93  p2=0.83  p4=0.62  p8=0.37  p12=0.26
+g1_a270_j4_t0.5        rl_1       t0.15    53.9 km/h  released 210/210  exact-release good 185  p1=0.84  p2=0.70  p4=0.45  p8=0.24  p12=0.16
+g1_a270_j4_t0.5        bc_2       none     54.4 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.82  p4=0.50  p8=0.27  p12=0.18
+g1_a270_fast           bc_2       t0.05    70.3 km/h  released 185/210  exact-release good 27  p1=0.17  p2=0.15  p4=0.09  p8=0.05  p12=0.03
+g1_ats3_j4_t0.5        rl_1       t0.15    55.8 km/h  released 210/210  exact-release good 78  p1=0.37  p2=0.33  p4=0.25  p8=0.15  p12=0.11
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_ats3_j4_t0.5.json
+g1_a270_j4_t0.5        bc_2       t0.05    53.7 km/h  released 204/210  exact-release good 153  p1=0.71  p2=0.63  p4=0.42  p8=0.24  p12=0.16
+g1_a270_fast           bc_2       t0.15    68.4 km/h  released 143/210  exact-release good 25  p1=0.12  p2=0.09  p4=0.06  p8=0.03  p12=0.02
+g1_a270_fast           rl_2       none     63.1 km/h  released 1/1  exact-release good 1  p1=0.77  p2=0.53  p4=0.30  p8=0.15  p12=0.10
+g1_a270_j4_t0.5        bc_2       t0.15    53.6 km/h  released 151/210  exact-release good 80  p1=0.36  p2=0.31  p4=0.21  p8=0.12  p12=0.08
+g1_a270_j4_t0.5        rl_2       none     53.1 km/h  released 1/1  exact-release good 1  p1=1.00  p2=0.90  p4=0.62  p8=0.35  p12=0.24
+g1_a270_fast           rl_2       t0.05    62.8 km/h  released 210/210  exact-release good 202  p1=0.76  p2=0.51  p4=0.29  p8=0.15  p12=0.10
+g1_a270_j4_t0.5        rl_2       t0.05    53.1 km/h  released 210/210  exact-release good 210  p1=1.00  p2=0.90  p4=0.61  p8=0.34  p12=0.23
+g1_a270_fast           rl_2       t0.15    63.2 km/h  released 205/210  exact-release good 142  p1=0.55  p2=0.38  p4=0.22  p8=0.11  p12=0.08
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a270_fast.json
+g1_a270_j4_t0.5        rl_2       t0.15    53.1 km/h  released 210/210  exact-release good 183  p1=0.82  p2=0.69  p4=0.46  p8=0.25  p12=0.17
+g1_a270_j4_t0.5        bc_3       none     54.4 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.82  p4=0.50  p8=0.27  p12=0.18
+g1_a270_j4_t0.5        bc_3       t0.05    53.7 km/h  released 204/210  exact-release good 153  p1=0.71  p2=0.63  p4=0.42  p8=0.24  p12=0.16
+g1_a270_j4_t0.5        bc_3       t0.15    53.6 km/h  released 151/210  exact-release good 80  p1=0.36  p2=0.31  p4=0.21  p8=0.12  p12=0.08
+g1_a270_j4_t0.5        rl_3       none     52.5 km/h  released 1/1  exact-release good 1  p1=0.99  p2=0.88  p4=0.60  p8=0.33  p12=0.22
+g1_a270_j4_t0.5        rl_3       t0.05    53.4 km/h  released 210/210  exact-release good 210  p1=0.99  p2=0.88  p4=0.59  p8=0.32  p12=0.22
+g1_a270_j4_t0.5        rl_3       t0.15    53.3 km/h  released 210/210  exact-release good 170  p1=0.78  p2=0.66  p4=0.44  p8=0.24  p12=0.17
+wrote /shared-home/24a1cseb0002/cricket-project/results/kinematic/cmaes_vs_rl/g1_a270_j4_t0.5.json
+cmds exit 0

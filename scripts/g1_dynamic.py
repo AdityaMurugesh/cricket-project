@@ -48,6 +48,7 @@ def build(timestep=0.002):
                             rgba=[0.45, 0.6, 0.4, 1])
     spec.worldbody.add_light(pos=[0, 0, 6], dir=[0, 0, -1], type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL)
     spec.visual.global_.offwidth, spec.visual.global_.offheight = 1280, 1080
+    spec.visual.headlight.ambient, spec.visual.headlight.diffuse = [0.45] * 3, [0.6] * 3    # videos only
     return spec.compile()
 
 

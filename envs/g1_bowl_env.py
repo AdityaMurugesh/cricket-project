@@ -65,6 +65,7 @@ def build_g1(timestep=0.002, arm_torque=ARM_TORQUE):
         a.gear = [tq, 0, 0, 0, 0, 0]
         a.ctrllimited, a.ctrlrange = True, [-1.0, 1.0]
     spec.visual.global_.offwidth, spec.visual.global_.offheight = 1280, 1080
+    spec.visual.headlight.ambient, spec.visual.headlight.diffuse = [0.45] * 3, [0.6] * 3    # videos only
     # a floor and a light for the videos (contacts are off in the env: the body is prescribed)
     spec.worldbody.add_geom(name="floor", type=mujoco.mjtGeom.mjGEOM_PLANE, size=[60, 20, 0.1], rgba=[0.45, 0.6, 0.4, 1])
     spec.worldbody.add_light(pos=[0, 0, 6], dir=[0, 0, -1], type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL)
