@@ -1,0 +1,19 @@
+#!/bin/bash
+# Whole-body tracking controller for the dynamic G1 (envs/g1_track_env.py, scripts/train_g1_track.py).
+#   qsub -v RUN=g1track_s0,SEED=0,SCALE=0.25 hpc/g1_track.pbs
+#PBS -N cricket_g1track
+#PBS -q cpuq
+#PBS -l select=1:ncpus=48:mem=64gb
+#PBS -l walltime=09:00:00
+#PBS -j oe
+
+cd "$PBS_O_WORKDIR"
+module load python/3.14.0-gcc-12.5.0-4km4ttx
+source .venv/bin/activate
+git rev-parse --short HEAD && echo "(commit above is the code this run used)"
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+: "${RUN:?pass RUN=<name>}"
+python scripts/train_g1_track.py --run "${RUN}" --seed "${SEED:-0}" --action-scale "${SCALE:-0.25}" \
+    --delivery "${DELIVERY:-T3aLf}" --n-envs "${NENVS:-44}" --timesteps "${STEPS:-400000000}" \
+    --max-hours "${HOURS:-8.5}" --torch-threads 4 2>&1 | grep -v Warning
+echo "track exit $?"
