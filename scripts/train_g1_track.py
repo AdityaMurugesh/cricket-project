@@ -65,6 +65,7 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--n-steps", type=int, default=256)
     p.add_argument("--lr", type=float, default=3e-4)
+    p.add_argument("--target-kl", type=float, default=None, help="PPO early stop per update (e.g. 0.03)")
     p.add_argument("--log-std", type=float, default=-1.0)
     p.add_argument("--eval-every", type=int, default=5_000_000)
     p.add_argument("--ckpt-every", type=int, default=25_000_000)
@@ -89,6 +90,7 @@ def main():
     batch = a.n_envs * a.n_steps
     model = PPO("MlpPolicy", venv, seed=a.seed, learning_rate=a.lr, n_steps=a.n_steps, batch_size=batch // 4,
                 n_epochs=5, gamma=0.95, gae_lambda=0.95, clip_range=0.2, ent_coef=0.0, max_grad_norm=0.5,
+                target_kl=a.target_kl,
                 policy_kwargs=dict(net_arch=dict(pi=[512, 256], vf=[512, 256]), log_std_init=a.log_std,
                                    activation_fn=torch.nn.ELU), verbose=0, device="cpu")
     model.set_logger(configure(str(log), ["csv", "stdout"]))

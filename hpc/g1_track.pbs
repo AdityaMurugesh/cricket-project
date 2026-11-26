@@ -15,5 +15,5 @@ export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 : "${RUN:?pass RUN=<name>}"
 python scripts/train_g1_track.py --run "${RUN}" --seed "${SEED:-0}" --action-scale "${SCALE:-0.25}" \
     --delivery "${DELIVERY:-T3aLf}" --n-envs "${NENVS:-44}" --timesteps "${STEPS:-400000000}" \
-    --max-hours "${HOURS:-8.5}" --torch-threads 4 2>&1 | grep -v Warning
+    --max-hours "${HOURS:-8.5}" --torch-threads 4 --lr "${LR:-3e-4}" ${TKL:+--target-kl ${TKL}} 2>&1 | grep -v Warning
 echo "track exit $?"
