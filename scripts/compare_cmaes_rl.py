@@ -71,6 +71,9 @@ def make_env(kw, torque_sd):
     if kw.get("elbow_solref") is not None:
         kw["elbow_solref"] = list(kw["elbow_solref"])
     kw.pop("tolerance_target", None)
+    if kw.pop("robot", None) == "g1":             # the Unitree G1 bowler (envs/g1_bowl_env.py)
+        from envs.g1_bowl_env import G1BowlEnv
+        return G1BowlEnv(**kw)
     return KinematicBowlEnv2(**kw)
 
 

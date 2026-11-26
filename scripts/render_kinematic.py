@@ -27,8 +27,6 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from stable_baselines3 import PPO
-
 from envs.kinematic_bowl_env import KinematicBowlEnv
 from envs.ballistics import BALL_R, position
 from scripts.kin_equifinality import RUN_RE, run_episode
@@ -81,9 +79,28 @@ def main():
     p.add_argument("--captured-arm", action="store_true",
                    help="with --robot: the arm too replays the (retargeted) capture, to the end: no policy")
     p.add_argument("--angle", type=float, default=270.0, help="with --captured-arm: release angle")
+    p.add_argument("--actions", default=None, help="a scripts/export_kin_actions.py json: replay a PPO policy's "
+                   "recorded actions (no torch needed)")
     p.add_argument("--any", action="store_true", help="with --frontier: the record even if infeasible")
     a = p.parse_args()
-    if a.captured_arm:
+    if a.actions:                     # a PPO policy recorded on the HPC: replay its actions step by step
+        import json
+        from scripts.kin_equifinality import make_env2
+        rec = json.load(open(a.actions))
+        kw2 = dict(rec["env2"])
+        env = make_env2(kw2, 0.0, a.target_m)
+        a.before = rec["before_s"]
+        acts = {False: rec["on"], True: rec["off"]}
+
+        class Replay:
+            def predict(self, obs, deterministic=True):
+                seq = acts[bool(env.suppress_release)]
+                i = int(round((env.t - env._start_t) / env.dt))
+                return np.asarray(seq[min(i, len(seq) - 1)], float), None
+        model = Replay()
+        m = {"delivery": kw2.get("delivery", "T3a")}
+        a.run = a.run or rec["run"]
+    elif a.captured_arm:
         from envs.g1_bowl_env import G1BowlEnv
         from envs.ballistics import CRICKET_DRAG_K
         env = G1BowlEnv(delivery=a.delivery or "T3aL", rsi=False, release_angle_deg=a.angle, arm_handover_s=-1.0,
@@ -108,7 +125,7 @@ def main():
         m = {"delivery": a.delivery or rec.get("delivery", "T3a")}
         a.run = a.run or f"{Path(a.frontier).stem}_tau{a.tau:g}"
     env2 = ROOT / "checkpoints" / f"{a.run}.env2.json"
-    if a.frontier or a.captured_arm:
+    if a.frontier or a.captured_arm or a.actions:
         pass
     elif env2.exists():               # kinematic2 runs: rebuild the env as trained, without training noise
         import json
@@ -123,7 +140,8 @@ def main():
         env = KinematicBowlEnv(delivery=m["delivery"], rsi=False, release_angle_deg=float(m["ang"]),
                                target_range=(10.9, 12.9), arm_control=m["ctl"],
                                arm_handover_s=int(m["ho"]) / 1000 if m["ho"] else None)
-    if not (a.frontier or a.captured_arm):
+    if not (a.frontier or a.captured_arm or a.actions):
+        from stable_baselines3 import PPO
         model = PPO.load(a.model_path or ROOT / "checkpoints" / f"{a.run}.zip", device="cpu")
 
     out1, rows, _, _, t0 = run_episode(env, model, a.before, 0)
