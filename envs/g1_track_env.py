@@ -28,7 +28,6 @@ import gymnasium as gym
 import mujoco
 import numpy as np
 from gymnasium import spaces
-from scipy.spatial.transform import Rotation, Slerp
 
 ROOT = Path(__file__).resolve().parent.parent
 G1_XML = ROOT / "assets" / "unitree_g1" / "g1.xml"
@@ -97,8 +96,7 @@ class G1TrackEnv(gym.Env):
         f = np.clip(t * self.rate, 0, len(self.rq) - 1.000001)
         i, w = int(f), f - int(f)
         q = (1 - w) * self.rq[i] + w * self.rq[i + 1]
-        r = Slerp([0, 1], Rotation.from_quat([self.rq[i, [4, 5, 6, 3]], self.rq[i + 1, [4, 5, 6, 3]]]))([w])
-        q[3:7] = r.as_quat()[0][[3, 0, 1, 2]]
+        q[3:7] = slerp(self.rq[i, 3:7], self.rq[i + 1, 3:7], w)
         v = (1 - w) * self.rv[i] + w * self.rv[i + 1]
         return q, v
 
@@ -173,6 +171,20 @@ class G1TrackEnv(gym.Env):
         if fell:
             reward = 0.0
         return self._obs(), float(reward), bool(fell), bool(done_clip and not fell), info
+
+
+def slerp(q0, q1, w):
+    """Spherical interpolation between unit quaternions (any component order), shortest way round."""
+    q0, q1 = np.asarray(q0, float), np.asarray(q1, float)
+    c = q0 @ q1
+    if c < 0:
+        q1, c = -q1, -c
+    if c > 0.9995:
+        q = q0 + w * (q1 - q0)
+    else:
+        th = np.arccos(c)
+        q = (np.sin((1 - w) * th) * q0 + np.sin(w * th) * q1) / np.sin(th)
+    return q / np.linalg.norm(q)
 
 
 def rotvec(M):
