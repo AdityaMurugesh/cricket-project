@@ -303,6 +303,18 @@ off the ground) almost disappears, so the robot version is closer to a fast walk
 <p class="sub">Videos (on the laptop, not on GitHub): results/kinematic/videos/g1_dynamic_fixed_nohelp.mp4 (falls),
 g1_dynamic_fixed_help3000.mp4 (with help).</p>
 
+<h3>7c. Started tonight: teaching the robot to balance (tracking RL)</h3>
+<p><b>Meaning:</b> instead of motors blindly copying joint angles, a PPO network adds small corrections (at most
+±0.25 or ±0.5 rad) to every motor's target, every 20 ms, while watching the whole body. It earns points for staying close to the
+reference motion (joint angles, joint speeds, hand and foot positions, pelvis) and the episode ends if it falls. Each
+practice run starts at a random moment of the delivery ("reference state initialisation"), so it learns every part of the clip.
+This is the DeepMimic recipe (Peng et al. 2018), the standard way humanoid robots learn captured motions.</p>
+<p>Code: <code>envs/g1_track_env.py</code>, <code>scripts/train_g1_track.py</code>. Three runs on the HPC (jobs
+47153, 47156, 47157), 8.5 h each, ~70 million practice steps each. Every 5 million steps the policy tries the
+<b>whole delivery from the start</b>; the test is whether it gets to the end without falling
+(<code>logs/g1track_*/eval.csv</code>).</p>
+<!--TRACK_RESULT-->
+
 <h2 class="pb"><span class="n">8</span>Meeting cheat sheet</h2>
 <h3>Five things to say, in order</h3>
 <ol>
