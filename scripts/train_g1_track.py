@@ -26,11 +26,13 @@ def make(delivery, action_scale, seed, t_from, t_to):
     return f
 
 
-def evaluate(model, vecnorm, delivery, action_scale, t_from, t_to, record=False):
-    """The whole clip from its first frame, deterministic. Returns stats (and the qpos per step if record)."""
+def evaluate(model, vecnorm, delivery, action_scale, t_from, t_to, record=False, k0=0, env=None):
+    """The clip from grid step k0 (default its first frame) to the end, deterministic. Returns stats (and the
+    qpos per step if record)."""
     from envs.g1_track_env import G1TrackEnv
-    env = G1TrackEnv(delivery=delivery, action_scale=action_scale, rsi=False, t_from=t_from, t_to=t_to)
-    obs, _ = env.reset(options={"k": 0})
+    if env is None:
+        env = G1TrackEnv(delivery=delivery, action_scale=action_scale, rsi=False, t_from=t_from, t_to=t_to)
+    obs, _ = env.reset(options={"k": k0})
     frames, R, n, info = [env.d.qpos.copy()], 0.0, 0, {}
     je, re_, ee = [], [], []
     while True:
@@ -43,13 +45,15 @@ def evaluate(model, vecnorm, delivery, action_scale, t_from, t_to, record=False)
         if te or tr:
             break
     out = {"completed": bool(info.get("completed")), "fell": bool(info.get("fell")), "steps": n,
-           "of_steps": env.n_grid - 1, "reached_t_rel": float(info["t_rel_release"]), "return": float(R),
+           "of_steps": env.n_grid - 1 - k0, "start_t_rel": float(env.t0 + k0 * env.dt - env.t_rel),
+           "reached_t_rel": float(info["t_rel_release"]), "return": float(R),
            "joint_err_deg": float(np.degrees(np.mean(je))), "root_err_m": float(np.mean(re_)),
            "ee_err_m": float(np.mean(ee))}
     if record:
         out["qpos"] = np.array(frames)
         out["dt"] = env.dt
-        out["t_start_rel"] = env.t0 - env.t_rel
+        out["t_start_rel"] = env.t0 + k0 * env.dt - env.t_rel
+        out["k0"] = k0
     return out
 
 

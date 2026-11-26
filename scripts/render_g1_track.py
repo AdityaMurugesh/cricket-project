@@ -30,9 +30,11 @@ def main():
     p.add_argument("--rollout", default=None, help="default logs/<run>/final_rollout.npz")
     p.add_argument("--delivery", default="T3aLf")
     p.add_argument("--label", default=None)
+    p.add_argument("--suffix", default="", help="appended to the video name")
     a = p.parse_args()
     z = np.load(a.rollout or ROOT / "logs" / a.run / "final_rollout.npz")
     Q, dt, t_start = z["qpos"], float(z["dt"]), float(z["t_start_rel"])
+    k0 = int(z["k0"]) if "k0" in z.files else 0      # the reference grid step the rollout started on
     env = G1TrackEnv(delivery=a.delivery, rsi=False)
     m, d = env.m, mujoco.MjData(env.m)
     dref = mujoco.MjData(m)
@@ -42,7 +44,7 @@ def main():
     for f, q in enumerate(Q):
         d.qpos[:] = q
         mujoco.mj_kinematics(m, d)
-        dref.qpos[:] = env.gq[min(f, n_ref - 1)]
+        dref.qpos[:] = env.gq[min(k0 + f, n_ref - 1)]
         dref.qpos[1] += 1.0                       # the reference drawn 1 m to the left, for comparison
         mujoco.mj_kinematics(m, dref)
         imgs = []
@@ -62,8 +64,8 @@ def main():
     done = len(Q) - 1
     lines = [f"Unitree G1, WHOLE BODY PHYSICALLY SIMULATED, learned tracking controller ({a.label or a.run})",
              f"Solid: the controller. Blue, 1 m aside: the reference. Starts {abs(t_start):.1f} s "
-             f"before release; {done} of {n_ref - 1} steps ({done * dt:.2f} s). 2x slow motion."]
-    out = ROOT / "results" / "kinematic" / "videos" / f"{a.run}.mp4"
+             f"before release; {done} of {n_ref - 1 - k0} steps ({done * dt:.2f} s). 2x slow motion."]
+    out = ROOT / "results" / "kinematic" / "videos" / f"{a.run}{a.suffix}.mp4"
     out.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([str(LOCO_PY), "-c", WRITE, str(tmp), str(out), str(round(0.5 / dt, 3)), "|".join(lines)], check=True)
 
