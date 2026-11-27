@@ -51,8 +51,8 @@ what was done tonight. Section 8 is a cheat sheet for the meeting.</p>
 <li>The three "brains": CMA-ES, behaviour cloning, PPO</li>
 <li>What we found up to 20 Nov</li>
 <li>The humanoid robot: Unitree G1 (what was built 22–24 Nov)</li>
-<li>RL on the G1: new results (tonight)</li>
-<li>Can the real robot do the whole delivery? First dynamic test (tonight)</li>
+<li>RL on the G1: new results (overnight)</li>
+<li>Can the real robot do the whole delivery? Dynamic test, then an RL balance controller (overnight)</li>
 <li>Meeting cheat sheet: what to say, likely questions</li>
 <li>Glossary, and where everything is</li>
 </ol></div>
@@ -303,7 +303,7 @@ off the ground) almost disappears, so the robot version is closer to a fast walk
 <p class="sub">Videos (on the laptop, not on GitHub): results/kinematic/videos/g1_dynamic_fixed_nohelp.mp4 (falls),
 g1_dynamic_fixed_help3000.mp4 (with help).</p>
 
-<h3>7c. Started tonight: teaching the robot to balance (tracking RL)</h3>
+<h3>7c. Overnight: teaching the robot to balance (tracking RL), and it works</h3>
 <p><b>Meaning:</b> instead of motors blindly copying joint angles, a PPO network adds small corrections (at most
 ±0.25 or ±0.5 rad) to every motor's target, every 20 ms, while watching the whole body. It earns points for staying close to the
 reference motion (joint angles, joint speeds, hand and foot positions, pelvis) and the episode ends if it falls. Each
@@ -313,10 +313,40 @@ This is the DeepMimic recipe (Peng et al. 2018), the standard way humanoid robot
 47153, 47156, 47157), 8.5 h each, ~70 million practice steps each. Every 5 million steps the policy tries the
 <b>whole delivery from the start</b>; the test is whether it gets to the end without falling
 (<code>logs/g1track_*/eval.csv</code>).</p>
-<!--TRACK_RESULT-->
+<p><b>Result after 25 million practice steps (about 3 h per run, overnight):</b></p>
+<table>
+<tr><th>Start point</th><th>What happens (all three runs agree)</th></tr>
+<tr><td>0.94 s before release (mid run-up, 3+ m/s)</td><td><b>Gets through the whole delivery without falling:</b>
+run-up, bound, back-foot and front-foot landing, release and follow-through: 64 steps, 1.28 s. Joints within ~8–11° of
+the reference on average, pelvis within ~0.12–0.2 m.</td></tr>
+<tr><td>The clip's very first frame (1.0 s before)</td><td>Falls after ~0.3 s. The reference itself is faulty there: the
+retargeted pelvis whips through ~21° in its first 40 ms (13 rad/s), which no body does. It's an edge artefact of the
+retargeting, not the controller's fault.</td></tr>
+<tr><td>Other start points, every 60 ms</td><td>Finishes from 15 of 21 start points (16 for the ±0.5 rad run). It falls
+from a few awkward ones: one in the run-up and the take-off of the bound (both of these lose balance late, after release or
+just before it), and 0.1 s before release (there it lasts until +0.25 s, nearly to the end).</td></tr>
+</table>
+<p><b>Training progress</b> (panel b): the share of practice runs that reach the end went from 45% at 5M steps to 68–82%
+at 25M steps, still rising. The ±0.5 rad run (larger corrections allowed) is best.</p>
+<p><b>The catch: the arm is slower.</b> The bowling hand reaches ~33–37 km/h at release, against ~50 km/h in the
+reference (both measured at the wrist on the 20 ms grid). The controller keeps the robot up by giving up some arm speed. This matches
+section 6: the G1's arm motors are about 3× too weak for the human swing.</p>
+<img src="../results/kinematic/g1/track_summary.png" style="width:100%">
+<p class="sub">(a) From the very first frame it falls in the run-up every time (the reference artefact). (b) Practice runs
+reaching the end of the clip. (c) The 25M-step policies started at different points: filled dots reach the end, open
+dots fall (y = where). Files: results/kinematic/g1/track_starts_*.json, track_*_eval.csv. Video (on the laptop):
+results/kinematic/videos/g1track_a050_lr1e4_s2_k3.mp4 (whole delivery) and _k0.mp4 (the first-frame fall).
+The runs keep training until ~05:45 UTC (~70M steps); these are the 25M checkpoints.</p>
+<div class="say"><b>Say:</b> "Overnight, a DeepMimic-style RL controller learned to keep the physically simulated G1
+on its feet through the whole delivery: run-up at over 3 m/s, the bound, release and follow-through. Motors alone fell
+in 0.15 s. It isn't yet a fast delivery: the hand is about a third slower than the reference at release, because the
+arm motors can't keep up while balancing. The next step is to put the bowling reward on top of this controller."</div>
+<div class="catch"><b>Catch:</b> "completes" means it didn't fall (pelvis within 0.6 m of its path, trunk within 60°,
+only feet touching the floor). It is not a perfect copy: the pelvis drifts 10–30 cm. It starts at 0.94 s, not 1.0 s,
+because of the reference glitch. And there's no ball or legality check yet in this whole-body version.</div>
 
 <h2 class="pb"><span class="n">8</span>Meeting cheat sheet</h2>
-<h3>Five things to say, in order</h3>
+<h3>Six things to say, in order</h3>
 <ol>
 <li><b>The whole bowler is now a real robot</b> (Unitree G1): its body, masses, joint limits and motors. The human motion
 was retargeted onto it.</li>
@@ -325,15 +355,17 @@ mostly body size and the waist, not motor strength.</li>
 <li><b>RL on the G1:</b> the same-noise result carries over. Under 15% motor noise the RL bowler keeps 1.5–4× the
 CMA-ES plan's good balls (main setting: 43–46% against 21%, 4 seeds).</li>
 <li><b>First dynamic whole-body test:</b> falls in under 0.5 s with joint motors alone. We found and fixed feet under the
-floor and sliding. It needs ~2× body weight of help, so the next step is an RL balance controller.</li>
-<li><b>Next:</b> RL whole-body tracking on the G1 (GPU), then bowling on top of it; constrained RL on the G1.</li>
+floor and sliding. It needs ~2× body weight of help, so it needs an RL balance controller.</li>
+<li><b>RL balance controller (overnight):</b> a DeepMimic-style PPO controller keeps the physical G1 up through the whole
+delivery (run-up, bound, release, follow-through), on 3 of 3 runs. The hand is ~1/3 slower than the reference at release.</li>
+<li><b>Next:</b> the bowling reward (speed, length, the elbow law) on top of the balance controller; constrained RL on the G1.</li>
 </ol>
 
 <div class="qa">
 <p class="q">Q: Is the body physically simulated now?</p>
-<p>In the bowling results (sections 5–6), no: the body is prescribed and only the arm is torque-driven, as before. Tonight's dynamic
-test (section 7) is the first fully physical one, and it shows the robot can't yet balance through the delivery
-without a learned controller.</p>
+<p>In the bowling results (sections 5–6), no: the body is prescribed and only the arm is torque-driven, as before. The dynamic
+test (section 7) is the first fully physical one. Motors alone fall over. With the RL tracking controller trained overnight,
+the whole robot gets through the delivery on its own feet (7c), but there's no ball in that version yet.</p>
 <p class="q">Q: Why is the G1 so much slower than the human-limit model?</p>
 <p>Weak arm motors (25 N·m) are only part of it: ×3 motors only lifts 71 → 88 km/h. The rest is the smaller body (0.74×
 length, so a shorter lever and slower hand at the same joint speed) and the waist, which can't side-bend like a fast
@@ -348,9 +380,10 @@ tests show it on the human-limit model, and now on the G1 too (section 6).</p>
 <p>The rule for making a small model move in a physically similar way to a big one: keep gravity's effect the same.
 Lengths × 0.74 means times × √0.74 ≈ 0.86. Engineers use it for ship models, and biologists to compare animal gaits.</p>
 <p class="q">Q: How would you make the robot balance?</p>
-<p>Train a whole-body tracking policy with RL: it gets all 29 joints and the body's state, and is rewarded for staying
-close to the reference motion without falling (DeepMimic-style). It runs on GPUs (MuJoCo's MJX, or Isaac). Then put the
-bowling objective on top.</p>
+<p>That's what we did overnight (7c): a whole-body tracking policy trained with RL. It sees all 29 joints and the body's
+state, adds corrections to every motor target, and is rewarded for staying close to the reference motion without
+falling (DeepMimic-style). After 25M steps on CPUs it gets through the whole delivery. Next: put the bowling objective on
+top; GPUs (MuJoCo MJX / Isaac) would make it ~100× faster.</p>
 <p class="q">Q: Is the elbow law still checked on the robot?</p>
 <p>Yes, the same ≤15° rule. The G1's elbow angle is converted (flexion = 90° − joint angle). Every G1 delivery reported is legal.</p>
 </div>

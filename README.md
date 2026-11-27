@@ -25,13 +25,13 @@ The running project log is [`context.md`](context.md). The latest write-ups are 
 | Body vs robot | The captured legs and trunk against the Unitree G1/H1 joint ranges and speed limits. | `scripts/body_vs_robot.py` |
 | Humanoid robot (Unitree G1) | The whole bowler as a G1 (MuJoCo Menagerie, 29 DoF): the capture retargeted onto it by per-frame IK, its own arm and motors; CMA-ES, BC + PPO and scoring run on it with `--robot g1`. | `assets/unitree_g1/`, `scripts/retarget_g1.py`, `envs/g1_bowl_env.py`, `scripts/g1_feasibility.py` |
 | Dynamic whole-body G1 | The whole G1 physically simulated (floor contact, Unitree's servos and torque limits) tracking the delivery; a foot-pinned, Froude-scaled retarget (`--feet --froude`). | `scripts/g1_dynamic.py` |
-| Whole-body tracking RL | DeepMimic-style PPO controller that keeps the dynamic G1 up through the delivery (corrections on the servo targets). | `envs/g1_track_env.py`, `scripts/train_g1_track.py`, `scripts/render_g1_track.py` |
+| Whole-body tracking RL | DeepMimic-style PPO controller that keeps the dynamic G1 up through the delivery (corrections on the servo targets). | `envs/g1_track_env.py`, `scripts/train_g1_track.py`, `scripts/eval_g1_track_starts.py`, `scripts/plot_g1_track.py`, `scripts/render_g1_track.py` |
 
 A one-slide summary of the CMA-ES → PPO link: [`docs/slide_cmaes_to_ppo.png`](docs/slide_cmaes_to_ppo.png).
 
 ## Results
 
-- [`docs/meeting_2026-11-27.md`](docs/meeting_2026-11-27.md): the Unitree G1 humanoid: its frontier, CMA-ES vs RL under the same noise on the robot (`results/kinematic/cmaes_vs_rl/g1_cmaes_vs_rl.png`), and the first dynamic whole-body test (`results/kinematic/g1/dynamic_T3aLf.png`). Plain-language guide to the whole project: [`docs/study_guide.pdf`](docs/study_guide.pdf).
+- [`docs/meeting_2026-11-27.md`](docs/meeting_2026-11-27.md): the Unitree G1 humanoid: its frontier, CMA-ES vs RL under the same noise on the robot (`results/kinematic/cmaes_vs_rl/g1_cmaes_vs_rl.png`), the first dynamic whole-body test (`results/kinematic/g1/dynamic_T3aLf.png`), and the RL tracking controller that keeps the physical G1 up through the whole delivery (`results/kinematic/g1/track_summary.png`). Plain-language guide to the whole project: [`docs/study_guide.pdf`](docs/study_guide.pdf).
 - [`docs/progress_since_20nov.pdf`](docs/progress_since_20nov.pdf): the 20 Nov meeting's actions (CMA-ES vs RL under the same noise, legs, arm limits, constrained RL).
 - [`docs/progress_since_6nov.pdf`](docs/progress_since_6nov.pdf): what was built and found from 6 to 20 Nov (a short version: [`docs/progress_simple.pdf`](docs/progress_simple.pdf)).
 - `results/kinematic/frontier/`: CMA-ES frontiers (speed against accuracy per timing skill), e.g. `speed_vs_accuracy.png`.

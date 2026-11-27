@@ -63,7 +63,7 @@ def main():
         plt.imsave(tmp / f"f_{f:05d}.png", np.concatenate(imgs, axis=1))
     done = len(Q) - 1
     lines = [f"Unitree G1, WHOLE BODY PHYSICALLY SIMULATED, learned tracking controller ({a.label or a.run})",
-             f"Solid: the controller. Blue, 1 m aside: the reference. Starts {abs(t_start):.1f} s "
+             f"Solid: the controller. Blue, 1 m aside: the reference. Starts {abs(t_start):.2f} s "
              f"before release; {done} of {n_ref - 1 - k0} steps ({done * dt:.2f} s). 2x slow motion."]
     out = ROOT / "results" / "kinematic" / "videos" / f"{a.run}{a.suffix}.mp4"
     out.parent.mkdir(parents=True, exist_ok=True)
