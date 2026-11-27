@@ -39,7 +39,7 @@ def main():
     from train_g1_track import evaluate
     torch.set_num_threads(1)
 
-    zip_ = Path(a.ckpt) if a.ckpt else ROOT / "checkpoints" / f"{a.run}.zip"
+    zip_ = Path(a.ckpt).resolve() if a.ckpt else ROOT / "checkpoints" / f"{a.run}.zip"
     vn_path = zip_.with_name(zip_.stem + "_vecnorm.pkl")
     mk = lambda: G1TrackEnv(delivery=a.delivery, action_scale=a.action_scale, rsi=False, t_from=a.t_from,
                             t_to=a.t_to)
